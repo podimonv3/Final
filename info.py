@@ -100,6 +100,8 @@ TAGS = [
 ]
 
 # Others
+LONG_IMDB_DESCRIPTION = is_enabled(environ.get("LONG_IMDB_DESCRIPTION", "False"), False)
+
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', "-1002332361885"))
 DELETE_CHANNELS = [int(dch) if id_pattern.match(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002354592029').split()]
 SUPPORT_CHAT = environ.get('SUPPORT_CHAT', 'mcumovies')
