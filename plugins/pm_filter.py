@@ -1116,6 +1116,8 @@ async def auto_filter(client, msg, spoll=False):
             [InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
             InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{req}_{key}_{offset}")]
         )     
+    
+    # പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ നോക്കുന്നു
     poster = await get_any_movie_poster(search)
 
     cap = (
@@ -1132,13 +1134,33 @@ async def auto_filter(client, msg, spoll=False):
         f"in {mins} mins to avoid group clutter.</i>"
     )
 
-    try:
-        fmsg = await message.reply_photo(
-            photo=poster,
-            caption=cap,
-            reply_markup=InlineKeyboardMarkup(btn)
-        )
+    fmsg = None # മെസ്സേജ് ഐഡി ട്രാക്ക് ചെയ്യാൻ ഒരു വേരിയബിൾ സെറ്റ് ചെയ്യുന്നു
 
+    # കണ്ടീഷൻ 1: പോസ്റ്റർ കൃത്യമായി ലഭിച്ചാൽ ഫോട്ടോയായി അയക്കാൻ നോക്കുന്നു
+    if poster:
+        try:
+            fmsg = await message.reply_photo(
+                photo=poster,
+                caption=cap,
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+        except Exception as photo_error:
+            logger.warning(f"Photo അയക്കാൻ കഴിഞ്ഞില്ല, ടെക്സ്റ്റിലേക്ക് മാറുന്നു: {photo_error}")
+            fmsg = None # എറർ വന്നാൽ താഴെയുള്ള ടെക്സ്റ്റ് മെസ്സേജ് രീതിയിലേക്ക് പോകാൻ
+
+    # കണ്ടീഷൻ 2: പോസ്റ്റർ ലഭിച്ചില്ലെങ്കിലോ, അല്ലെങ്കിൽ ഫോട്ടോ അയക്കുന്നതിൽ എറർ ഉണ്ടായാലോ ടെക്സ്റ്റ് അയക്കുന്നു
+    if not fmsg:
+        try:
+            fmsg = await message.reply_text(
+                text=cap,
+                reply_markup=InlineKeyboardMarkup(btn),
+                disable_web_page_preview=True # ഫോട്ടോ ഇല്ലാത്തതിനാൽ വെബ് പ്രിവ്യൂ ഒഴിവാക്കാൻ
+            )
+        except Exception as text_error:
+            logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
+
+    # മെസ്സേജ് വിജയകരമായി അയച്ചു കഴിഞ്ഞാൽ ഓട്ടോ ഡിലീറ്റ് ടാസ്ക് റൺ ചെയ്യും
+    if fmsg:
         asyncio.create_task(
             auto_delete_messages(
                 client,
@@ -1148,8 +1170,6 @@ async def auto_filter(client, msg, spoll=False):
             )
         )
 
-    except Exception as e:
-        logger.error(f"Error in auto_filter poster/auto-delete: {e}")
 
 
 
