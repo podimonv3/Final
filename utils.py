@@ -49,8 +49,10 @@ import urllib.parse
 import aiohttp
 from bs4 import BeautifulSoup
 from imdb import Cinemagoer
+import imdb
 
-ia = Cinemagoer()
+ia = imdb.Cinemagoer()
+
 
 # 1. TMDB Async
 async def get_tmdb_poster(movie_name, tmdb_api_key):
