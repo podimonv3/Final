@@ -15,7 +15,7 @@ from info import ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, AUTH_USERS, CUSTOM_FILE_CAP
     SINGLE_BUTTON, SPELL_CHECK_REPLY, LOG_CHANNEL
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram import Client, filters, enums
-from utils import get_size, is_subscribed, temp, get_settings, save_group_settings, is_requested_one, is_requested_two, get_any_movie_poster
+from utils import get_size, is_subscribed, temp, get_settings, save_group_settings, is_requested_one, is_requested_two, get_any_movie_poster, get_poster
 from database.users_chats_db import db
 from database.ia_filterdb import Media, Mediaa, get_bad_files, get_file_details, get_search_results, db as clientDB, db1 as clientDB2, db2 as clientDB3
 from database.filters_mdb import (
@@ -27,6 +27,7 @@ from database.gfilters_mdb import find_gfilter, get_gfilters
 import logging
 from database.requests_db import save_missing_movie, get_all_missing_movies
 import io
+from urllib.parse import quote_plus
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
@@ -58,6 +59,12 @@ async def _patched_edit_markup(self, *args, **kwargs):
 CallbackQuery.edit_message_reply_markup = _patched_edit_markup
 # --- 🛠️ MESSAGE ID INVALID GLOBAL FIX END 🛠️ ---
 
+def _trim_dict(d: dict, max_size: int = 250):  # ഇവിടെ 1000 ആണ് DEFAULT വാല്യൂ
+    """Remove oldest 20% of entries when dict exceeds max size."""
+    if len(d) > max_size:
+        keys_to_remove = list(d.keys())[:len(d) // 5]
+        for k in keys_to_remove:
+            d.pop(k, None)
 
 # --- 🛠️ ADVANCED MENUS CONFIGURATION (STYLISH FONTS) 🛠️ ---
 LANGUAGES = [
@@ -323,7 +330,62 @@ async def give_filters(client, message):
     # return_exceptions=True നൽകിയാൽ ഒരെണ്ണത്തിൽ എറർ വന്നാലും മറ്റേത് കൃത്യമായി വർക്ക് ചെയ്യും
     await asyncio.gather(task1, task2, return_exceptions=True)
 
+@Client.on_callback_query(filters.regex(r"^spol"))
+async def advantage_spoll_choker(bot, query):
+    _, user, movie_ = query.data.split('#')
+    
+    if int(user) != 0 and query.from_user.id != int(user):
+        return await query.answer("okDa", show_alert=True)
         
+    if movie_ == "close_spellcheck":
+        return await query.message.delete()
+        
+    movies = SPELL_CHECK.get(query.message.reply_to_message.id)
+    if not movies:
+        return await query.answer("You are clicking on an old button which is expired.", show_alert=True)
+        
+    movie = movies[(int(movie_))]
+    await query.answer('Checking for Movie in database...')
+    
+    k = await global_filters(bot, query.message, text=movie)
+    if k == False:
+        files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
+        if files:
+            k = (movie, files, offset, total_results)
+            
+            # പഴയ സ്പെൽചെക്ക് മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
+                
+            await auto_filter(bot, query, k)
+        else:
+            # 🔍 ഡാറ്റാബേസിൽ സിനിമ ഇല്ലെങ്കിൽ ഗൂഗിൾ ലിങ്ക് സെറ്റ് ചെയ്യുന്നു
+            reqst_gle = quote_plus(movie)
+            button = [[            
+                InlineKeyboardButton('🔍 ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")
+            ]]
+            
+            # സ്പെൽചെക്ക് മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
+            
+            # ഫോട്ടോ ഒഴിവാക്കി ടെക്സ്റ്റ് മെസ്സേജ് ആയി അയക്കുന്നു
+            try:
+                google_msg = await query.message.reply_text(
+                    text="hai",
+                    reply_markup=InlineKeyboardMarkup(button)
+                )
+                
+                # 10 സെക്കന്റിന് ശേഷം ആ മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
+                await asyncio.sleep(10)
+                await google_msg.delete()
+            except Exception as e:
+                logger.error(f"Error sending google link in spellcheck: {e}")
+
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
     ident, req, key, offset = query.data.split("_")
@@ -989,43 +1051,26 @@ async def auto_filter(client, msg, spoll=False):
                 if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords):
                     return  # 👈 ഗ്ലോബൽ ഫിൽട്ടറിൽ ഉണ്ടെങ്കിൽ സ്പെൽ ചെക്ക് അയക്കാതെ ഇവിടെ വെച്ച് അവസാനിപ്പിക്കുന്നു!
 
-                await save_missing_movie(search)
-                
-                reqst_gle = search.replace(" ", "+")
-                btn_google = InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")
-                btn_rules = InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")
-                btn_request = InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-
-                keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn_google], [btn_rules, btn_request]])                
                 try:
-                    # 📸 ഗൂഗിൾ ഫോട്ടോ സഹിതമുള്ള സ്പെൽ ചെക്ക് മെസ്സേജ് അയക്കുന്നു
-                    spell_msg = await msg.reply_photo(
-                        photo="https://files.catbox.moe/yt159d.jpg",
-                        caption=script.SPELL_TEXT.format(msg.from_user.mention),
-                        reply_markup=keyboard,
-                        parse_mode=enums.ParseMode.HTML
-                    )
-                    # 🗑️ നോൺ-ബ്ലോക്കിംഗ് ടാസ്ക് വഴി 60 സെക്കൻഡിന് ശേഷം ഈ മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
-                    asyncio.create_task(auto_delete_messages(client, msg.chat.id, [spell_msg.id], 30))
-                    return       
-                except Exception:
-                    try:
-                        # 📝 ഫോട്ടോ സെർവറിൽ ലോഡ് ആയില്ലെങ്കിൽ സാധാരണ ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
-                        spell_msg = await msg.reply_text(
-                            text=script.SPELL_TEXT.format(msg.from_user.mention), 
-                            reply_markup=keyboard,
-                            parse_mode=enums.ParseMode.HTML
-                        )
-                        # 🗑️ ഈ ടെക്സ്റ്റ് മെസ്സേജും 60 സെക്കൻഡിനുള്ളിൽ തനിയെ ഡിലീറ്റ് ആകും
-                        asyncio.create_task(auto_delete_messages(client, msg.chat.id, [spell_msg.id], 30))
-                        return
-                    except Exception: return
-        else: return
+                    await save_missing_movie(search)
+                    await advantage_spell_chok(client, msg)                
+                    return
+                except Exception: 
+                    return
+            # 👈 ഫയലുകൾ ഉണ്ടെങ്കിൽ റിസൾട്ട് കാണിക്കാൻ കോഡ് താഴേക്ക് പോകണം, അതുകൊണ്ട് ഇവിടെ 'return' പാടില്ല!
+        else:
+            # message.text 100-ൽ കൂടുതൽ നീളമുള്ളതാണെങ്കിൽ വാല്യൂ ലോഡ് ചെയ്യുന്നു
+            settings = await get_settings(msg.message.chat.id)
+            return # ഫിൽട്ടർ ചെയ്യേണ്ടതില്ലാത്തതിനാൽ ഇവിടെ വെച്ച് നിർത്തുന്നു
+            
     else:
-        settings = await get_settings(msg.message.chat.id)
+        # സ്പെൽ ചെക്ക് ബട്ടൺ വഴിയാണ് വരുന്നതെങ്കിൽ (spoll=True/List ആകുമ്പോൾ)
         message = msg.message.reply_to_message  
         search, files, offset, total_results = spoll
+        # ഇവിടെയും നിർബന്ധമായും settings ലോഡ് ചെയ്യണം!
+        settings = await get_settings(message.chat.id)
         
+    # ഫയലുകൾ ഉണ്ടെങ്കിൽ റിസൾട്ട് കാണിക്കുന്ന ഭാഗം (ഇപ്പോൾ ഇൻഡന്റേഷൻ കറക്റ്റ് ആണ്)
     pre = 'filep' if settings['file_secure'] else 'file'
     req = message.from_user.id if message.from_user else 0
     key = f"{message.chat.id}-{message.id}"
@@ -1089,6 +1134,78 @@ async def auto_filter(client, msg, spoll=False):
     except Exception as e:
         logger.error(f"Error in auto_filter poster/auto-delete: {e}")
 
+
+
+async def advantage_spell_chok(client, msg):
+    mv_id = msg.id
+    mv_rqst = msg.text
+    reqstr1 = msg.from_user.id if msg.from_user else 0
+    cleaned_query = re.sub(
+        r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|"
+        r"br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|"
+        r"kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|"
+        r"any(one)|with\ssubtitle(s)?)",
+        "", msg.text, flags=re.IGNORECASE
+    )
+    cleaned_query = cleaned_query.strip()
+
+    try:
+        movies = await get_poster(cleaned_query, bulk=True)
+    except Exception as e:
+        logger.exception(e)
+        reqst_gle = quote_plus(mv_rqst)
+        button = [[            
+            InlineKeyboardButton('🔍 ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")
+        ]]
+        k = await msg.reply_text(
+            text="hai",
+            reply_markup=InlineKeyboardMarkup(button),
+            reply_to_message_id=msg.id
+        )
+        await asyncio.sleep(45)
+        await k.delete()
+        return
+
+    if not movies:
+        reqst_gle = mv_rqst.replace(" ", "+")
+        button = [[            
+            InlineKeyboardButton('🔍 ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")
+        ]]
+        k = await msg.reply_text(
+            text="hai",
+            reply_markup=InlineKeyboardMarkup(button),
+            reply_to_message_id=msg.id
+        )
+        await asyncio.sleep(60)
+        await k.delete()
+        return
+
+    movielist = [movie.get('title') for movie in movies]
+    movielist = [title for title in movielist if title]
+    if not movielist:
+        return
+
+    SPELL_CHECK[mv_id] = movielist
+    _trim_dict(SPELL_CHECK)
+    btn = [
+        [InlineKeyboardButton(
+            text=movie_name.strip(),
+            callback_data=f"spol#{reqstr1}#{k}",
+        )]
+        for k, movie_name in enumerate(movielist)
+    ]
+    btn.append([InlineKeyboardButton(text="✘ ᴄʟᴏsᴇ ✘", callback_data=f'spol#{reqstr1}#close_spellcheck')])
+    spell_check_del = await msg.reply_text(
+        text="<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱᴇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>",
+        reply_markup=InlineKeyboardMarkup(btn),
+        reply_to_message_id=msg.id
+    )
+    await asyncio.sleep(50)
+    try:
+        # യൂസർ ക്ലിക്ക് ചെയ്ത് മെസ്സേജ് ഇതിനകം ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ എറർ വരാതിരിക്കാൻ
+        await spell_check_del.delete()
+    except Exception:
+        pass
 
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
