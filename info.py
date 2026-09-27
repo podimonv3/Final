@@ -65,6 +65,40 @@ APPROVED = environ.get("APPROVED_WELCOME", "off").lower()
 pyroutils.MIN_CHAT_ID = -999999999999
 pyroutils.MIN_CHANNEL_ID = -100999999999999
 
+# info.py ഫയലിൽ ഈ രീതിയിൽ നൽകാം
+TAGS = [
+    "@FBM_New", "@FBM_HW", "@FBM", "@FBM_Tamil", "@FBM_x265", "[KMH]", "@FBM_ALL",
+    "@mobile_mm", "@Mallu_Hub", "[HN]", "PDisk", "@VR", "@CC_New", "@CC_Links",
+    "@CC_ALL", "@tollywoodz", "[KML]", "RWD", "[@WORD_MOVIS]", "@360", "@cinema_company",
+    "@Cinematic_world", "@CC", "@CK_HEVC", "@koreanjournal", "@CK_Moviez", "[TC]", "@cinema library",
+    "[F&T]", "HDMVCOUNTER", "@C_V", "@KL_ROCKERZ", "@MM_New", "MM_New", "@MM_ALL",
+    "@MM_X265", "[MM-New]", "@MM_Linkz", "@MM", "[MM]", "MLM", "@E4E",
+    "@RickyChannel", "ғαιвεяsgαтє", "Tamil_LinkZz", "@MPC", "://tamilrockers.com", "www_1TamilMV_art", "[CF]",
+    "[CC]", "@PM", "[TIF]", "@desimovies", "@telugu_moviez", "[A2MOVIES]", "@CCM",
+    "@malayalam movies", "@CE_Links", "@WMR", "@ᒪᕈT", "@TeamHDT", "@MoviesTop10", "@colorkannadi_movies",
+    "@DVDWOALL", "DVDWORLD", "Malayalam_Full_Movie", "DVDWO", "@KR", "@Sharathrockers", "@HindiHDmovies",
+    "@I_M_D_B", "@moviesclub1234", "@mclubb_subtitles", "@mclubb", "@CVM",
+    "@filmreview", "【CP】", "[ᎡTemporary]", "TIF_HW", "@Ma_Cartoonzz", "@Mj_Linkz", "@AM", "@HEVC_MoviesZ",
+    "@CV", "Dvdworld", "@movieworldkdY", "@Adult_MovieX", "@Rarefilms", "@CK",
+    "[WMJ]", "@SY_MS", "@Mallu_Movies", "@BM_Links", "@CC_Telugu",
+    "[Hotstar_Tamil]", "[DnO]", "(@desimovies Telegram)", "[DFBC]", "[US]", "@Cinema_Villa",
+    "@CMVLA", "@TamilAnimationToday", "[ML]", "[USA]", "[HEVC]", "@HMF", "[FC]", "@MJ_HEVC",
+    "@MM_OLD", "@FBM_Dubbed", "NewHDMovies", "[MC_Moviecentral]",
+    "Malayalam_Comedy_Movie", "@CiNEWOD", "@MalluRockerZz", "(@UCMOVIE)", "MAPTAP_TEAM", "[CT™]", "@MoviezzClub",
+    "@butterfly_media", "@Mp4Mania", "[MSM]", "[CT™️]", "@SUBTLESUBS", "@TR", "E4E", "@FC_HEVC",
+    "Full Movie", "@Moviezwen", "[TG @FILMFEVE]", "@Mx Links",
+    "@EE", "@CPR", "[MASHOBUC]", "[YDF]", "CG", "@McParadiso", "@FilmBuzzMedia",
+    "@CL", "@MT", "ML", "NewRelease",
+    "സിനിമാ_കലവറ", "🎞", "www_1tamilmv_lease",
+    "@CineMallu_Linkz",
+    "TamilYogi.vip",
+    "[Movie Bazar]", "Movie Bazar", "[MF]", "@MoViezOnlYheRe", "[GC]", "GC",
+    "@HEVCHubX", "@HPC_Telegram", "@LinkZz_MBBS", "[D&O]", "[PF]", "@DramaOST", "Tg @MoviesHunt",
+    "@HDMovies", "[MJ]", "@IM", "@PVRCinemas", "@M©", "[DD]", "[@ML_Linkz]",
+    "@sherlibrary", "@M3", "@MCSouth", "@Movie_Blasters1", "@MCArchives", "[TM]",
+    "www_1tamilmv_", "HDTCPREDVDFILES"
+]
+
 # Others
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', "-1002332361885"))
 DELETE_CHANNELS = [int(dch) if id_pattern.match(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002354592029').split()]
