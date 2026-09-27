@@ -9,6 +9,10 @@ logging.getLogger("pyrogram").setLevel(logging.ERROR)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 
+# imdbio ലോഗുകൾ മാത്രം ഒഴിവാക്കാൻ
+logging.getLogger("imdbio.services").setLevel(logging.WARNING)
+logging.getLogger("imdbio.parsers").setLevel(logging.WARNING)
+
 
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
