@@ -17,6 +17,11 @@ class script(object):
 <b><i> 🌿 OTT റിലീസ് ആവാത്ത മൂവീസ് ചോദിച്ചു സമയം കളയണ്ട കിട്ടില്ല 🚫
 🌿 ᴄʜᴇᴄᴋ ᴛʜᴇ ꜱᴘᴇʟʟɪɴɢ—ʙᴜᴛ ᴏɴʟʏ ɪꜰ ᴛʜᴀᴛ ᴍᴏᴠɪᴇ ʜᴀꜱ ʜᴀᴅ ᴀɴ ᴏᴛᴛ ʀᴇʟᴇᴀꜱᴇ.</b></i></blockquote>"""
 
+    OTT_TEXT = """<b><i><u>🚸നിർദ്ദേശങ്ങൾ🚸</u></b></i>
+<b><i> 🌿 OTT റിലീസ് ആവാത്ത മൂവീസ് ചോദിച്ചു സമയം കളയണ്ട കിട്ടില്ല 👀 or
+🌿ഇത് എന്റെ database ഇൽ ഇല്ല request ചെയ്തോളൂ.. request ചെയ്യും മുൻപ് rules വായിക്കുന്നത് നല്ലതായിരിക്കും</b></i></blockquote>"""
+
+
     JOIN_TXT = """⚠️ <b>Access Restricted / പ്രവേശന അനുമതി നിഷേധിക്കപ്പെട്ടിരിക്കുന്നു</b>
 
 <blockquote>To successfully receive your requested movie, you must join both of our official channels listed below.
