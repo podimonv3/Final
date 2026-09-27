@@ -366,8 +366,7 @@ async def advantage_spoll_choker(bot, query):
             reqst_gle = quote_plus(movie)
             
             # നിങ്ങളുടെ പുതിയ ബട്ടനുകൾ ഇവിടെ ആഡ് ചെയ്തിരിക്കുന്നു
-            button = [
-                [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+            button = [                
                 [
                     InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
                     InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
@@ -377,8 +376,8 @@ async def advantage_spoll_choker(bot, query):
             try:
                 # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
                 google_msg = await query.message.reply_photo(
-                    photo="https://files.catbox.moe/yt159d.jpg",
-                    caption=script.SPELL_TEXT,                    
+                    photo="https://files.catbox.moe/egu0ip.jpg",
+                    caption=script.OTT_TEXT,                    
                     reply_markup=InlineKeyboardMarkup(button),
                     parse_mode=enums.ParseMode.HTML
                 )
@@ -387,7 +386,7 @@ async def advantage_spoll_choker(bot, query):
                 logger.warning(f"Photo failed to send, falling back to text: {photo_error}")
                 try:
                     google_msg = await query.message.reply_text(
-                        text=script.SPELL_TEXT, 
+                        text=script.OTT_TEXT, 
                         reply_markup=InlineKeyboardMarkup(button),
                         parse_mode=enums.ParseMode.HTML
                     )
