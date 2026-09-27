@@ -48,10 +48,6 @@ import urllib.parse
 
 import aiohttp
 from bs4 import BeautifulSoup
-from imdb import Cinemagoer
-import imdb
-
-ia = imdb.Cinemagoer()
 
 
 # 1. TMDB Async
@@ -108,41 +104,7 @@ async def get_omdb_poster(movie_name, omdb_api_key):
 
     return None
 
-# 3. Cinemagoer (ഇത് async അല്ല, അതിനാൽ ഇതിനെ ഒരു പ്രത്യേക ത്രെഡിൽ റൺ ചെയ്യിക്കണം)
-def sync_cinemagoer(movie_name):
-    try:
-        movies = ia.search_movie(movie_name)
 
-        if not movies:
-            return None
-
-        movie = movies[0]
-
-        # Fetch main movie information
-        ia.update(movie, ["main"])
-
-        # Prefer full-size poster
-        poster_url = movie.get("full-size cover url")
-
-        if poster_url:
-            return poster_url
-
-        # Fallback to normal poster
-        poster_url = movie.get("cover url")
-
-        if poster_url:
-            return poster_url
-
-    except Exception as e:
-        print(f"Cinemagoer error for '{movie_name}': {e}")
-
-    return None
-
-async def get_cinemagoer_poster(movie_name):
-    return await asyncio.to_thread(
-        sync_cinemagoer,
-        movie_name
-    )
     
 # 4. Bing Scrapper Async
 async def scrape_bing_poster(movie_name):
@@ -203,11 +165,6 @@ async def get_any_movie_poster(movie_name):
         poster = await get_omdb_poster(movie_name, OMDB_API_KEY)
         if poster:
             return poster
-
-    # 3. Cinemagoer
-    poster = await get_cinemagoer_poster(movie_name)
-    if poster:
-        return poster
 
     # 4. Bing
     poster = await scrape_bing_poster(movie_name)
