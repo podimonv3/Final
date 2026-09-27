@@ -330,7 +330,6 @@ async def give_filters(client, message):
     # return_exceptions=True നൽകിയാൽ ഒരെണ്ണത്തിൽ എറർ വന്നാലും മറ്റേത് കൃത്യമായി വർക്ക് ചെയ്യും
     await asyncio.gather(task1, task2, return_exceptions=True)
 
-from info import SPELL_IMG  # SPELL_IMG എന്നതിന് പകരം info.py-ൽ ഉള്ള കറക്റ്റ് വേരിയബിൾ നെയിം നൽകുക
 
 @Client.on_callback_query(filters.regex(r"^spol"))
 async def advantage_spoll_choker(bot, query):
@@ -379,7 +378,7 @@ async def advantage_spoll_choker(bot, query):
                 # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
                 google_msg = await query.message.reply_photo(
                     photo="https://files.catbox.moe/yt159d.jpg",
-                    caption=script.SPELL_TEXT.format(msg.from_user.mention),                    
+                    caption=script.SPELL_TEXT,                    
                     reply_markup=InlineKeyboardMarkup(button),
                     parse_mode=enums.ParseMode.HTML
                 )
@@ -388,7 +387,7 @@ async def advantage_spoll_choker(bot, query):
                 logger.warning(f"Photo failed to send, falling back to text: {photo_error}")
                 try:
                     google_msg = await query.message.reply_text(
-                        text=script.SPELL_TEXT.format(msg.from_user.mention), 
+                        text=script.SPELL_TEXT, 
                         reply_markup=InlineKeyboardMarkup(button),
                         parse_mode=enums.ParseMode.HTML
                     )
