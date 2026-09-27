@@ -348,18 +348,17 @@ async def advantage_spoll_choker(bot, query):
     movie = movies[(int(movie_))]
     await query.answer('Checking for Movie in database...')
     
+    # 🌟 യൂസർ സിനിമ സെലക്ട് ചെയ്ത ഉടൻ തന്നെ സ്പെൽചെക്ക് മെസ്സേജ് ഇവിടെ വച്ച് ഡിലീറ്റ് ചെയ്യുന്നു
+    try:
+        await query.message.delete()
+    except Exception:
+        pass
+
     k = await global_filters(bot, query.message, text=movie)
     if k == False:
         files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
         if files:
             k = (movie, files, offset, total_results)
-            
-            # പഴയ സ്പെൽചെക്ക് മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
-            try:
-                await query.message.delete()
-            except Exception:
-                pass
-                
             await auto_filter(bot, query, k)
         else:
             # 🔍 ഡാറ്റാബേസിൽ സിനിമ ഇല്ലെങ്കിൽ ഗൂഗിൾ, റൂൾസ്, റിക്വസ്റ്റ് ലിങ്കുകൾ സെറ്റ് ചെയ്യുന്നു
@@ -372,7 +371,7 @@ async def advantage_spoll_choker(bot, query):
                     InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
                 ]
             ]        
-            # സ്പെൽചെക്ക് മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
+            
             try:
                 # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
                 google_msg = await query.message.reply_photo(
@@ -394,7 +393,7 @@ async def advantage_spoll_choker(bot, query):
                     logger.error(f"Text message also failed: {text_error}")
                     google_msg = None
             
-            # മെസ്സേജ് വിജയകരമായി അയച്ചിട്ടുണ്ടെങ്കിൽ 10 സെക്കന്റിന് ശേഷം ഡിലീറ്റ് ചെയ്യുന്നു
+            # മെസ്സേജ് വിജയകരമായി അയച്ചിട്ടുണ്ടെങ്കിൽ 60 സെക്കന്റിന് ശേഷം ഡിലീറ്റ് ചെയ്യുന്നു
             if google_msg:
                 try:
                     await asyncio.sleep(60)
