@@ -12,7 +12,7 @@ import pyrogram
 from database.connections_mdb import active_connection, all_connections, delete_connection, if_active, make_active, \
     make_inactive
 from info import ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, AUTH_USERS, CUSTOM_FILE_CAPTION, AUTH_GROUPS, P_TTI_SHOW_OFF, \
-    SINGLE_BUTTON, SPELL_CHECK_REPLY, LOG_CHANNEL
+    SINGLE_BUTTON, SPELL_CHECK_REPLY, LOG_CHANNEL, SPELL_IMG
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram import Client, filters, enums
 from utils import get_size, is_subscribed, temp, get_settings, save_group_settings, is_requested_one, is_requested_two, get_any_movie_poster, get_poster
@@ -330,6 +330,8 @@ async def give_filters(client, message):
     # return_exceptions=True നൽകിയാൽ ഒരെണ്ണത്തിൽ എറർ വന്നാലും മറ്റേത് കൃത്യമായി വർക്ക് ചെയ്യും
     await asyncio.gather(task1, task2, return_exceptions=True)
 
+from info import SPELL_IMG  # SPELL_IMG എന്നതിന് പകരം info.py-ൽ ഉള്ള കറക്റ്റ് വേരിയബിൾ നെയിം നൽകുക
+
 @Client.on_callback_query(filters.regex(r"^spol"))
 async def advantage_spoll_choker(bot, query):
     _, user, movie_ = query.data.split('#')
@@ -361,30 +363,44 @@ async def advantage_spoll_choker(bot, query):
                 
             await auto_filter(bot, query, k)
         else:
-            # 🔍 ഡാറ്റാബേസിൽ സിനിമ ഇല്ലെങ്കിൽ ഗൂഗിൾ ലിങ്ക് സെറ്റ് ചെയ്യുന്നു
+            # 🔍 ഡാറ്റാബേസിൽ സിനിമ ഇല്ലെങ്കിൽ ഗൂഗിൾ, റൂൾസ്, റിക്വസ്റ്റ് ലിങ്കുകൾ സെറ്റ് ചെയ്യുന്നു
             reqst_gle = quote_plus(movie)
-            button = [[            
-                InlineKeyboardButton('🔍 ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")
-            ]]
             
+            # നിങ്ങളുടെ പുതിയ ബട്ടനുകൾ ഇവിടെ ആഡ് ചെയ്തിരിക്കുന്നു
+            button = [
+                [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+                [
+                    InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+                    InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+                ]
+            ]        
             # സ്പെൽചെക്ക് മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
             try:
-                await query.message.delete()
-            except Exception:
-                pass
-            
-            # ഫോട്ടോ ഒഴിവാക്കി ടെക്സ്റ്റ് മെസ്സേജ് ആയി അയക്കുന്നു
-            try:
-                google_msg = await query.message.reply_text(
-                    text="hai",
+                # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
+                google_msg = await query.message.reply_photo(
+                    photo=SPELL_IMG,
+                    caption=SPELL_TEXT,
                     reply_markup=InlineKeyboardMarkup(button)
                 )
-                
-                # 10 സെക്കന്റിന് ശേഷം ആ മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
-                await asyncio.sleep(10)
-                await google_msg.delete()
-            except Exception as e:
-                logger.error(f"Error sending google link in spellcheck: {e}")
+            except Exception as photo_error:
+                # 2. ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ (Error വന്നാൽ) ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
+                logger.warning(f"Photo failed to send, falling back to text: {photo_error}")
+                try:
+                    google_msg = await query.message.reply_text(
+                        text=SPELL_TEXT,
+                        reply_markup=InlineKeyboardMarkup(button)
+                    )
+                except Exception as text_error:
+                    logger.error(f"Text message also failed: {text_error}")
+                    google_msg = None
+            
+            # മെസ്സേജ് വിജയകരമായി അയച്ചിട്ടുണ്ടെങ്കിൽ 10 സെക്കന്റിന് ശേഷം ഡിലീറ്റ് ചെയ്യുന്നു
+            if google_msg:
+                try:
+                    await asyncio.sleep(10)
+                    await google_msg.delete()
+                except Exception:
+                    pass
 
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
