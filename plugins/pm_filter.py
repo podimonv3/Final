@@ -378,17 +378,19 @@ async def advantage_spoll_choker(bot, query):
             try:
                 # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
                 google_msg = await query.message.reply_photo(
-                    photo=SPELL_IMG,
-                    caption=SPELL_TEXT,
-                    reply_markup=InlineKeyboardMarkup(button)
+                    photo="https://files.catbox.moe/yt159d.jpg",
+                    caption=script.SPELL_TEXT.format(msg.from_user.mention),                    
+                    reply_markup=InlineKeyboardMarkup(button),
+                    parse_mode=enums.ParseMode.HTML
                 )
             except Exception as photo_error:
                 # 2. ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ (Error വന്നാൽ) ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
                 logger.warning(f"Photo failed to send, falling back to text: {photo_error}")
                 try:
                     google_msg = await query.message.reply_text(
-                        text=SPELL_TEXT,
-                        reply_markup=InlineKeyboardMarkup(button)
+                        text=script.SPELL_TEXT.format(msg.from_user.mention), 
+                        reply_markup=InlineKeyboardMarkup(button),
+                        parse_mode=enums.ParseMode.HTML
                     )
                 except Exception as text_error:
                     logger.error(f"Text message also failed: {text_error}")
@@ -1170,29 +1172,39 @@ async def advantage_spell_chok(client, msg):
     except Exception as e:
         logger.exception(e)
         reqst_gle = quote_plus(mv_rqst)
-        button = [[            
-            InlineKeyboardButton('🔍 ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")
-        ]]
+        button = [
+            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+            [
+                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+            ]
+        ]
         k = await msg.reply_text(
-            text="hai",
+            text=script.SPELL_TEXT.format(msg.from_user.mention), 
             reply_markup=InlineKeyboardMarkup(button),
-            reply_to_message_id=msg.id
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
         )
-        await asyncio.sleep(45)
+        await asyncio.sleep(30)
         await k.delete()
         return
 
     if not movies:
         reqst_gle = mv_rqst.replace(" ", "+")
-        button = [[            
-            InlineKeyboardButton('🔍 ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")
-        ]]
+        button = [
+            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+            [
+                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+            ]
+        ]
         k = await msg.reply_text(
-            text="hai",
+            text=script.SPELL_TEXT.format(msg.from_user.mention), 
             reply_markup=InlineKeyboardMarkup(button),
-            reply_to_message_id=msg.id
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
         )
-        await asyncio.sleep(60)
+        await asyncio.sleep(40)
         await k.delete()
         return
 
