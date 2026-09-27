@@ -8,7 +8,7 @@ from pymongo.errors import DuplicateKeyError
 from umongo import Instance, Document, fields
 from motor.motor_asyncio import AsyncIOMotorClient
 from marshmallow.exceptions import ValidationError
-from info import DATABASE_URI, DATABASE_URI2, DATABASE_URI3, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER
+from info import DATABASE_URI, DATABASE_URI2, DATABASE_URI3, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, TAGS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -77,6 +77,14 @@ async def clean_file_name(raw_name: str) -> str:
     # 1. ഫയൽ എക്സ്റ്റൻഷൻ നീക്കം ചെയ്യുന്നു (.mp4, .mkv മുതലായവ)
     name_without_ext, _ = os.path.splitext(raw_name)
     
+    # --- പുതിയ മാറ്റം: info.py-ലെ TAGS ലിസ്റ്റിലുള്ളവ തുടക്കത്തിൽ വന്നാൽ മാത്രം ഒഴിവാക്കുന്നു ---
+    if TAGS and isinstance(TAGS, list):
+        # ലിസ്റ്റിലെ ടാഗുകൾ പൈത്തൺ റീജക്സിന് മനസ്സിലാകുന്ന രീതിയിലേക്ക് മാറ്റുന്നു
+        escaped_tags = "|".join(re.escape(tag) for tag in TAGS)
+        
+        # ഫയലിന്റെ തുടക്കത്തിൽ (^) ഈ ടാഗുകൾ വന്നാൽ അത് നീക്കം ചെയ്യുന്നു
+        name_without_ext = re.sub(r'^(' + escaped_tags + r')[\s._-]*', '', name_without_ext, flags=re.IGNORECASE)    
+        
     # 2. അപ്പോസ്ട്രോഫികൾ (') പൂർണ്ണമായി ഒഴിവാക്കുന്നു (i'm -> im)
     name_no_apostrophe = name_without_ext.replace("'", "")
     
@@ -89,6 +97,7 @@ async def clean_file_name(raw_name: str) -> str:
     final_name = re.sub(r'\s+', ' ', cleaned_chars).strip()
     
     return final_name
+
 
 async def save_file(media):
     """Save file in database"""
@@ -207,12 +216,9 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media1, files_media2, total_results
 
 
-
-
 async def get_search_results(query, file_type=None, max_results=8, offset=0, filter=False):
-    """Smart Exact Match & Natural Sorting (User Code Optimized)"""
+    """Koyeb ഫ്രീ സെർവറിനായി ഡാറ്റാബേസ് ലെവലിൽ ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് സെർച്ച് (Fixed)"""
 
-    # 1. സെർച്ച് ക്വറി ഡാറ്റാബേസ് ഫോർമാറ്റിലേക്ക് ക്ലീൻ ചെയ്യുന്നു
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -220,7 +226,6 @@ async def get_search_results(query, file_type=None, max_results=8, offset=0, fil
     if not query:
         return [], '', 0
 
-    # റീജക്സ് പാറ്റേൺ നിർമ്മിക്കുന്നു
     if ' ' not in query:
         raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
     else:
@@ -239,14 +244,14 @@ async def get_search_results(query, file_type=None, max_results=8, offset=0, fil
     if file_type:
         filter_dict['file_type'] = file_type
 
-    # ഡാറ്റാബേസിൽ നിന്നും ഫയലുകൾ എടുക്കുന്നു
-    cursor_media = Media.find(filter_dict)
-    cursor_mediaa = Mediaa.find(filter_dict)
+    # --- തിരുത്തിയ ഭാഗം: എറർ ഒഴിവാക്കാൻ $natural മാറ്റി file_name മാത്രം ഉപയോഗിച്ച് സോർട്ട് ചെയ്യുന്നു ---
+    cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
+    cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)])
 
-    files_media = await cursor_media.to_list(length=100)
-    files_mediaa = await cursor_mediaa.to_list(length=100)
+    # Koyeb സെർവർ റാം ക്രാഷ് ആകാതിരിക്കാൻ ലിമിറ്റ് 120 ആയി നിലനിർത്തുന്നു
+    files_media = await cursor_media.to_list(length=120)
+    files_mediaa = await cursor_mediaa.to_list(length=120)
 
-    # രണ്ട് കളക്ഷനിലെയും ഫയലുകൾ ഒന്നിപ്പിക്കുന്നു
     interleaved_files = []
     index_media1 = index_media2 = 0
     while index_media1 < len(files_media) or index_media2 < len(files_mediaa):
@@ -257,17 +262,14 @@ async def get_search_results(query, file_type=None, max_results=8, offset=0, fil
             interleaved_files.append(files_mediaa[index_media2])
             index_media2 += 1
 
-    # --- പുതുക്കിയ സോർട്ടിങ് ലോജിക് ---
     if interleaved_files:
         query_lower = query.lower().strip()
         
         def sort_by_exact_match(file_obj):
             file_name_lower = file_obj.file_name.lower().strip()
-            # അദൃശ്യ ചിഹ്നങ്ങളും അധിക സ്പേസുകളും പൂർണ്ണമായി ഒഴിവാക്കുന്നു
             file_name_lower = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', file_name_lower)
             file_name_lower = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', file_name_lower)
             
-            # കസ്റ്റം സോർട്ടിങ് കീ നിർമ്മാണം
             custom_key = []
             is_series = bool(re.search(r'\b(s\d+|e\d+)\b', file_name_lower))
             
@@ -275,41 +277,31 @@ async def get_search_results(query, file_type=None, max_results=8, offset=0, fil
                 if text.isdigit():
                     num = int(text)
                     if len(text) == 4 and not is_series:
-                        custom_key.append(-num)  # സിനിമകളുടെ വർഷം Descending ഓർഡറിൽ വരാൻ നെഗറ്റീവ് ആക്കുന്നു
+                        custom_key.append(-num)
                     else:
                         custom_key.append(num)
                 else:
                     custom_key.append(text)
 
-            # --- കണ്ടീഷൻ 1: ക്വറിയും തൊട്ടടുത്ത് വർഷവും വരുന്നത് (സ്പേസ് ഉണ്ടെങ്കിലും ഇല്ലെങ്കിലും) ---
-            # ഇവിടെ \s* നൽകിയതിനാൽ "dc 2026", "dc2026", "dc-2026" എന്നിവയെല്ലാം കൃത്യമായി മാച്ച് ആകും.
             exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
             if re.search(exact_year_pattern, file_name_lower):
                 return (0, custom_key)
 
-            # കണ്ടീഷൻ 2: ക്വറിയിൽ തുടങ്ങി സീസൺ/എപ്പിസോഡ് വരുന്നത്
             match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
             if re.search(match_season_pattern, file_name_lower):
                 return (1, custom_key)
 
-            # കണ്ടീഷൻ 3: ക്വറിയിൽ തുടങ്ങി എവിടെയെങ്കിലും വർഷം വരുന്നത് (ഉദാ: dc films suicide squad 2016)
             match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
             if re.search(match_year_pattern, file_name_lower):
                 return (2, custom_key)
                 
-            # കണ്ടീഷൻ 4: യൂസർ ടൈപ്പ് ചെയ്ത വാക്ക് വെച്ച് തുടങ്ങുന്നവ
             if file_name_lower.startswith(query_lower):
                 return (3, custom_key)
                 
-            # കണ്ടീഷൻ 5: ബാക്കിയുള്ളവ
             return (4, custom_key)
 
-
-        # ഫയലുകൾ സോർട്ട് ചെയ്യുന്നു
         interleaved_files.sort(key=sort_by_exact_match)
 
-
-    # ഒരേ ഫയലുകൾ വീണ്ടും വരാതിരിക്കാൻ ഡ്യൂപ്ലിക്കേഷൻ ഒഴിവാക്കുന്നു
     seen_ids = set()
     final_sorted_files = []
     for file in interleaved_files:
@@ -319,7 +311,6 @@ async def get_search_results(query, file_type=None, max_results=8, offset=0, fil
 
     total_results = len(final_sorted_files)
 
-    # ഓഫ്‌സെറ്റ് സെറ്റ് ചെയ്യുന്നു
     if offset < 0:
         offset = 0
 
@@ -330,11 +321,6 @@ async def get_search_results(query, file_type=None, max_results=8, offset=0, fil
         return files, next_offset, total_results
     else:
         return files, '', total_results
-
-
-
-
-
 
 
 async def get_file_details(query):
