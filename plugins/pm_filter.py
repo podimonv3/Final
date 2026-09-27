@@ -1166,46 +1166,73 @@ async def advantage_spell_chok(client, msg):
     )
     cleaned_query = cleaned_query.strip()
 
+try:
+    movies = await get_poster(cleaned_query, bulk=True)
+except Exception as e:
+    logger.exception(e)
+    reqst_gle = quote_plus(mv_rqst)
+    button = [
+        [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+        [
+            InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+            InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+        ]
+    ]
+    
     try:
-        movies = await get_poster(cleaned_query, bulk=True)
-    except Exception as e:
-        logger.exception(e)
-        reqst_gle = quote_plus(mv_rqst)
-        button = [
-            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
-            [
-                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-            ]
-        ]
+        # ഫോട്ടോ ലിങ്ക് നേരിട്ട് photo= എന്നതിൽ നൽകുന്നു
+        k = await msg.reply_photo(
+            photo="https://files.catbox.moe/yt159d.jpg",
+            caption=script.SPELL_TEXT.format(msg.from_user.mention),
+            reply_markup=InlineKeyboardMarkup(button),
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception:
+        # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
         k = await msg.reply_text(
             text=script.SPELL_TEXT.format(msg.from_user.mention), 
             reply_markup=InlineKeyboardMarkup(button),
             reply_to_message_id=msg.id,
             parse_mode=enums.ParseMode.HTML
         )
-        await asyncio.sleep(30)
-        await k.delete()
-        return
+        
+    await asyncio.sleep(30)
+    await k.delete()
+    return
 
-    if not movies:
-        reqst_gle = mv_rqst.replace(" ", "+")
-        button = [
-            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
-            [
-                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-            ]
+if not movies:
+    reqst_gle = mv_rqst.replace(" ", "+")
+    button = [
+        [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+        [
+            InlineKeyboardButton("📜 Rᴜﻠᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+            InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
         ]
+    ]
+    
+    try:
+        # ഫോട്ടോ ലിങ്ക് നേരിട്ട് photo= എന്നതിൽ നൽകുന്നു
+        k = await msg.reply_photo(
+            photo="https://files.catbox.moe/yt159d.jpg",
+            caption=script.SPELL_TEXT.format(msg.from_user.mention),
+            reply_markup=InlineKeyboardMarkup(button),
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception:
+        # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
         k = await msg.reply_text(
             text=script.SPELL_TEXT.format(msg.from_user.mention), 
             reply_markup=InlineKeyboardMarkup(button),
             reply_to_message_id=msg.id,
             parse_mode=enums.ParseMode.HTML
         )
-        await asyncio.sleep(40)
-        await k.delete()
-        return
+        
+    await asyncio.sleep(40)
+    await k.delete()
+    return
+
 
     movielist = [movie.get('title') for movie in movies]
     movielist = [title for title in movielist if title]
