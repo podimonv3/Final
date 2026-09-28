@@ -1,5 +1,7 @@
 import logging
 import logging.config
+import gc  # മെമ്മറി ക്ലീൻ ചെയ്യാനായി ചേർത്തത്
+import asyncio  # ഓട്ടോമാറ്റിക് ടാസ്ക് റൺ ചെയ്യാനായി ചേർത്തത്
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
@@ -32,6 +34,13 @@ PORT = environ.get("PORT", "8050")
 
 load_dotenv("./dynamic.env", override=True, encoding="utf-8")
 
+# ഓട്ടോമാറ്റിക് ആയി മെമ്മറി ക്ലീൻ ചെയ്യാനുള്ള ഫങ്ഷൻ
+async def auto_clean_memory():
+    while True:
+        await asyncio.sleep(1800) # 1800 സെക്കൻഡ് എന്നാൽ 30 മിനിറ്റ്
+        gc.collect() # റാം ക്ലീൻ ചെയ്യുന്ന കമാൻഡ്
+        logging.info("RAM cleared successfully to prevent Koyeb crash!")
+
 async def restart_bot(bot):
     progress_document = restarti.find_one({"_id": "frestart"})
     if progress_document:
@@ -39,7 +48,7 @@ async def restart_bot(bot):
         if last_restart == "on":
             restarti.update_one(
                 {"_id": "frestart"},
-                {"$set": {"restart": "off"}},
+                {"\$set": {"restart": "off"}},
                 upsert=True
             )
             os.execl(sys.executable, sys.executable, "bot.py")
@@ -114,6 +123,8 @@ class Bot(Client):
             except Exception as e:
                 logging.info(f"Make Sure REQ_CHANNEL 2 ID is correct or {e}")
 
+        # ബോട്ട് റൺ ആകുമ്പോൾ ബാക്ക്ഗ്രൗണ്ടിൽ മെമ്മറി ക്ലീനിങ് ടാസ്ക് സ്റ്റാർട്ട് ചെയ്യും
+        asyncio.create_task(auto_clean_memory())
         await restart_bot(self)
         
     async def stop(self, *args):
