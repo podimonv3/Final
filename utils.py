@@ -65,21 +65,32 @@ from bs4 import BeautifulSoup
 async def get_tmdb_poster(movie_name, tmdb_api_key):
     try:
         url = (
-            f"https://api.themoviedb.org/3/search/movie"
+            "https://api.themoviedb.org/3/search/movie"
             f"?api_key={tmdb_api_key}"
             f"&query={urllib.parse.quote(movie_name)}"
         )
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=5) as response:
+                if response.status != 200:
+                    return None
+
                 data = await response.json()
 
                 if data.get("results"):
                     movie = data["results"][0]
 
+                    # 1. ആദ്യം Landscape / Backdrop എടുക്കുക
+                    if movie.get("backdrop_path"):
+                        return (
+                            "https://image.tmdb.org/t/p/w1280"
+                            f"{movie['backdrop_path']}"
+                        )
+
+                    # 2. Backdrop ഇല്ലെങ്കിൽ Portrait / Poster എടുക്കുക
                     if movie.get("poster_path"):
                         return (
-                            f"https://image.tmdb.org/t/p/w500"
+                            "https://image.tmdb.org/t/p/w500"
                             f"{movie['poster_path']}"
                         )
 
