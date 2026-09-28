@@ -177,11 +177,6 @@ async def get_any_movie_poster(movie_name):
         if poster:
             return poster
 
-    # 4. Bing
-    poster = await scrape_bing_poster(movie_name)
-    if poster:
-        return poster
-
     # ഒരു പോസ്റ്ററും ലഭിച്ചില്ലെങ്കിൽ എറർ ഉണ്ടാക്കാതിരിക്കാൻ None റിട്ടേൺ ചെയ്യുന്നു
     return None
 
