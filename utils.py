@@ -61,6 +61,79 @@ import aiohttp
 from bs4 import BeautifulSoup
 
 
+import aiohttp
+import urllib.parse
+from info import FANART_API_KEY
+
+
+async def get_fanart_landscape(movie_name, tmdb_api_key):
+    """
+    TMDB ഉപയോഗിച്ച് സിനിമയുടെ TMDB ID കണ്ടെത്തി,
+    Fanart.tv-ൽ നിന്ന് ഏറ്റവും കൂടുതൽ likes ഉള്ള
+    Landscape background URL തിരികെ നൽകുന്നു.
+    """
+
+    if not FANART_API_KEY or not tmdb_api_key or not movie_name:
+        return None
+
+    try:
+        async with aiohttp.ClientSession() as session:
+
+            # ── Step 1: TMDB വഴി Movie ID കണ്ടെത്തുക ─────────────
+            search_url = (
+                "https://api.themoviedb.org/3/search/movie"
+                f"?api_key={tmdb_api_key}"
+                f"&query={urllib.parse.quote(movie_name)}"
+            )
+
+            async with session.get(search_url, timeout=5) as response:
+                if response.status != 200:
+                    return None
+
+                search_data = await response.json()
+
+            results = search_data.get("results", [])
+
+            if not results:
+                return None
+
+            tmdb_id = results[0].get("id")
+
+            if not tmdb_id:
+                return None
+
+            # ── Step 2: Fanart.tv-ൽ നിന്ന് Background എടുക്കുക ───
+            fanart_url = (
+                f"https://webservice.fanart.tv/v3/movies/"
+                f"{tmdb_id}?api_key={FANART_API_KEY}"
+            )
+
+            async with session.get(fanart_url, timeout=5) as response:
+                if response.status != 200:
+                    return None
+
+                data = await response.json()
+
+            backgrounds = data.get("moviebackground", [])
+
+            if not backgrounds:
+                return None
+
+            # ── ഏറ്റവും കൂടുതൽ Likes ഉള്ള Background ആദ്യം ──────
+            backgrounds = sorted(
+                backgrounds,
+                key=lambda x: int(x.get("likes", 0) or 0),
+                reverse=True
+            )
+
+            return backgrounds[0].get("url")
+
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, KeyError):
+        return None
+
+    except Exception:
+        return None
+        
 # 1. TMDB Async
 async def get_tmdb_poster(movie_name, tmdb_api_key):
     try:
@@ -176,20 +249,37 @@ async def scrape_bing_poster(movie_name):
 
 
 async def get_any_movie_poster(movie_name):
-    # 1. TMDB
+    # 1. Fanart.tv - High Quality Landscape
+    if TMDB_API_KEY and FANART_API_KEY:
+        poster = await get_fanart_landscape(
+            movie_name,
+            TMDB_API_KEY
+        )
+        if poster:
+            return poster
+
+    # 2. TMDB - Landscape Backdrop
     if TMDB_API_KEY:
-        poster = await get_tmdb_poster(movie_name, TMDB_API_KEY)
+        poster = await get_tmdb_poster(
+            movie_name,
+            TMDB_API_KEY
+        )
         if poster:
             return poster
 
-    # 2. OMDb
+   
+    # 4. OMDb - Portrait Poster (last fallback)
     if OMDB_API_KEY:
-        poster = await get_omdb_poster(movie_name, OMDB_API_KEY)
+        poster = await get_omdb_poster(
+            movie_name,
+            OMDB_API_KEY
+        )
         if poster:
             return poster
 
-    # ഒരു പോസ്റ്ററും ലഭിച്ചില്ലെങ്കിൽ എറർ ഉണ്ടാക്കാതിരിക്കാൻ None റിട്ടേൺ ചെയ്യുന്നു
+    # 5. Nothing found
     return None
+
 
 
 
