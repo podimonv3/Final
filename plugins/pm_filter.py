@@ -332,86 +332,59 @@ async def give_filters(client, message):
 
 @Client.on_callback_query(filters.regex(r"^spol#"))
 async def advantage_spoll_choker(bot, query):
+    _, user, movie_ = query.data.split("#", 2)
+
+    if int(user) != 0 and query.from_user.id != int(user):
+        return await query.answer("okDa", show_alert=True)
+
+    if movie_ == "close_spellcheck":
+        SPELL_CHECK.pop(query.message.id, None)
+        return await query.message.delete()
+
+    movies = SPELL_CHECK.get(query.message.id)
+
+    if not movies:
+        return await query.answer(
+            "You are clicking on an old button which is expired.",
+            show_alert=True
+        )
+
     try:
-        _, movie_id, user = query.data.split("#", 2)
-        user = int(user)
-    except (ValueError, AttributeError):
+        movie = movies[int(movie_)]
+    except (ValueError, IndexError):
         return await query.answer(
-            "Invalid request.",
-            show_alert=True
-        )
-
-    if user and query.from_user.id != user:
-        return await query.answer(
-            "This button is not for you.",
-            show_alert=True
-        )
-
-    if movie_id == "close_spellcheck":
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-        return
-
-    movie = SPELL_CHECK.get(str(movie_id))
-
-    if not movie:
-        return await query.answer(
-            "This button has expired.",
-            show_alert=True
-        )
-
-    original = query.message.reply_to_message
-
-    if not original:
-        return await query.answer(
-            "Original message not found.",
+            "Invalid selection.",
             show_alert=True
         )
 
     await query.answer("Checking for Movie in database...")
 
+    SPELL_CHECK.pop(query.message.id, None)
+
     try:
         await query.message.delete()
-    except Exception:
+    except:
         pass
 
-    try:
-        k = await global_filters(
-            bot,
-            original,
-            text=movie
-        )
-    except Exception as e:
-        logger.exception(f"Global filter error: {e}")
-        k = False
+    k = await global_filters(bot, query.message, text=movie)
 
-    if k is not False:
+    if k:
         return
 
-    try:
-        files, offset, total_results = await get_search_results(
-            movie,
-            offset=0,
-            filter=True
-        )
-    except Exception as e:
-        logger.exception(f"Search error: {e}")
-        files, offset, total_results = [], 0, 0
+    files, offset, total_results = await get_search_results(
+        movie,
+        offset=0,
+        filter=True
+    )
 
     if files:
-        try:
-            await auto_filter(
-                bot,
-                original,
-                (movie, files, offset, total_results)
-            )
-        except Exception as e:
-            logger.exception(f"Auto filter error: {e}")
-        return
+        return await auto_filter(
+            bot,
+            query,
+            (movie, files, offset, total_results)
+        )
 
-    buttons = [[
+    button = [[
         InlineKeyboardButton(
             "📜 Rᴜʟᴇs",
             url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"
@@ -422,33 +395,26 @@ async def advantage_spoll_choker(bot, query):
         )
     ]]
 
-    markup = InlineKeyboardMarkup(buttons)
-
     try:
-        result_msg = await original.reply_photo(
+        k = await query.message.reply_photo(
             photo="https://files.catbox.moe/egu0ip.jpg",
             caption=script.OTT_TEXT,
-            reply_markup=markup,
+            reply_markup=InlineKeyboardMarkup(button),
             parse_mode=enums.ParseMode.HTML
         )
-    except Exception:
-        try:
-            result_msg = await original.reply_text(
-                script.OTT_TEXT,
-                reply_markup=markup,
-                parse_mode=enums.ParseMode.HTML
-            )
-        except Exception as e:
-            logger.exception(f"Result message error: {e}")
-            return
+    except:
+        k = await query.message.reply_text(
+            script.OTT_TEXT,
+            reply_markup=InlineKeyboardMarkup(button),
+            parse_mode=enums.ParseMode.HTML
+        )
 
     await asyncio.sleep(60)
 
     try:
-        await result_msg.delete()
-    except Exception:
+        await k.delete()
+    except:
         pass
-
 
 
 @Client.on_callback_query(filters.regex(r"^next"))
