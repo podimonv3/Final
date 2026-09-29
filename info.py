@@ -82,7 +82,7 @@ TAGS = [
     "@FilmCage", "@Film_Kottaka", "@FrediesChannel", "@HEVC_Cinemaz",
     "@HEVC_Moviesz", "@Hk", "@IndianMoviez", "@KBO", "@KD_Deck", "@KGRockers",
     "@KW", "@KannadaWarriors", "@KeralaBoxOffice", "@Links2U", "@Linkz_MM",
-    "@M_Zone", "@MAASFILE", "@MC", "@MC_4U", "@MJ_Moviez", "@MM_Movies",
+    "@M_Zone", "@MAASFILE", "@MC", "@MC_4U", "@MinaKaze", "@MJ_Moviez", "@MM_Movies",
     "@MM_NEW", "@MM_TvSeries", "@MOVIEHUNT", "@MOVIEZMOB", "@MalluRockers",
     "@Mallu_Rockers", "@Mc_South", "@MovieWorld2000", "@Movie_Hub", "@bheeshmat",
     "@desimovies Telegram", "@favio", "@film_down_load", "@iMediaShare",
