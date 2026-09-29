@@ -182,75 +182,92 @@ async def give_filters(client, message):
         logger.error(f"Give filters error: {e}")
 
 
+# 1. പ്രധാന സ്പെൽചെക്ക് ഫങ്ക്ഷൻ
 @Client.on_callback_query(filters.regex(r"^spol"))
 async def advantage_spoll_choker(bot, query):
-    _, user, movie_ = query.data.split('#')
+    _, user, movie_idx = query.data.split('#')
     
-    if int(user) != 0 and query.from_user.id != int(user):
-        return await query.answer("okDa", show_alert=True)
+    # 🔐 യൂസർ വെരിഫിക്കേഷൻ
+    if int(user) and query.from_user.id != int(user):
+        return await query.answer("This is not for you!", show_alert=True)
         
-    if movie_ == "close_spellcheck":
+    # ❌ സ്പെൽചെക്ക് ക്ലോസ് ചെയ്യൽ
+    if movie_idx == "close_spellcheck":
         return await query.message.delete()
         
     movies = SPELL_CHECK.get(query.message.reply_to_message.id)
     if not movies:
-        return await query.answer("You are clicking on an old button which is expired.", show_alert=True)
+        return await query.answer("Expired button.", show_alert=True)
         
-    movie = movies[(int(movie_))]
-    await query.answer('Checking for Movie in database...')
+    movie = movies[int(movie_idx)]
+    await query.answer('Searching database...')
     
-    # 🌟 യൂസർ സിനിമ സെലക്ട് ചെയ്ത ഉടൻ തന്നെ സ്പെൽചെക്ക് മെസ്സേജ് ഇവിടെ വച്ച് ഡിലീറ്റ് ചെയ്യുന്നു
-    try:
-        await query.message.delete()
-    except Exception:
-        pass
+    try: await query.message.delete()
+    except: pass
 
-    k = await global_filters(bot, query.message, text=movie)
-    if k == False:
+    # 🔍 ഫിൽറ്ററുകൾ പരിശോധിക്കുന്നു
+    if await global_filters(bot, query.message, text=movie) == False:
         files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
         if files:
-            k = (movie, files, offset, total_results)
-            await auto_filter(bot, query, k)
-        else:
-            # 🔍 ഡാറ്റാബേസിൽ സിനിമ ഇല്ലെങ്കിൽ ഗൂഗിൾ, റൂൾസ്, റിക്വസ്റ്റ് ലിങ്കുകൾ സെറ്റ് ചെയ്യുന്നു
-            reqst_gle = quote_plus(movie)
+            return await auto_filter(bot, query, (movie, files, offset, total_results))
             
-            # നിങ്ങളുടെ പുതിയ ബട്ടനുകൾ ഇവിടെ ആഡ് ചെയ്തിരിക്കുന്നു
-            button = [                
-                [
-                    InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-                    InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-                ]
-            ]        
-            
+        # 📌 സിനിമ ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ മിസ്സിംഗ് ലിസ്റ്റിലേക്ക് സേവ് ചെയ്യുന്നു
+        try: await save_missing_movie(movie)
+        except: pass
+
+        # 🔘 അലേർട്ട് ബട്ടണുകൾ മുകളിലും ലിങ്ക് ബട്ടണുകൾ താഴെയും (2x2 Grid Layout)
+        buttons = InlineKeyboardMarkup((
+            (
+                InlineKeyboardButton("📢 Coming Soon", callback_data="alert_channel"),
+                InlineKeyboardButton("🫴 OTT വന്നിട്ടില്ല", callback_data="alert_google")
+            ),
+            (
+                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B1%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A4-08-19"),
+                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+            )
+        ))
+        
+        # 🖼️ മൂവി പോസ്റ്റർ ഡൈനാമിക് ചെക്കിംഗ്
+        try: photo_url = await get_any_movie_poster(movie)
+        except: photo_url = None
+
+        if not photo_url:
+            photo_url = "https://files.catbox.moe/egu0ip.jpg"
+
+        msg = None
+        # 1. ആദ്യം ലഭ്യമായ ഫോട്ടോയോ അല്ലെങ്കിൽ ബാക്കപ്പ് ഫോട്ടോയോ അയക്കാൻ ശ്രമിക്കുന്നു
+        try:
+            msg = await query.message.reply_photo(
+                photo=photo_url,
+                caption=script.OTT_TEXT,                    
+                reply_markup=buttons,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except:
+            # 2. ബാക്കപ്പ് ഫോട്ടോയും ഫെയിൽ ആയാൽ ഇവിടെ വെച്ച് നോർമൽ ടെക്സ്റ്റ് റിപ്ലൈ അയക്കും
             try:
-                # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
-                google_msg = await query.message.reply_photo(
-                    photo="https://files.catbox.moe/egu0ip.jpg",
-                    caption=script.OTT_TEXT,                    
-                    reply_markup=InlineKeyboardMarkup(button),
+                msg = await query.message.reply_text(
+                    text=script.OTT_TEXT, 
+                    reply_markup=buttons,
                     parse_mode=enums.ParseMode.HTML
                 )
-            except Exception as photo_error:
-                # 2. ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ (Error വന്നാൽ) ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
-                logger.warning(f"Photo failed to send, falling back to text: {photo_error}")
-                try:
-                    google_msg = await query.message.reply_text(
-                        text=script.OTT_TEXT, 
-                        reply_markup=InlineKeyboardMarkup(button),
-                        parse_mode=enums.ParseMode.HTML
-                    )
-                except Exception as text_error:
-                    logger.error(f"Text message also failed: {text_error}")
-                    google_msg = None
-            
-            # മെസ്സേജ് വിജയകരമായി അയച്ചിട്ടുണ്ടെങ്കിൽ 60 സെക്കന്റിന് ശേഷം ഡിലീറ്റ് ചെയ്യുന്നു
-            if google_msg:
-                try:
-                    await asyncio.sleep(60)
-                    await google_msg.delete()
-                except Exception:
-                    pass
+            except: pass
+        
+        # 🕒 60 സെക്കന്റിന് ശേഷം അലേർട്ട് മെസ്സേജ് ഓട്ടോമാറ്റിക് ആയി ഡിലീറ്റ് ചെയ്യും
+        if msg:
+            await asyncio.sleep(60)
+            try: await msg.delete()
+            except: pass
+
+# 2. Channel ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള അലേർട്ട്
+@Client.on_callback_query(filters.regex("^alert_channel$"))
+async def channel_alert_handler(bot, query):
+    await query.answer("OTT FILE NOT AVAILABLE", show_alert=True)
+
+# 3. Google ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള അലേർട്ട്
+@Client.on_callback_query(filters.regex("^alert_google$"))
+async def google_alert_handler(bot, query):
+    await query.answer("OTT ഇറങ്ങുന്നേ വരെ ക്ഷമിക്ക് അളിയാ", show_alert=True)
 
 
 
