@@ -622,32 +622,67 @@ async def _omdb_get_details(imdb_id):
         '_source': 'omdb',
     }
     
+from urllib.parse import quote
+import aiohttp
+import re
+
+async def get_imdb_suggestions(query):
+    try:
+        url = f"https://v3.sg.media-imdb.com/suggestion/x/{quote(query.lower())}.json"
+        async with aiohttp.ClientSession(headers={"User-Agent": "Mozilla/5.0"}) as s:
+            async with s.get(url, timeout=5) as r:
+                if r.status != 200:
+                    return []
+                data = await r.json(content_type=None)
+
+        valid = {"feature", "TV series", "TV mini-series", "TV movie",
+                 "video", "short", "TV special", "TV short", "documentary"}
+
+        return [
+            {"title": f"{x['l']} ({x['y']})" if x.get("y") else x["l"], "id": x["id"]}
+            for x in data.get("d", [])
+            if x.get("q") in valid and x.get("id") and x.get("l")
+        ]
+    except Exception as e:
+        try: logger.warning(f"IMDb suggestion error: {e}")
+        except: pass
+        return []
+
+
 async def get_poster(query, bulk=False, id=False, file=None):
-    # ── Direct ID lookups ────────────────────────────────────────────────────
     if id:
-        result = await _imdbio_get_details(query)
-        if result:
-            return result
-        return await _omdb_get_details(query)
+        return await _imdbio_get_details(query) or await _omdb_get_details(query)
 
-    # ── Parse title + year ───────────────────────────────────────────────────
-    query = (query.strip()).lower()
-    title = query
-    year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
-    if year:
-        year = list_to_str(year[:1])
-        title = (query.replace(year, "")).strip()
-    elif file is not None:
-        year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
-        if year:
-            year = list_to_str(year[:1])
-    else:
-        year = None
+    query = (query or "").strip().lower()
+    if not query:
+        return None
 
-    result = await _imdbio_search(title, year=year, bulk=bulk)
-    if result:
-        return result
-    return await _omdb_search(title, year=year, bulk=bulk)
+    if not bulk:
+        suggestions = await get_imdb_suggestions(query)
+        if suggestions:
+            imdb_id = suggestions[0]["id"]
+            result = await _imdbio_get_details(imdb_id)
+            if result:
+                return result
+            result = await _omdb_get_details(imdb_id)
+            if result:
+                return result
+
+    title, year = query, None
+    match = re.search(r"(?:[\s._(-]+)?([12]\d{3})\)?$", query)
+
+    if match:
+        year = match.group(1)
+        title = query[:match.start()].strip(" ._-()[]")
+    elif file:
+        match = re.search(r"\b([12]\d{3})\b", str(file))
+        if match:
+            year = match.group(1)
+
+    return (
+        await _imdbio_search(title, year=year, bulk=bulk)
+        or await _omdb_search(title, year=year, bulk=bulk)
+    )
 
 
 def list_to_str(k, max_elm=5):  # ഇവിടെ 5 ആണ് DEFAULT വാല്യൂ
