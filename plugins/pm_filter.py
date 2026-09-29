@@ -859,60 +859,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         except Exception as e:
             await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
             
-    elif query.data.startswith("checksub"):
-        if REQ_CHANNEL1 and not await is_requested_one(client, query):
-            await query.answer("CLICK  «➳ 𝐽𝑂𝐼𝑁 𝑈𝑃𝐷𝐴𝑇𝐸 𝐶𝐻𝑁𝑁𝑁𝐸𝐿 ✺»", show_alert=True)
-            return
-        if REQ_CHANNEL2 and not await is_requested_two(client, query):
-            await query.answer("Update Channel ജോയിൻ ആവുക", show_alert=True)
-            return
-        ident, file_id = query.data.split("#")
-        files_ = await get_file_details(file_id)
-        if not files_:
-            return await query.answer('No such file exist.')
-        
-        # 🟢 ലിസ്റ്റിലെ ആദ്യത്തെ ഫയൽ മാത്രം എടുക്കുന്നു
-        files = files_[0] 
-        
-        title = files.file_name
-        size = get_size(files.file_size)
-        f_caption = files.file_name
-        if CUSTOM_FILE_CAPTION:
-            try:
-                f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption, mention=query.from_user.mention)
-            except Exception as e:
-                logger.exception(e)
-                f_caption = f_caption
-        if f_caption is None:
-            f_caption = f"{title}"
-
-        await query.answer()
-        
-        # 🛠️ 'predvd' ഫയലുകൾ ആണെങ്കിൽ മാത്രം കാപ്ഷനിൽ Quote വാർണിങ് ചേർക്കുന്നു
-        is_predvd = title and any(keyword in title.lower() for keyword in ['predvd', 'predvdrip'])
-        if is_predvd:
-            final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
-        else:
-            final_caption = f_caption
-
-        # 1. ഫയൽ അയക്കുന്നു
-        xd = await client.send_cached_media(
-            chat_id=query.from_user.id,
-            file_id=file_id,
-            caption=final_caption,
-            parse_mode=enums.ParseMode.HTML, # HTML മോഡ് നിർബന്ധമാണ്
-            protect_content=True if ident == "checksubp" else False
-        )
-        
-        # 2. 'predvd' ഫയലുകൾ ആണെങ്കിൽ മാത്രം ഓട്ടോ ഡിലീറ്റ് ടാസ്ക് ട്രിഗർ ചെയ്യുന്നു (സെപ്പറേറ്റ് മെസ്സേജ് ഇല്ല)
-        if is_predvd:
-            try:
-                # ഫയൽ മെസ്സേജ് മാത്രം ഡിലീറ്റ് ചെയ്യാൻ ബാക്ക്ഗ്രൗണ്ട് ടാസ്ക് നൽകുന്നു
-                asyncio.create_task(auto_delete_messages(client, query.from_user.id, [xd.id], AUTO_DELETE_TIME))
-            except Exception as e:
-                logger.error(f"Error in checksub auto-delete: {e}")
-
-
+    
 
     elif query.data.startswith("killfilesdq"):
         ident, keyword = query.data.split("#")
