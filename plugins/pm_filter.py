@@ -716,147 +716,82 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
 
-    
+
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
         settings = await get_settings(message.chat.id)
-        if message.text.startswith("/"): return  
+        if message.text.startswith("/"): return
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
+
         if 0 < len(message.text) < 100:
-            
             search = message.text
             search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', search)
             search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
             search = re.sub(r"['‘’]", "", search)
             search = re.sub(r"[-–—_,#&?/( )\[\]\\\":\.¡%“”]", " ", search)
-            search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)                       
-                                
+            search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)
+
             find = search.lower().split(" ")
-            removes = {
-                "pls", "plz", "plzz", "please", "send", "snd", "snt",
-                "gib", "veno", "venam", "venum",
-                "undo", "ayakkumo", "ayakkamo", "und", "move", 
-                "multi", "dubb", "dub", "bro", "bruh", "broh", "dubbed", "link", "lnk",
-                "iruka", "pannunga", "pannungga", "anuppunga", "anupunga", "anuppungga", 
-                "anupungga", "subtile", "kitti", "kitty", "tharu", "kittumo", "kittum",
-                "da", "mwonse", "bhai", "share", "malayalm", "malylm", "subtitle"
-            }
-            search = " ".join([w for w in find if w not in removes])
+            removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkamo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
+            search = " ".join(w for w in find if w not in removes)
             search = re.sub(r"\s+", " ", search).strip()
-            
             if not search: return
 
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
-            
-            if not files:
-                # 🔍 സ്പെൽ ചെക്ക് കാണിക്കുന്നതിന് മുൻപ് ഇത് ഗ്ലോബൽ ഫിൽട്ടറിൽ ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു
-                keywords = await get_gfilters('gfilters')
-                if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords):
-                    return  # 👈 ഗ്ലോബൽ ഫിൽട്ടറിൽ ഉണ്ടെങ്കിൽ സ്പെൽ ചെക്ക് അയക്കാതെ ഇവിടെ വെച്ച് അവസാനിപ്പിക്കുന്നു!
 
+            if not files:
+                keywords = await get_gfilters('gfilters')
+                if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords): return
                 try:
-                    await save_missing_movie(search)
-                    await advantage_spell_chok(client, msg)                
+                    await advantage_spell_chok(client, msg)
                     return
-                except Exception: 
+                except Exception:
                     return
-            # 👈 ഫയലുകൾ ഉണ്ടെങ്കിൽ റിസൾട്ട് കാണിക്കാൻ കോഡ് താഴേക്ക് പോകണം, അതുകൊണ്ട് ഇവിടെ 'return' പാടില്ല!
         else:
-            # message.text 100-ൽ കൂടുതൽ നീളമുള്ളതാണെങ്കിൽ വാല്യൂ ലോഡ് ചെയ്യുന്നു
             settings = await get_settings(msg.message.chat.id)
-            return # ഫിൽട്ടർ ചെയ്യേണ്ടതില്ലാത്തതിനാൽ ഇവിടെ വെച്ച് നിർത്തുന്നു
-            
+            return
     else:
-        # സ്പെൽ ചെക്ക് ബട്ടൺ വഴിയാണ് വരുന്നതെങ്കിൽ (spoll=True/List ആകുമ്പോൾ)
-        message = msg.message.reply_to_message  
+        message = msg.message.reply_to_message
         search, files, offset, total_results = spoll
-        # ഇവിടെയും നിർബന്ധമായും settings ലോഡ് ചെയ്യണം!
         settings = await get_settings(message.chat.id)
-        
-    # ഫയലുകൾ ഉണ്ടെങ്കിൽ റിസൾട്ട് കാണിക്കുന്ന ഭാഗം (ഇപ്പോൾ ഇൻഡന്റേഷൻ കറക്റ്റ് ആണ്)
+
     pre = 'filep' if settings['file_secure'] else 'file'
     req = message.from_user.id if message.from_user else 0
     key = f"{message.chat.id}-{message.id}"
     BUTTONS[key] = search
-
-    # മെനു ബട്ടണുകൾ മുകളിൽ ആഡ് ചെയ്യുന്നു
-    btn = get_filter_menu_buttons(req, key)
+    btn = []
 
     if settings["button"]:
         for file in files:
             btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
     else:
         for file in files:
-            btn.append([
-                InlineKeyboardButton(text=f"{file.file_name}", callback_data=f'{pre}#{file.file_id}'),
-                InlineKeyboardButton(text=f"{get_size(file.file_size)}", callback_data=f'{pre}#{file.file_id}')
-            ])
+            btn.append([InlineKeyboardButton(text=f"{file.file_name}", callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=f"{get_size(file.file_size)}", callback_data=f'{pre}#{file.file_id}')])
 
     if offset != "":
         try: offset = int(offset)
         except ValueError: offset = 0
     else: offset = 0
-    
+
     if offset > 0:
-        btn.append(
-            [InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
-            InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{req}_{key}_{offset}")]
-        )     
-    
-    # പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ നോക്കുന്നു
+        btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{req}_{key}_{offset}")])
+
     poster = await get_any_movie_poster(search)
+    cap = f"<b><i>Found Results For Your Query {search}</i></b>\n\n<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
 
-    cap = (
-        f"<b><i>Found Results For Your Query {search}</i></b>\n\n"
-        f"<b><i><u>For better result:</u></i></b>\n"
-        f"<i>↪bhramam      ❌\n"
-        f"↪bhramam 2021 ✅</i>"
-    )
-
-    mins = int(AUTO_DELETE_TIME / 60)
-
-    cap += (
-        f"\n\n⏳ <i>This search result will be auto deleted "
-        f"in {mins} mins to avoid group clutter.</i>"
-    )
-
-    fmsg = None # മെസ്സേജ് ഐഡി ട്രാക്ക് ചെയ്യാൻ ഒരു വേരിയബിൾ സെറ്റ് ചെയ്യുന്നു
-
-    # കണ്ടീഷൻ 1: പോസ്റ്റർ കൃത്യമായി ലഭിച്ചാൽ ഫോട്ടോയായി അയക്കാൻ നോക്കുന്നു
+    fmsg = None
     if poster:
         try:
-            fmsg = await message.reply_photo(
-                photo=poster,
-                caption=cap,
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
+            fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=InlineKeyboardMarkup(btn))
         except Exception as photo_error:
             logger.warning(f"Photo അയക്കാൻ കഴിഞ്ഞില്ല, ടെക്സ്റ്റിലേക്ക് മാറുന്നു: {photo_error}")
-            fmsg = None # എറർ വന്നാൽ താഴെയുള്ള ടെക്സ്റ്റ് മെസ്സേജ് രീതിയിലേക്ക് പോകാൻ
 
-    # കണ്ടീഷൻ 2: പോസ്റ്റർ ലഭിച്ചില്ലെങ്കിലോ, അല്ലെങ്കിൽ ഫോട്ടോ അയക്കുന്നതിൽ എറർ ഉണ്ടായാലോ ടെക്സ്റ്റ് അയക്കുന്നു
     if not fmsg:
         try:
-            fmsg = await message.reply_text(
-                text=cap,
-                reply_markup=InlineKeyboardMarkup(btn),
-                disable_web_page_preview=True # ഫോട്ടോ ഇല്ലാത്തതിനാൽ വെബ് പ്രിവ്യൂ ഒഴിവാക്കാൻ
-            )
+            await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
         except Exception as text_error:
             logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
-
-    # മെസ്സേജ് വിജയകരമായി അയച്ചു കഴിഞ്ഞാൽ ഓട്ടോ ഡിലീറ്റ് ടാസ്ക് റൺ ചെയ്യും
-    if fmsg:
-        asyncio.create_task(
-            auto_delete_messages(
-                client,
-                message.chat.id,
-                [fmsg.id],
-                AUTO_DELETE_TIME
-            )
-        )
-
 
 async def advantage_spell_chok(client, msg):
     mv_rqst = msg.text
