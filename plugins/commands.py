@@ -62,12 +62,6 @@ def convert_time_to_seconds(time_str):
     else:
         return 0
 
-
-
-
-
-
-
 async def send_file(client, query, ident, file_id):
     from pyrogram.errors import UserIsBlocked
     files_ = await get_file_details(file_id)
@@ -184,18 +178,19 @@ async def start(client, message):
     
     # ================= SPECIAL COMMANDS =================
     if data in ["subscribe", "error", "okay", "help"]:
-        btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="[https://t.me/+eb__Eg3RS2IyZWQ1](https://t.me/+eb__Eg3RS2IyZWQ1)")],
-            [InlineKeyboardButton("❌ Close", callback_data="close")]
-        ]
-        try:
-            await message.reply_text(                
-                text=script.START_TXT.format(message.from_user.mention),
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-        except Exception as e:
-            logger.exception(e)
-        return 
+        btn = [
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
+            [InlineKeyboardButton("❌ Close", callback_data="close")]
+        ]
+        try:
+            await message.reply_text(                
+                text=script.START_TXT.format(message.from_user.mention),
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+        except Exception as e:
+            logger.exception(e)
+        return
+
  
     # ================= BATCH =================
     if data.split("-", 1)[0] == "BATCH":
