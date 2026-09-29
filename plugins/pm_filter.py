@@ -32,32 +32,6 @@ from urllib.parse import quote_plus
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
-# --- 🛠️ TELEGRAM ERROR FIXES START 🛠️ ---
-_original_answer = CallbackQuery.answer
-async def _patched_answer(self, *args, **kwargs):
-    try:
-        return await _original_answer(self, *args, **kwargs)
-    except (QueryIdInvalid, FloodWait):  # 💡 FloodWait കൂടി ഇവിടെ ചേർത്തു
-        pass
-CallbackQuery.answer = _patched_answer
-# --- 🛠️ TELEGRAM ERROR FIXES END 🛠️ ---
-
-
-# --- 🛠️ MESSAGE ID INVALID GLOBAL FIX START 🛠️ ---
-
-_original_edit_markup = CallbackQuery.edit_message_reply_markup
-async def _patched_edit_markup(self, *args, **kwargs):
-    try:
-        return await _original_edit_markup(self, *args, **kwargs)
-    except MessageIdInvalid:
-        try:
-            # മെസ്സേജ് ഡിലീറ്റ് ആയാൽ യൂസർക്ക് പോപ്പ്-അപ്പ് കാണിക്കുന്നു
-            return await self.answer("ഈ മെനുവിന്റെ സമയം കഴിഞ്ഞു അല്ലെങ്കിൽ മെസ്സേജ് ഡിലീറ്റ് ആയി!", show_alert=True)
-        except Exception:
-            pass
-
-CallbackQuery.edit_message_reply_markup = _patched_edit_markup
-# --- 🛠️ MESSAGE ID INVALID GLOBAL FIX END 🛠️ ---
 
 def _trim_dict(d: dict, max_size: int = 250):  # ഇവിടെ 1000 ആണ് DEFAULT വാല്യൂ
     """Remove oldest 20% of entries when dict exceeds max size."""
@@ -66,9 +40,6 @@ def _trim_dict(d: dict, max_size: int = 250):  # ഇവിടെ 1000 ആണ് 
         for k in keys_to_remove:
             d.pop(k, None)
             
-
-
-
 
 BUTTONS = {}
 SPELL_CHECK = {}
