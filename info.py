@@ -86,7 +86,7 @@ TAGS = [
     "@HEVC_Moviesz", "@Hk", "@IndianMoviez", "@KBO", "@KD_Deck", "@KGRockers",
     "@KW", "@KannadaWarriors", "@KeralaBoxOffice", "@Links2U", "@Linkz_MM",
     "@M_Zone", "@MAASFILE", "@MC", "@MC_4U", "@MJ_Moviez", "@MM_Movies",
-    "@MM_NEW", "@MM_TvSeries", "@MOVIEHUNT", "@MOVIEZMOB", "@MalluRockers",
+    "@MM_NEW", "@MM_TvSeries", "@MOVIEHUNT", "@MOVIEZMOB", "@MalluRockers", "@AVA",
     "@Mallu_Rockers", "@Mc_South", "@MovieWorld2000", "@Movie_Hub", "@bheeshmat",
     "@desimovies Telegram", "@favio", "@film_down_load", "@iMediaShare",
     "@infotainmentmedia", "@kickass_torrents", "@msp", "@moviescollection17",
@@ -97,8 +97,12 @@ TAGS = [
     "@Theprofffesorr", "@TR_Moviez", "@TR_Updates", "@Tv2Us", "@TvSeriesBay",
     "@UCDump", "@WorldCinemaToday", "@X265 E4E", "@YTSLT", "@cinemaheist",
     "@trolldcompany", "@yamandanmovies", "www.", "www.1TamilMV", "www_1TamilMV",
-    "www.1TamilMV.fun", "www.1TamilMV.me", "www.1TamilMV.org", "www_1TamilMV",
-    "www_1TamilMV_fun", "www_DVDWap_Com_", "Dvdworld", "@mfmixsouth", "www_TamilMV_pw", "MLM", "www_1TamilMV_rodeo"
+    "www.1TamilMV.fun", "www.1TamilMV.me", "www.1TamilMV.org", "www_1TamilMV", "@Team_Hevc", "www.1TamilMV.cafe",
+    "www_1TamilMV_fun", "www_DVDWap_Com_", "Dvdworld", "@mfmixsouth", "www_TamilMV_pw", "MLM", "www_1TamilMV_rodeo",
+    "www_1TamilMV_fans", "www_1TamilMV_nl", "www_1TamilMV_art", "www_1TamilMV_org", "www_1TamilMV_eu", "www_1TamilMV_men", "www_1TamilMV_wtf", "www_1TamilMV_city", "www_1TamilMV_cafe",
+    "www_1TamilMV_help", "www_1TamilMV_im", "www_1TamilMV_phd", "www_1TamilMV_one", "www_1TamilMV_guru", "www_1TamilMV_us", "www_1TamilMV_live", "www_1TamilMV_pw", "www_1TamilMV_life",
+    "www_1TamilMV_me", "www_1TamilMV_vin", "www_1TamilMV_sbs", "www_1TamilMV_mx", "www_1TamilMV_team", "www_1TamilMV_cyou", "www_1TamilMV_pics", "www_1TamilMV_click", "www_1TamilMV_pro",
+    "www_1TamilMV_lease", "www_1TamilMV_rocks", "www_1TamilMV_meme", "www_1TamilMV_ing", "www_1TamilMV_pizza", "www_1TamilMV_li", "www_1TamilMV_top", "www_1TamilMV_promo", "www_1TamilMV_gs"
 ]
 # Others
 LONG_IMDB_DESCRIPTION = is_enabled(environ.get("LONG_IMDB_DESCRIPTION", "False"), False)
