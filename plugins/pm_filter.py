@@ -168,13 +168,9 @@ async def admin_reply_to_user(bot: Client, message):
 
 @Client.on_message(filters.text & filters.incoming)
 async def give_filters(client, message):
-    try:
-        filtered = await global_filters(client, message)
-        if filtered:
-            return
+    k = await global_filters(client, message)    
+    if k == False:
         await auto_filter(client, message)
-    except Exception as e:
-        logger.error(f"Give filters error: {e}")
 
 
 # 1. പ്രധാന സ്പെൽചെക്ക് ഫങ്ക്ഷൻ
