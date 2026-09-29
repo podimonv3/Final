@@ -742,55 +742,125 @@ async def auto_filter(client, msg, spoll=False):
         except Exception as text_error:
             logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
 
+
 async def advantage_spell_chok(client, msg):
+    mv_id = msg.id
     mv_rqst = msg.text
     reqstr1 = msg.from_user.id if msg.from_user else 0
-
-    cleaned_query = re.sub(r"\b(pl(i|e)\\\*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)\\\*|^h(e|a)?(l)\\\*(o)\\\*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)\\\*|kit(t(i|y)?)?o(w)?|thar(u)?(o)\\\*w?|kittum(o)\\\*|aya(k)\\\*(um(o)\\\*)?|full\smovie|any(one)|with\ssubtitle(s)?)", "", mv_rqst, flags=re.I).strip()
-
-    try: movies = await get_poster(cleaned_query, bulk=True)
-    except Exception as e:
-        logger.exception(e)
-        movies = []
-
-    if not movies:
-        try: await save_missing_movie(mv_rqst)
-        except Exception as e: logger.error(f"Failed to save missing movie '{mv_rqst}': {e}")
-
-        req = quote_plus(mv_rqst)
-        buttons = [
-            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={req}")],
-            [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇǫᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
-        ]
-
-        try:
-            k = await msg.reply_photo("https://files.catbox.moe/yt159d.jpg", caption=script.SPELL_TEXT.format(msg.from_user.mention), reply_markup=InlineKeyboardMarkup(buttons), reply_to_message_id=msg.id, parse_mode=enums.ParseMode.HTML)
-        except Exception:
-            k = await msg.reply_text(script.SPELL_TEXT.format(msg.from_user.mention), reply_markup=InlineKeyboardMarkup(buttons), reply_to_message_id=msg.id, parse_mode=enums.ParseMode.HTML)
-
-        await asyncio.sleep(40)
-        try: await k.delete()
-        except Exception: pass
-        return
-
-    movielist = [f"{m.get('title')} ({m.get('year')})" if m.get('year') else m.get('title') for m in movies if m.get('title')]
-    if not movielist: return
-
-    btn = [[InlineKeyboardButton(movie.strip(), callback_data=f"spol#{reqstr1}#{i}")] for i, movie in enumerate(movielist)]
-    btn.append([InlineKeyboardButton("✘ ᴄʟᴏꜱᴇ ✘", callback_data=f"spol#{reqstr1}#close_spellcheck")])
-    caption = "<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏsᴇ ᴛʜᴇ Cᴏʀʀᴇᴄᴛ Oɴᴇ Bᴇʟᴏᴡ 👇</b>"
+    cleaned_query = re.sub(
+        r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|"
+        r"br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|"
+        r"kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|"
+        r"any(one)|with\ssubtitle(s)?)",
+        "", msg.text, flags=re.IGNORECASE
+    )
+    cleaned_query = cleaned_query.strip()
 
     try:
-        spell_check_del = await msg.reply_photo("https://files.catbox.moe/yt159d.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn), reply_to_message_id=msg.id, parse_mode=enums.ParseMode.HTML)
+        movies = await get_poster(cleaned_query, bulk=True)
+    except Exception as e:
+        logger.exception(e)
+        reqst_gle = quote_plus(mv_rqst)
+        button = [
+            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+            [
+                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+            ]
+        ]
+        
+        try:
+            # ഫോട്ടോ ലിങ്ക് നേരിട്ട് photo= എന്നതിൽ നൽകുന്നു
+            k = await msg.reply_photo(
+                photo="https://files.catbox.moe/yt159d.jpg",
+                caption=script.SPELL_TEXT.format(msg.from_user.mention),
+                reply_markup=InlineKeyboardMarkup(button),
+                reply_to_message_id=msg.id,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception:
+            # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
+            k = await msg.reply_text(
+                text=script.SPELL_TEXT.format(msg.from_user.mention), 
+                reply_markup=InlineKeyboardMarkup(button),
+                reply_to_message_id=msg.id,
+                parse_mode=enums.ParseMode.HTML
+            )
+            
+        await asyncio.sleep(30)
+        await k.delete()
+        return
+
+    if not movies:
+        reqst_gle = mv_rqst.replace(" ", "+")
+        button = [
+            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+            [
+                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+            ]
+        ]
+        
+        try:
+            # ഫോട്ടോ ലിങ്ക് നേരിട്ട് photo= എന്നതിൽ നൽകുന്നു
+            k = await msg.reply_photo(
+                photo="https://files.catbox.moe/yt159d.jpg",
+                caption=script.SPELL_TEXT.format(msg.from_user.mention),
+                reply_markup=InlineKeyboardMarkup(button),
+                reply_to_message_id=msg.id,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception:
+            # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
+            k = await msg.reply_text(
+                text=script.SPELL_TEXT.format(msg.from_user.mention), 
+                reply_markup=InlineKeyboardMarkup(button),
+                reply_to_message_id=msg.id,
+                parse_mode=enums.ParseMode.HTML
+            )
+            
+        await asyncio.sleep(40)
+        await k.delete()
+        return
+
+    movielist = [movie.get('title') for movie in movies]
+    movielist = [title for title in movielist if title]
+    if not movielist:
+        return
+
+    SPELL_CHECK[mv_id] = movielist
+    _trim_dict(SPELL_CHECK)
+    btn = [
+        [InlineKeyboardButton(
+            text=movie_name.strip(),
+            callback_data=f"spol#{reqstr1}#{k}",
+        )]
+        for k, movie_name in enumerate(movielist)
+    ]
+    btn.append([InlineKeyboardButton(text="✘ ᴄʟᴏsᴇ ✘", callback_data=f'spol#{reqstr1}#close_spellcheck')])
+    
+    # ശരിയായ മൂവികൾ താഴെ ലിസ്റ്റ് ചെയ്യുമ്പോൾ ഫോട്ടോ കാണിക്കാൻ
+    try:
+        spell_check_del = await msg.reply_photo(
+            photo="https://files.catbox.moe/yt159d.jpg",
+            caption="<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱੇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>",
+            reply_markup=InlineKeyboardMarkup(btn),
+            reply_to_message_id=msg.id
+        )
     except Exception:
-        spell_check_del = await msg.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
-
-    SPELL_CHECK[spell_check_del.id] = {"movies": movielist, "user_msg_id": msg.id}
+        # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ സാധാരണ പോലെ ടെക്സ്റ്റ് അയക്കും
+        spell_check_del = await msg.reply_text(
+            text="<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱੇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>",
+            reply_markup=InlineKeyboardMarkup(btn),
+            reply_to_message_id=msg.id
+        )
+        
     await asyncio.sleep(50)
-    SPELL_CHECK.pop(spell_check_del.id, None)
-    try: await spell_check_del.delete()
-    except Exception: pass
-
+    try:
+        await spell_check_del.delete()
+    except Exception:
+        pass
+        
 
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
