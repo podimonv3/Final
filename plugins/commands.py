@@ -111,29 +111,29 @@ async def start(client, message):
         try:
             if not await db.is_user_exist(message.from_user.id):
                 await db.add_user(message.from_user.id, message.from_user.first_name)
-        except Exception as e:
-            logger.exception(e)
+        except Exception:
+            pass
 
-        btn = [           
+        btn = [
             [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
-            [InlineKeyboardButton("📊 Statistics", callback_data="stats"),
-             InlineKeyboardButton("❌ Close", callback_data="close")]
+            [InlineKeyboardButton("📊 Statistics", callback_data="stats"), InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
+        caption = script.START_TXT.format(message.from_user.mention)
+
         try:
-            await message.reply_photo(
-                photo=client.start_pic,
-                caption=script.START_TXT.format(message.from_user.mention),
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-        except Exception as e:
-            logger.exception(e)
+            await message.reply_photo(photo="https://files.catbox.moe/egu0ip.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
+        except Exception:
+            try:
+                await message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
+            except Exception:
+                pass
         return
 
     try:
         if not await db.is_user_exist(message.from_user.id):
             await db.add_user(message.from_user.id, message.from_user.first_name)
-    except Exception as e:
-        logger.exception(e)
+    except Exception:
+        pass
 
     data = message.command[1]
     try:
@@ -183,23 +183,23 @@ async def start(client, message):
         return
 
     # ================= SPECIAL COMMANDS =================
-    if data in ["subscribe", "error", "okay", "help"]:
-        btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
-            [InlineKeyboardButton("❌ Close", callback_data="close")]
-        ]
+if data in ["subscribe", "error", "okay", "help"]:
+    btn = [
+        [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
+        [InlineKeyboardButton("❌ Close", callback_data="close")]
+    ]
+    caption = script.START_TXT.format(message.from_user.mention)
+    try:
+        await message.reply_photo(photo=client.start_pic, caption=caption, reply_markup=InlineKeyboardMarkup(btn))
+    except Exception:
         try:
-            await message.reply_photo(
-                photo=client.start_pic,
-                caption=script.START_TXT.format(message.from_user.mention),
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
-        except Exception as e:
-            logger.exception(e)
-        return
+            await message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
+        except Exception:
+            pass
+    return
 
-    # ================= BATCH =================
-    if data.split("-", 1)[0] == "BATCH":
+# ================= BATCH =================
+if data.split("-", 1)[0] == "BATCH":
         try:
             sts = await message.reply("Please wait")
             file_id = data.split("-", 1)[1]
