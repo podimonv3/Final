@@ -182,56 +182,75 @@ async def give_filters(client, message):
         logger.error(f"Give filters error: {e}")
 
 
-@Client.on_callback_query(filters.regex(r"^spol#"))
+@Client.on_callback_query(filters.regex(r"^spol"))
 async def advantage_spoll_choker(bot, query):
-    _, user, movie_ = query.data.split("#", 2)
-    if int(user) != 0 and query.from_user.id != int(user): return await query.answer("okDa", show_alert=True)
+    _, user, movie_ = query.data.split('#')
+    
+    if int(user) != 0 and query.from_user.id != int(user):
+        return await query.answer("okDa", show_alert=True)
+        
     if movie_ == "close_spellcheck":
-        SPELL_CHECK.pop(query.message.id, None)
         return await query.message.delete()
-    data = SPELL_CHECK.get(query.message.id)
-    if not data: return await query.answer("This spell check has expired.", show_alert=True)
-    try: movie, user_msg_id = data["movies"][int(movie_)], data["user_msg_id"]
-    except (ValueError, IndexError, KeyError, TypeError): return await query.answer("Invalid movie selection.", show_alert=True)
-    await query.answer("Checking for Movie in database...")
-    SPELL_CHECK.pop(query.message.id, None)
-    try: await query.message.delete()
-    except Exception: pass
+        
+    movies = SPELL_CHECK.get(query.message.reply_to_message.id)
+    if not movies:
+        return await query.answer("You are clicking on an old button which is expired.", show_alert=True)
+        
+    movie = movies[(int(movie_))]
+    await query.answer('Checking for Movie in database...')
+    
+    # 🌟 യൂസർ സിനിമ സെലക്ട് ചെയ്ത ഉടൻ തന്നെ സ്പെൽചെക്ക് മെസ്സേജ് ഇവിടെ വച്ച് ഡിലീറ്റ് ചെയ്യുന്നു
+    try:
+        await query.message.delete()
+    except Exception:
+        pass
 
     k = await global_filters(bot, query.message, text=movie)
-    if k: return
-    files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
-    if files: return await auto_filter(bot, query, (movie, files, offset, total_results))
-    try: await save_missing_movie(movie)
-    except Exception as e: logger.error(f"Failed to save missing movie '{movie}': {e}")
-
-    button = [
-        [InlineKeyboardButton("⏳ Cᴏᴍɪɴɢ Sᴏᴏɴ", callback_data="not_available"), InlineKeyboardButton("❌ Ott വന്നിട്ടില്ല", callback_data="not_available")],
-        [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B1%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇǫᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
-    ]
-
-    poster = None
-    try: poster = await get_any_movie_poster(movie)
-    except Exception as e: logger.warning(f"Poster fetch failed for '{movie}': {e}")
-    fallback_photo = "https://files.catbox.moe/egu0ip.jpg"
-
-    try:
-        k = await bot.send_photo(query.message.chat.id, poster or fallback_photo, caption=script.OTT_TEXT, reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=user_msg_id, parse_mode=enums.ParseMode.HTML)
-    except Exception as e:
-        logger.warning(f"Photo sending failed: {e}")
-        try: k = await bot.send_message(query.message.chat.id, script.OTT_TEXT, reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=user_msg_id, parse_mode=enums.ParseMode.HTML)
-        except Exception as e:
-            logger.error(f"Fallback text message failed: {e}")
-            return
-
-    await asyncio.sleep(60)
-    try: await k.delete()
-    except Exception: pass
-
-
-@Client.on_callback_query(filters.regex(r"^not_available$"))
-async def not_available_callback(client, query):
-    await query.answer("ഒന്ന് OTT ഇറങ്ങിക്കോട്ടെ", show_alert=True)
+    if k == False:
+        files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
+        if files:
+            k = (movie, files, offset, total_results)
+            await auto_filter(bot, query, k)
+        else:
+            # 🔍 ഡാറ്റാബേസിൽ സിനിമ ഇല്ലെങ്കിൽ ഗൂഗിൾ, റൂൾസ്, റിക്വസ്റ്റ് ലിങ്കുകൾ സെറ്റ് ചെയ്യുന്നു
+            reqst_gle = quote_plus(movie)
+            
+            # നിങ്ങളുടെ പുതിയ ബട്ടനുകൾ ഇവിടെ ആഡ് ചെയ്തിരിക്കുന്നു
+            button = [                
+                [
+                    InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+                    InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+                ]
+            ]        
+            
+            try:
+                # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
+                google_msg = await query.message.reply_photo(
+                    photo="https://files.catbox.moe/egu0ip.jpg",
+                    caption=script.OTT_TEXT,                    
+                    reply_markup=InlineKeyboardMarkup(button),
+                    parse_mode=enums.ParseMode.HTML
+                )
+            except Exception as photo_error:
+                # 2. ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ (Error വന്നാൽ) ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
+                logger.warning(f"Photo failed to send, falling back to text: {photo_error}")
+                try:
+                    google_msg = await query.message.reply_text(
+                        text=script.OTT_TEXT, 
+                        reply_markup=InlineKeyboardMarkup(button),
+                        parse_mode=enums.ParseMode.HTML
+                    )
+                except Exception as text_error:
+                    logger.error(f"Text message also failed: {text_error}")
+                    google_msg = None
+            
+            # മെസ്സേജ് വിജയകരമായി അയച്ചിട്ടുണ്ടെങ്കിൽ 60 സെക്കന്റിന് ശേഷം ഡിലീറ്റ് ചെയ്യുന്നു
+            if google_msg:
+                try:
+                    await asyncio.sleep(60)
+                    await google_msg.delete()
+                except Exception:
+                    pass
 
 
 
