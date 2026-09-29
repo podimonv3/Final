@@ -64,30 +64,40 @@ from bs4 import BeautifulSoup
 # 1. TMDB Async
 async def get_tmdb_poster(movie_name, tmdb_api_key):
     try:
-        url = (
-            f"https://api.themoviedb.org/3/search/movie"
-            f"?api_key={tmdb_api_key}"
-            f"&query={urllib.parse.quote(movie_name)}"
-        )
-
+        search_url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={urllib.parse.quote(movie_name)}"
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=5) as response:
+            async with session.get(search_url, timeout=5) as response:
+                if response.status != 200:
+                    return None
                 data = await response.json()
 
-                if data.get("results"):
-                    movie = data["results"][0]
+            if not data.get("results"):
+                return None
 
-                    if movie.get("poster_path"):
-                        return (
-                            f"https://image.tmdb.org/t/p/w500"
-                            f"{movie['poster_path']}"
-                        )
+            movie = data["results"][0]
+            movie_id = movie.get("id")
 
-    except Exception:
-        pass
+            if movie_id:
+                images_url = f"https://api.themoviedb.org/3/movie/{movie_id}/images?api_key={tmdb_api_key}"
+                async with session.get(images_url, timeout=5) as response:
+                    if response.status == 200:
+                        images = await response.json()
+
+                        backdrops = images.get("backdrops", [])
+                        if backdrops:
+                            backdrops.sort(key=lambda x: x.get("vote_average", 0), reverse=True)
+                            path = backdrops[0].get("file_path")
+                            if path:
+                                return f"https://image.tmdb.org/t/p/w1280{path}"
+
+            poster_path = movie.get("poster_path")
+            if poster_path:
+                return f"https://image.tmdb.org/t/p/w500{poster_path}"
+
+    except Exception as e:
+        logger.warning(f"TMDB poster error for '{movie_name}': {e}")
 
     return None
-
 
 
 # 2. OMDb Async
