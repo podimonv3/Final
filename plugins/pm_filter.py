@@ -65,46 +65,7 @@ def _trim_dict(d: dict, max_size: int = 250):  # ഇവിടെ 1000 ആണ് 
         keys_to_remove = list(d.keys())[:len(d) // 5]
         for k in keys_to_remove:
             d.pop(k, None)
-
-# --- 🛠️ ADVANCED MENUS CONFIGURATION (STYLISH FONTS) 🛠️ ---
-LANGUAGES = [
-    ("🇮🇳 ᴍᴀʟᴀʏᴀʟᴀᴍ", "malayalam"),
-    ("🇮🇳 ᴛᴀᴍɪʟ", "tamil"),
-    ("🇬🇧 ᴇɴ🇬ʟɪsʜ", "english"),
-    ("🇮🇳 ʜɪɴᴅɪ", "hindi"),
-    ("🇮🇳 ᴛᴇʟᴜɢᴜ", "telugu"),
-    ("🇮🇳 ᴋᴀɴɴᴀᴅᴀ", "kannada"),
-    ("🇮🇳 🇵ᴘᴜɴᴊᴀʙɪ", "punjabi"),
-    ("🇮🇳 ʙᴇɴɢᴀʟɪ", "bengali"),
-    ("🇮🇳 ᴍᴀʀᴀᴛʜɪ", "marathi"),
-    ("🇮🇳 ʙʜᴏᴊᴘᴜʀɪ", "bhojpuri"),
-    ("🔊 ᴅᴜᴀʟ ᴀᴜᴅɪᴏ", "dual"),
-    ("🎵 ᴍᴜʟᴛɪ ᴀᴜᴅɪᴏ", "multi")
-]
-
-
-QUALITIES = [
-    ("🔹 360ᴘ", "360p"), 
-    ("🔷 480ᴘ", "480p"), 
-    ("✨ 720ᴘ", "720p"), 
-    ("🌟 1080ᴘ", "1080p"), 
-    ("💎 1440ᴘ", "1440p"), 
-    ("👑 2160ᴘ", "2160p")
-]
-
-# പ്രധാന ഫിൽട്ടർ മെനുവിന്റെ ഫോണ്ടും ഇമോജികളും
-def get_filter_menu_buttons(req_id, key):
-    return [
-        [
-            InlineKeyboardButton("🌐 ʟᴀɴɢᴜᴀɢе", callback_data=f"flm_langmenu_{req_id}_{key}"),
-            InlineKeyboardButton("🎬 qᴜᴀʟɪᴛʏ", callback_data=f"flm_qualmenu_{req_id}_{key}")
-        ]
-    ]
-
-def chunk_list(lst, n):
-    return [lst[i:i + n] for i in range(0, len(lst), n)]
-
-
+            
 
 # ⏱️ പ്രധാന ഫയലിൽ നൽകിയ അതേ സമയം ഇവിടെയും നൽകുക
 AUTO_DELETE_TIME = 900
@@ -136,126 +97,77 @@ BUTTONS = {}
 SPELL_CHECK = {}
 
 
-# =====================================================================
-# 1. USER SIDE: HANDLES INCOMING PM MESSAGES (TEXT, PHOTO, VIDEO, STICKER)
-# =====================================================================
 @Client.on_message(filters.private & (filters.text | filters.photo | filters.video | filters.sticker) & filters.incoming)
 async def pm_text(bot: Client, message):
     user_id = message.from_user.id
     user = message.from_user.first_name or "User"
-    
-    # കമാൻഡുകളും അഡ്മിൻ മെസ്സേജുകളും ഇഗ്നോർ ചെയ്യുന്നു
-    if message.text and (message.text.startswith("/") or message.text.startswith("#")): return  
-    if user_id in ADMINS: return 
-    
-    # 🔍 TEXT ONLY VALIDATION (ടെക്സ്റ്റ് മെസ്സേജുകൾക്ക് മാത്രം ഫോർമാറ്റ് പരിശോധിക്കുന്നു)
+
+    if message.text and (message.text.startswith("/") or message.text.startswith("#")): return
+    if user_id in ADMINS: return
+
     if message.text:
         text_to_check = message.text.strip()
-        # മെസ്സേജിന്റെ അവസാനം 1900-2029 വരെയുള്ള 4 അക്ക വർഷമുണ്ടോ എന്ന് നോക്കുന്നു
         if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
             await asyncio.sleep(0.5)
-            
-            # തെറ്റായ ഫോർമാറ്റിന് നൽകുന്ന മറുപടി അലെർട്ട്
             alert_msg = await message.reply_text(
-                text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\n"
-                     f"Please send your request in this format:\n"
-                     f"<code>Movie Name + Year</code>\n\n"
-                     f"Example:\n"
-                     f"<code>Kuruthi 2019</code>\n\n"
-                     f"💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")] 
-                ])
+                text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]])
             )
-            
-            # 30 സെക്കൻഡിന് ശേഷം അലെർട്ട് മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
             await asyncio.sleep(30)
-            try:
-                await bot.delete_messages(chat_id=message.chat.id, message_ids=[alert_msg.id])
-            except Exception as e:
-                logger.error(f"Error deleting alert message: {e}")
-            return # കോഡ് ഇവിടെ അവസാനിക്കുന്നു, ലോഗ് ചാനലിലേക്ക് പോകില്ല.
+            try: await bot.delete_messages(chat_id=message.chat.id, message_ids=[alert_msg.id])
+            except Exception as e: logger.error(f"Error deleting alert message: {e}")
+            return
 
-    # ----------------------------------------------------
-    # ശരിയായ ഫോർമാറ്റ് / മീഡിയ ഫയൽ ആണെങ്കിൽ മാത്രം താഴോട്ടുള്ള കോഡ് വർക്ക് ചെയ്യും
-    # ----------------------------------------------------
-
-    # മെസ്സേജിന്റെ ടൈപ്പ് അനുസരിച്ച് ഉള്ളടക്കം വേർതിരിക്കുന്നു (Text/Caption/Sticker)
     content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
-    
-    # 🔍 DATABASE SEARCH (ടെക്സ്റ്റ് മെസ്സേജ് ആണെങ്കിൽ ഡാറ്റാബേസിൽ ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു)
     files_found = False
+
     if message.text:
         search_query = message.text.strip()
         files, offset, total_results = await get_search_results(search_query.lower(), offset=0, filter=True)
-        
-        # ഡാറ്റാബേസിൽ ഫയലുകൾ കണ്ടെത്തുകയാണെങ്കിൽ
+
         if files:
             files_found = True
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-            
             settings = await get_settings(message.chat.id)
             pre = 'filep' if settings['file_secure'] else 'file'
-            
-            # PM-ലെ മെസ്സേജുകൾക്കും തനതായ ഒരു ഐഡന്റിഫിക്കേഷൻ കീ നിർമ്മിക്കുന്നു
             key = f"{message.chat.id}-{message.id}"
             BUTTONS[key] = search_query
-            
-            # 🛠️ ഗ്രൂപ്പിലെ പോലെ തന്നെ PM-ലും മുകളിൽ അഡ്വാൻസ്‌ഡ് ഫിൽട്ടർ ബട്ടണുകൾ ആഡ് ചെയ്യുന്നു
             btn = get_filter_menu_buttons(user_id, key)
-            
+
             if settings["button"]:
-                for file in files[:10]: # ആദ്യത്തെ 10 ഫയലുകൾ ലിസ്റ്റ് ചെയ്യുന്നു
-                    btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+                for file in files[:10]: btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
             else:
-                for file in files[:10]:
-                    btn.append([
-                        InlineKeyboardButton(text=f"{file.file_name}", callback_data=f'{pre}#{file.file_id}'),
-                        InlineKeyboardButton(text=f"{get_size(file.file_size)}", callback_data=f'{pre}#{file.file_id}')
-                    ])
-            
-            # കൂടുതൽ ഫയലുകൾ ഉണ്ടെങ്കിൽ നെക്സ്റ്റ് പേജ് ബട്ടൺ അടിയിൽ ചേർക്കുന്നു
+                for file in files[:10]: btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
+
             if total_results > 10:
-                btn.append([
-                    InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"),
-                    InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")
-                ])
-                
-            cap = f"<b><i><u>© can_Urvashi Theaters™️</u></i></b>"
+                btn.append([InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")])
+
+            cap = "<b><i><u>© can_Urvashi Theaters™️</u></i></b>"
             await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn))
 
-
-    # സിനിമ ഡാറ്റാബേസിലോ അല്ലെങ്കിൽ ഇതൊരു മീഡിയ ഫയൽ ആണെങ്കിലോ പഴയ റിപ്ലൈ നൽകും
     if not files_found:
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
         await asyncio.sleep(0.5)
-        
+
         reply_msg = await message.reply_text(
-             text=f"<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",   
-             reply_markup=InlineKeyboardMarkup([
-                 [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me/Adhityan_edavattom")],
-                 [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")] 
-             ])
-        )    
-        
-        # താത്കാലിക കൺഫർമേഷൻ മെസ്സേജ് 30 സെക്കൻഡിന് ശേഷം ഡിലീറ്റ് ചെയ്യാനുള്ള ടാസ്ക്
+            text="<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me/Adhityan_edavattom")],
+                [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9D%E0%B4%A8%E0%B4%A4-08-19")]
+            ])
+        )
+
         async def auto_delete():
             await asyncio.sleep(30)
             try: await bot.delete_messages(chat_id=message.chat.id, message_ids=[reply_msg.id])
             except: pass
+
         asyncio.create_task(auto_delete())
 
-        # ----------------------------------------------------
-        # 📢 LOG CHANNEL SECTION (ഡാറ്റാബേസിൽ ഇല്ലാത്തപ്പോൾ മാത്രം ലോഗ് ചെയ്യുന്നു)
-        # ----------------------------------------------------
-        log_reply_markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]
-        ])
-        
-        # ലോഗ് ടെക്സ്റ്റിൽ നിന്നും FOUND / NOT FOUND ടാഗുകൾ പൂർണ്ണമായി ഒഴിവാക്കി
+        log_reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]])
         log_text = f"<b>#PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
-        
+
         try:
             if message.photo:
                 await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
@@ -273,24 +185,17 @@ async def pm_text(bot: Client, message):
             logger.error(f"Error sending log to LOG_CHANNEL: {e}")
 
 
-
-
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
 async def admin_reply_to_user(bot: Client, message):
     parent_message = message.reply_to_message
     parent_text = parent_message.text or parent_message.caption
-    
-    if not parent_text:
-        return
-        
-    pattern = r"#id(\d+)"
-    match = re.search(pattern, parent_text)
-    
+    if not parent_text: return
+
+    match = re.search(r"#id(\d+)", parent_text)
     if match:
         user_id = int(match.group(1))
-        # ക്യാപ്ഷൻ ഉണ്ടെങ്കിൽ അത് HTML ബോൾഡ് ഫോർമാറ്റിൽ എടുക്കുന്നു
         reply_caption = f"<b>{message.caption}</b>" if message.caption else ""
-        
+
         try:
             if message.photo:
                 await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.UPLOAD_PHOTO)
@@ -302,15 +207,12 @@ async def admin_reply_to_user(bot: Client, message):
                 await bot.send_sticker(chat_id=user_id, sticker=message.sticker.file_id)
             elif message.text:
                 await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.TYPING)
-                await bot.send_message(
-                    chat_id=user_id,
-                    text=f"<b>💬 Message From Admin:\n\n{message.text}</b>"
-                )
+                await bot.send_message(chat_id=user_id, text=f"<b>💬 Message From Admin:\n\n{message.text}</b>")
             else:
                 return
-                
+
             await message.reply_text("<b>✅ മറുപടി യൂസർക്ക് വിജയകരമായി അയച്ചു!</b>")
-            
+
         except UserIsBlocked:
             await message.reply_text("<b>❌ മറുപടി അയക്കാൻ കഴിഞ്ഞില്ല! ഈ യൂസർ ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുകയാണ്.</b>")
         except PeerIdInvalid:
@@ -320,15 +222,16 @@ async def admin_reply_to_user(bot: Client, message):
             await message.reply_text(f"<b>❌ മെസ്സേജ് അയക്കാൻ കഴിഞ്ഞില്ല!\nError: {e}</b>")
 
 
+
 @Client.on_message(filters.text & filters.incoming)
 async def give_filters(client, message):
-    # രണ്ട് ഫങ്ക്ഷനുകളും ഒരേ സമയം ബാക്ക്ഗ്രൗണ്ടിൽ റൺ ചെയ്യാൻ ടാസ്കുകൾ ഉണ്ടാക്കുന്നു
-    task1 = asyncio.create_task(global_filters(client, message))
-    task2 = asyncio.create_task(auto_filter(client, message))
-    
-    # രണ്ട് ടാസ്കുകളും ഒരുമിച്ച് (Parallel ആയി) എക്സിക്യൂട്ട് ചെയ്യുന്നു
-    # return_exceptions=True നൽകിയാൽ ഒരെണ്ണത്തിൽ എറർ വന്നാലും മറ്റേത് കൃത്യമായി വർക്ക് ചെയ്യും
-    await asyncio.gather(task1, task2, return_exceptions=True)
+    try:
+        filtered = await global_filters(client, message)
+        if filtered:
+            return
+        await auto_filter(client, message)
+    except Exception as e:
+        logger.error(f"Give filters error: {e}")
 
 
 @Client.on_callback_query(filters.regex(r"^spol#"))
@@ -399,7 +302,6 @@ async def next_page(bot, query):
         await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
         return
 
-    # മൾട്ടി ഫിൽട്ടർ ടാഗുകൾ ഉണ്ടെങ്കിൽ അവ ക്ലീൻ ചെയ്ത് ഡാറ്റാബേസ് സെർച്ചിന് പാകത്തിലാക്കുന്നു
     db_search = search
     if " [" in search:
         base = search.split(" [")[0]
@@ -407,17 +309,14 @@ async def next_page(bot, query):
         db_search = f"{base} {' '.join(tags)}"
 
     files, n_offset, total = await get_search_results(db_search.lower(), offset=offset, filter=True)
-
     if not files:
         await query.answer("no files", show_alert=True)
         return
 
     settings = await get_settings(query.message.chat.id)
-    
-    # 🛠️ ഫിക്സ്: അടുത്ത പേജുകളിലും മുകളിലെ അഡ്വാൻസ്ഡ് ഫിൽട്ടർ മെനു ബട്ടണുകൾ നിലനിർത്തുന്നു
-    btn = get_filter_menu_buttons(req, key)
-
+    btn = []
     pre = 'filep' if settings['file_secure'] else 'file'
+
     for file in files:
         btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
 
@@ -444,18 +343,16 @@ async def next_page(bot, query):
             InlineKeyboardButton(f"{math.ceil(offset / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages"),
             InlineKeyboardButton("Nᴇxᴛ", callback_data=f"next_{req}_{key}_{n_offset}")
         ])
-        
+
     try:
         await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
         await query.answer()
     except MessageNotModified:
         await query.answer()
     except MessageIdInvalid:
-        # മെസ്സേജ് ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ യൂസർക്ക് ഒരു അലേർട്ട് കാണിക്കുന്നു
-        await query.answer("ഈ സെർച്ച് മെനു കാലാവധി കഴിഞ്ഞതSubയോ ഡിലീറ്റ് ചെയ്യപ്പെട്ടതോ ആണ്. ദയവായി വീണ്ടും സെർച്ച് ചെയ്യുക!", show_alert=True)
+        await query.answer("ഈ സെർച്ച് മെനു കാലാവധി കഴിഞ്ഞതോ ഡിലീറ്റ് ചെയ്യപ്പെട്ടതോ ആണ്. ദയവായി വീണ്ടും സെർച്ച് ചെയ്യുക!", show_alert=True)
     except FloodWait as e:
         await query.answer(f"വളരെ വേഗത്തിലാണ്! ദയവായി {e.value} സെക്കൻഡ് കാത്തിരിക്കൂ.", show_alert=True)
-
 
 
 @Client.on_callback_query()
