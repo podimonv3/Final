@@ -195,7 +195,12 @@ async def advantage_spoll_choker(bot, query):
     if movie_idx == "close_spellcheck":
         return await query.message.delete()
         
-    movies = SPELL_CHECK.get(query.message.reply_to_message.id)
+    # ⏳ യൂസറുടെ ഒറിജിനൽ റിക്വസ്റ്റ് മെസ്സേജ് ട്രാക്ക് ചെയ്യുന്നു
+    reply_to_msg = query.message.reply_to_message
+    if not reply_to_msg:
+        return await query.answer("Expired button.", show_alert=True)
+        
+    movies = SPELL_CHECK.get(reply_to_msg.id)
     if not movies:
         return await query.answer("Expired button.", show_alert=True)
         
@@ -215,7 +220,7 @@ async def advantage_spoll_choker(bot, query):
         try: await save_missing_movie(movie)
         except: pass
 
-        # 🔘 അലേർട്ട് ബട്ടണുകൾ മുകളിലും ലിങ്ക് ബട്ടണുകൾ താഴെയും (2x2 Grid Layout)
+        # 🔘 പുതിയ ബട്ടൺ ടെക്സ്റ്റുകൾ മുകളിലും ലിങ്ക് ബട്ടണുകൾ താഴെയും (2x2 Grid Layout)
         buttons = InlineKeyboardMarkup((
             (
                 InlineKeyboardButton("📢 Coming Soon", callback_data="alert_channel"),
@@ -235,21 +240,23 @@ async def advantage_spoll_choker(bot, query):
             photo_url = "https://files.catbox.moe/egu0ip.jpg"
 
         msg = None
-        # 1. ആദ്യം ലഭ്യമായ ഫോട്ടോയോ അല്ലെങ്കിൽ ബാക്കപ്പ് ഫോട്ടോയോ അയക്കാൻ ശ്രമിക്കുന്നു
+        # 1. ആദ്യം ലഭ്യമായ ഫോട്ടോ യൂസറുടെ മെസ്സേജിന് റിപ്ലൈ ആയി അയക്കാൻ ശ്രമിക്കുന്നു
         try:
             msg = await query.message.reply_photo(
                 photo=photo_url,
                 caption=script.OTT_TEXT,                    
                 reply_markup=buttons,
-                parse_mode=enums.ParseMode.HTML
+                parse_mode=enums.ParseMode.HTML,
+                reply_to_message_id=reply_to_msg.id  # ↩️ ഇവിടെ ഒറിജിനൽ മെസ്സേജിന് റിപ്ലൈ നൽകുന്നു
             )
         except:
-            # 2. ബാക്കപ്പ് ഫോട്ടോയും ഫെയിൽ ആയാൽ ഇവിടെ വെച്ച് നോർമൽ ടെക്സ്റ്റ് റിപ്ലൈ അയക്കും
+            # 2. ബാക്കപ്പ് ഫോട്ടോയും ഫെയിൽ ആയാൽ നോർമൽ ടെക്സ്റ്റ് മെസ്സേജ് റിപ്ലൈ ആയി അയക്കും
             try:
                 msg = await query.message.reply_text(
                     text=script.OTT_TEXT, 
                     reply_markup=buttons,
-                    parse_mode=enums.ParseMode.HTML
+                    parse_mode=enums.ParseMode.HTML,
+                    reply_to_message_id=reply_to_msg.id  # ↩️ ഇവിടെ ഒറിജിനൽ മെസ്സേജിന് റിപ്ലൈ നൽകുന്നു
                 )
             except: pass
         
@@ -259,12 +266,12 @@ async def advantage_spoll_choker(bot, query):
             try: await msg.delete()
             except: pass
 
-# 2. Channel ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള അലേർട്ട്
+# 2. "📢 Coming Soon" ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള അലേർട്ട്
 @Client.on_callback_query(filters.regex("^alert_channel$"))
 async def channel_alert_handler(bot, query):
     await query.answer("OTT FILE NOT AVAILABLE", show_alert=True)
 
-# 3. Google ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള അലേർട്ട്
+# 3. "🫴 OTT വന്നിട്ടില്ല" ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള അലേർട്ട്
 @Client.on_callback_query(filters.regex("^alert_google$"))
 async def google_alert_handler(bot, query):
     await query.answer("OTT ഇറങ്ങുന്നേ വരെ ക്ഷമിക്ക് അളിയാ", show_alert=True)
