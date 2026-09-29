@@ -283,17 +283,13 @@ async def _imdbio_search(title, year=None, bulk=False):
         return None
     try:
         result = await asyncio.to_thread(_imdbio.search_title, title, year=year)
-    except _ImdbioError as e:
-        logger.warning(f"imdbio search error: {e}")
+    except _ImdbioError:        
         return None
-    except TypeError as e:
-        # known upstream quirk in some imdbio releases (internal lru_cache hashing
-        # occasionally chokes on certain inputs) — not fixable on our side, falls
-        # back to OMDb automatically, so just a quiet warning instead of a full trace
-        logger.warning(f"imdbio search skipped (upstream bug): {e}")
+    except TypeError:
+        # upstream bug ലോഗ് ചെയ്യുന്നത് ഒഴിവാക്കി
         return None
-    except Exception as e:
-        logger.exception(f"imdbio search unexpected error: {e}")
+    except Exception:
+        # മറ്റെല്ലാ അപ്രതീക്ഷിത എറർ ലോഗുകളും ഒഴിവാക്കി
         return None
 
     if not result or not result.titles:
