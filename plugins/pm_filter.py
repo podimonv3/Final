@@ -330,53 +330,88 @@ async def give_filters(client, message):
     # return_exceptions=True നൽകിയാൽ ഒരെണ്ണത്തിൽ എറർ വന്നാലും മറ്റേത് കൃത്യമായി വർക്ക് ചെയ്യും
     await asyncio.gather(task1, task2, return_exceptions=True)
 
-
 @Client.on_callback_query(filters.regex(r"^spol#"))
 async def advantage_spoll_choker(bot, query):
-    _, user, movie_ = query.data.split("#", 2)
-
-    if int(user) != 0 and query.from_user.id != int(user):
-        return await query.answer("okDa", show_alert=True)
-
-    if movie_ == "close_spellcheck":
-        return await query.message.delete()
-
-    movies = SPELL_CHECK.get(query.message.reply_to_message.id)
-
-    if not movies:
+    try:
+        _, movie_id, user = query.data.split("#", 2)
+        user = int(user)
+    except (ValueError, AttributeError):
         return await query.answer(
-            "You are clicking on an old button which is expired.",
+            "Invalid request.",
             show_alert=True
         )
 
-    try:
-        movie = movies[int(movie_)]
-    except (ValueError, IndexError):
-        return await query.answer("Invalid selection.", show_alert=True)
+    if user and query.from_user.id != user:
+        return await query.answer(
+            "This button is not for you.",
+            show_alert=True
+        )
+
+    if movie_id == "close_spellcheck":
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+        return
+
+    movie = SPELL_CHECK.get(str(movie_id))
+
+    if not movie:
+        return await query.answer(
+            "This button has expired.",
+            show_alert=True
+        )
+
+    original = query.message.reply_to_message
+
+    if not original:
+        return await query.answer(
+            "Original message not found.",
+            show_alert=True
+        )
 
     await query.answer("Checking for Movie in database...")
 
     try:
         await query.message.delete()
-    except:
+    except Exception:
         pass
 
-    k = await global_filters(bot, query.message, text=movie)
+    try:
+        k = await global_filters(
+            bot,
+            original,
+            text=movie
+        )
+    except Exception as e:
+        logger.exception(f"Global filter error: {e}")
+        k = False
 
-    if k:
+    if k is not False:
         return
 
-    files, offset, total_results = await get_search_results(
-        movie, offset=0, filter=True
-    )
+    try:
+        files, offset, total_results = await get_search_results(
+            movie,
+            offset=0,
+            filter=True
+        )
+    except Exception as e:
+        logger.exception(f"Search error: {e}")
+        files, offset, total_results = [], 0, 0
 
     if files:
-        return await auto_filter(
-            bot, query,
-            (movie, files, offset, total_results)
-        )
+        try:
+            await auto_filter(
+                bot,
+                original,
+                (movie, files, offset, total_results)
+            )
+        except Exception as e:
+            logger.exception(f"Auto filter error: {e}")
+        return
 
-    button = [[
+    buttons = [[
         InlineKeyboardButton(
             "📜 Rᴜʟᴇs",
             url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"
@@ -387,25 +422,31 @@ async def advantage_spoll_choker(bot, query):
         )
     ]]
 
+    markup = InlineKeyboardMarkup(buttons)
+
     try:
-        msg = await query.message.reply_photo(
+        result_msg = await original.reply_photo(
             photo="https://files.catbox.moe/egu0ip.jpg",
             caption=script.OTT_TEXT,
-            reply_markup=InlineKeyboardMarkup(button),
+            reply_markup=markup,
             parse_mode=enums.ParseMode.HTML
         )
-    except:
-        msg = await query.message.reply_text(
-            script.OTT_TEXT,
-            reply_markup=InlineKeyboardMarkup(button),
-            parse_mode=enums.ParseMode.HTML
-        )
+    except Exception:
+        try:
+            result_msg = await original.reply_text(
+                script.OTT_TEXT,
+                reply_markup=markup,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception as e:
+            logger.exception(f"Result message error: {e}")
+            return
 
     await asyncio.sleep(60)
 
     try:
-        await msg.delete()
-    except:
+        await result_msg.delete()
+    except Exception:
         pass
 
 
@@ -1177,124 +1218,6 @@ async def auto_filter(client, msg, spoll=False):
             )
         )
 
-@Client.on_callback_query(filters.regex(r"^spol#"))
-async def advantage_spoll_choker(bot, query):
-    try:
-        _, movie_id, user = query.data.split("#", 2)
-        user = int(user)
-    except (ValueError, AttributeError):
-        return await query.answer(
-            "Invalid request.",
-            show_alert=True
-        )
-
-    if user and query.from_user.id != user:
-        return await query.answer(
-            "This button is not for you.",
-            show_alert=True
-        )
-
-    if movie_id == "close_spellcheck":
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-        return
-
-    movie = SPELL_CHECK.get(str(movie_id))
-
-    if not movie:
-        return await query.answer(
-            "This button has expired.",
-            show_alert=True
-        )
-
-    original = query.message.reply_to_message
-
-    if not original:
-        return await query.answer(
-            "Original message not found.",
-            show_alert=True
-        )
-
-    await query.answer("Checking for Movie in database...")
-
-    try:
-        await query.message.delete()
-    except Exception:
-        pass
-
-    try:
-        k = await global_filters(
-            bot,
-            original,
-            text=movie
-        )
-    except Exception as e:
-        logger.exception(f"Global filter error: {e}")
-        k = False
-
-    if k is not False:
-        return
-
-    try:
-        files, offset, total_results = await get_search_results(
-            movie,
-            offset=0,
-            filter=True
-        )
-    except Exception as e:
-        logger.exception(f"Search error: {e}")
-        files, offset, total_results = [], 0, 0
-
-    if files:
-        try:
-            await auto_filter(
-                bot,
-                original,
-                (movie, files, offset, total_results)
-            )
-        except Exception as e:
-            logger.exception(f"Auto filter error: {e}")
-        return
-
-    buttons = [[
-        InlineKeyboardButton(
-            "📜 Rᴜʟᴇs",
-            url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"
-        ),
-        InlineKeyboardButton(
-            "📥 Rᴇqᴜᴇsᴛ",
-            url="http://t.me/Promoviesearcher_bot"
-        )
-    ]]
-
-    markup = InlineKeyboardMarkup(buttons)
-
-    try:
-        result_msg = await original.reply_photo(
-            photo="https://files.catbox.moe/egu0ip.jpg",
-            caption=script.OTT_TEXT,
-            reply_markup=markup,
-            parse_mode=enums.ParseMode.HTML
-        )
-    except Exception:
-        try:
-            result_msg = await original.reply_text(
-                script.OTT_TEXT,
-                reply_markup=markup,
-                parse_mode=enums.ParseMode.HTML
-            )
-        except Exception as e:
-            logger.exception(f"Result message error: {e}")
-            return
-
-    await asyncio.sleep(60)
-
-    try:
-        await result_msg.delete()
-    except Exception:
-        pass
 
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
@@ -1306,7 +1229,9 @@ async def advantage_spell_chok(client, msg):
         r"br((o|u)h?)\*|^h(e|a)?(l)\*(o)\*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)\*|"
         r"kit(t(i|y)?)?o(w)?|thar(u)?(o)\*w?|kittum(o)\*|aya(k)\*(um(o)\*)?|full\smovie|"
         r"any(one)|with\ssubtitle(s)?)",
-        "", msg.text, flags=re.I
+        "",
+        msg.text,
+        flags=re.I
     ).strip()
 
     try:
@@ -1318,11 +1243,14 @@ async def advantage_spell_chok(client, msg):
     # ❌ No suggestions
     if not movies:
         req = quote_plus(mv_rqst)
+
         buttons = [
-            [InlineKeyboardButton(
-                "🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍",
-                url=f"https://www.google.com/search?q={req}"
-            )],
+            [
+                InlineKeyboardButton(
+                    "🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍",
+                    url=f"https://www.google.com/search?q={req}"
+                )
+            ],
             [
                 InlineKeyboardButton(
                     "📜 Rᴜʟᴇs",
@@ -1337,7 +1265,7 @@ async def advantage_spell_chok(client, msg):
 
         try:
             k = await msg.reply_photo(
-                "https://files.catbox.moe/yt159d.jpg",
+                photo="https://files.catbox.moe/yt159d.jpg",
                 caption=script.SPELL_TEXT.format(msg.from_user.mention),
                 reply_markup=InlineKeyboardMarkup(buttons),
                 reply_to_message_id=msg.id,
@@ -1352,14 +1280,23 @@ async def advantage_spell_chok(client, msg):
             )
 
         await asyncio.sleep(40)
+
         try:
             await k.delete()
         except:
             pass
+
         return
 
-    # 🎬 Suggestions
-    movielist = [m.get("title") for m in movies if m.get("title")]
+    # 🎬 Movie suggestions with year
+    movielist = [
+        f"{m.get('title')} ({m.get('year')})"
+        if m.get('year')
+        else m.get('title')
+        for m in movies
+        if m.get('title')
+    ]
+
     if not movielist:
         return
 
@@ -1367,15 +1304,18 @@ async def advantage_spell_chok(client, msg):
     _trim_dict(SPELL_CHECK)
 
     btn = [
-        [InlineKeyboardButton(
-            movie.strip(),
-            callback_data=f"spol#{reqstr1}#{i}"
-        )]
+        [
+            InlineKeyboardButton(
+                movie.strip(),
+                callback_data=f"spol#{reqstr1}#{i}"
+            )
+        ]
         for i, movie in enumerate(movielist)
     ]
+
     btn.append([
         InlineKeyboardButton(
-            "✘ ᴄʟᴏsᴇ ✘",
+            "✘ ᴄʟᴏꜱᴇ ✘",
             callback_data=f"spol#{reqstr1}#close_spellcheck"
         )
     ])
@@ -1387,16 +1327,18 @@ async def advantage_spell_chok(client, msg):
 
     try:
         spell_check_del = await msg.reply_photo(
-            "https://files.catbox.moe/yt159d.jpg",
+            photo="https://files.catbox.moe/yt159d.jpg",
             caption=caption,
             reply_markup=InlineKeyboardMarkup(btn),
-            reply_to_message_id=msg.id
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
         )
     except:
         spell_check_del = await msg.reply_text(
-            caption,
+            text=caption,
             reply_markup=InlineKeyboardMarkup(btn),
-            reply_to_message_id=msg.id
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
         )
 
     await asyncio.sleep(50)
