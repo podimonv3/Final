@@ -237,52 +237,59 @@ async def give_filters(client, message):
 @Client.on_callback_query(filters.regex(r"^spol#"))
 async def advantage_spoll_choker(bot, query):
     _, user, movie_ = query.data.split("#", 2)
-
-    if int(user) != 0 and query.from_user.id != int(user):
-        return await query.answer("okDa", show_alert=True)
-
+    if int(user) != 0 and query.from_user.id != int(user): return await query.answer("okDa", show_alert=True)
     if movie_ == "close_spellcheck":
         SPELL_CHECK.pop(query.message.id, None)
         return await query.message.delete()
 
     data = SPELL_CHECK.get(query.message.id)
-    if not data:
-        return await query.answer("This spell check has expired.", show_alert=True)
+    if not data: return await query.answer("This spell check has expired.", show_alert=True)
 
     try:
-        movie = data["movies"][int(movie_)]
-        user_msg_id = data["user_msg_id"]
+        movie, user_msg_id = data["movies"][int(movie_)], data["user_msg_id"]
     except (ValueError, IndexError, KeyError, TypeError):
         return await query.answer("Invalid movie selection.", show_alert=True)
 
     await query.answer("Checking for Movie in database...")
     SPELL_CHECK.pop(query.message.id, None)
-
     try: await query.message.delete()
     except Exception: pass
 
     k = await global_filters(bot, query.message, text=movie)
-    if k:
-        return
+    if k: return
 
     files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
+    if files: return await auto_filter(bot, query, (movie, files, offset, total_results))
 
-    if files:
-        return await auto_filter(bot, query, (movie, files, offset, total_results))
+    try: await save_missing_movie(movie)
+    except Exception as e: logger.error(f"Failed to save missing movie '{movie}': {e}")
 
-    button = [[
-        InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-        InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-    ]]
+    button = [
+        [InlineKeyboardButton("⏳ Cᴏᴍɪɴɢ Sᴏᴏɴ", callback_data="not_available"), InlineKeyboardButton("❌ Ott വന്നിട്ടില്ല", callback_data="not_available")],
+        [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
+    ]
+
+    poster = await get_any_movie_poster(movie)
+    fallback_photo = "https://files.catbox.moe/egu0ip.jpg"
 
     try:
-        k = await bot.send_photo(query.message.chat.id, "https://files.catbox.moe/egu0ip.jpg", caption=script.OTT_TEXT, reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=user_msg_id, parse_mode=enums.ParseMode.HTML)
-    except Exception:
-        k = await bot.send_message(query.message.chat.id, script.OTT_TEXT, reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=user_msg_id, parse_mode=enums.ParseMode.HTML)
+        k = await bot.send_photo(query.message.chat.id, poster or fallback_photo, caption=script.OTT_TEXT, reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=user_msg_id, parse_mode=enums.ParseMode.HTML)
+    except Exception as e:
+        logger.warning(f"Poster upload failed: {e}")
+        try:
+            k = await bot.send_message(query.message.chat.id, script.OTT_TEXT, reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=user_msg_id, parse_mode=enums.ParseMode.HTML)
+        except Exception as e:
+            logger.error(f"Fallback text message failed: {e}")
+            return
 
     await asyncio.sleep(60)
     try: await k.delete()
     except Exception: pass
+
+
+@Client.on_callback_query(filters.regex(r"^not_available$"))
+async def not_available_callback(client, query):
+    await query.answer("Not Available", show_alert=True)
 
 
 
