@@ -341,11 +341,12 @@ async def advantage_spoll_choker(bot, query):
         SPELL_CHECK.pop(query.message.id, None)
         return await query.message.delete()
 
+    # ⭐ Get list using the spell-check message ID
     movies = SPELL_CHECK.get(query.message.id)
 
     if not movies:
         return await query.answer(
-            "You are clicking on an old button which is expired.",
+            "This spell check has expired.",
             show_alert=True
         )
 
@@ -353,7 +354,7 @@ async def advantage_spoll_choker(bot, query):
         movie = movies[int(movie_)]
     except (ValueError, IndexError):
         return await query.answer(
-            "Invalid selection.",
+            "Invalid movie selection.",
             show_alert=True
         )
 
@@ -397,7 +398,7 @@ async def advantage_spoll_choker(bot, query):
 
     try:
         k = await query.message.reply_photo(
-            photo="https://files.catbox.moe/egu0ip.jpg",
+            "https://files.catbox.moe/egu0ip.jpg",
             caption=script.OTT_TEXT,
             reply_markup=InlineKeyboardMarkup(button),
             parse_mode=enums.ParseMode.HTML
@@ -1186,7 +1187,6 @@ async def auto_filter(client, msg, spoll=False):
 
 
 async def advantage_spell_chok(client, msg):
-    mv_id = msg.id
     mv_rqst = msg.text
     reqstr1 = msg.from_user.id if msg.from_user else 0
 
@@ -1195,9 +1195,7 @@ async def advantage_spell_chok(client, msg):
         r"br((o|u)h?)\*|^h(e|a)?(l)\*(o)\*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)\*|"
         r"kit(t(i|y)?)?o(w)?|thar(u)?(o)\*w?|kittum(o)\*|aya(k)\*(um(o)\*)?|full\smovie|"
         r"any(one)|with\ssubtitle(s)?)",
-        "",
-        msg.text,
-        flags=re.I
+        "", msg.text, flags=re.I
     ).strip()
 
     try:
@@ -1206,17 +1204,13 @@ async def advantage_spell_chok(client, msg):
         logger.exception(e)
         movies = []
 
-    # ❌ No suggestions
     if not movies:
         req = quote_plus(mv_rqst)
-
         buttons = [
-            [
-                InlineKeyboardButton(
-                    "🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍",
-                    url=f"https://www.google.com/search?q={req}"
-                )
-            ],
+            [InlineKeyboardButton(
+                "🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍",
+                url=f"https://www.google.com/search?q={req}"
+            )],
             [
                 InlineKeyboardButton(
                     "📜 Rᴜʟᴇs",
@@ -1231,7 +1225,7 @@ async def advantage_spell_chok(client, msg):
 
         try:
             k = await msg.reply_photo(
-                photo="https://files.catbox.moe/yt159d.jpg",
+                "https://files.catbox.moe/yt159d.jpg",
                 caption=script.SPELL_TEXT.format(msg.from_user.mention),
                 reply_markup=InlineKeyboardMarkup(buttons),
                 reply_to_message_id=msg.id,
@@ -1251,31 +1245,23 @@ async def advantage_spell_chok(client, msg):
             await k.delete()
         except:
             pass
-
         return
 
-    # 🎬 Movie suggestions with year
     movielist = [
         f"{m.get('title')} ({m.get('year')})"
-        if m.get('year')
-        else m.get('title')
+        if m.get("year") else m.get("title")
         for m in movies
-        if m.get('title')
+        if m.get("title")
     ]
 
     if not movielist:
         return
 
-    SPELL_CHECK[mv_id] = movielist
-    _trim_dict(SPELL_CHECK)
-
     btn = [
-        [
-            InlineKeyboardButton(
-                movie.strip(),
-                callback_data=f"spol#{reqstr1}#{i}"
-            )
-        ]
+        [InlineKeyboardButton(
+            movie.strip(),
+            callback_data=f"spol#{reqstr1}#{i}"
+        )]
         for i, movie in enumerate(movielist)
     ]
 
@@ -1288,12 +1274,12 @@ async def advantage_spell_chok(client, msg):
 
     caption = (
         "<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\n"
-        "ᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱᴇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>"
+        "ᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏsᴇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>"
     )
 
     try:
         spell_check_del = await msg.reply_photo(
-            photo="https://files.catbox.moe/yt159d.jpg",
+            "https://files.catbox.moe/yt159d.jpg",
             caption=caption,
             reply_markup=InlineKeyboardMarkup(btn),
             reply_to_message_id=msg.id,
@@ -1301,11 +1287,14 @@ async def advantage_spell_chok(client, msg):
         )
     except:
         spell_check_del = await msg.reply_text(
-            text=caption,
+            caption,
             reply_markup=InlineKeyboardMarkup(btn),
             reply_to_message_id=msg.id,
             parse_mode=enums.ParseMode.HTML
         )
+
+    # ⭐ Save using the actual spell-check message ID
+    SPELL_CHECK[spell_check_del.id] = movielist
 
     await asyncio.sleep(50)
 
@@ -1314,7 +1303,7 @@ async def advantage_spell_chok(client, msg):
     except:
         pass
 
-
+    SPELL_CHECK.pop(spell_check_del.id, None)
 
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
