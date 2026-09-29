@@ -67,29 +67,6 @@ def _trim_dict(d: dict, max_size: int = 250):  # ഇവിടെ 1000 ആണ് 
             d.pop(k, None)
             
 
-# ⏱️ പ്രധാന ഫയലിൽ നൽകിയ അതേ സമയം ഇവിടെയും നൽകുക
-AUTO_DELETE_TIME = 900
-
-# 📝 Short Warning Message Template in Blockquote
-AUTO_DEL_TEXT = (
-    "<blockquote>⚠️ <b>This file will be deleted in 3 mins. Forward to Saved Messages now!</b>\n\n"
-    "<i>കോപ്പിറൈറ്റ് ഒഴിവാക്കാൻ ഈ ഫയൽ 3 മിനിറ്റിനുള്ളിൽ ഡിലീറ്റ് ആകും. ഉടൻ തന്നെ Saved Messages-ലേക്ക് Forward ചെയ്യുക!</i></blockquote>"
-)
-
-
-
-# 🗑️ ബാക്ക്ഗ്രൗണ്ടിൽ മെസ്സേജുകൾ സുരക്ഷിതമായി ഡിലീറ്റ് ചെയ്യാനുള്ള ഫങ്ഷൻ
-async def auto_delete_messages(client, chat_id, message_ids, delay):
-    await asyncio.sleep(delay)
-    for msg_id in message_ids:
-        try:
-            await client.delete_messages(chat_id=chat_id, message_ids=msg_id)
-        except FloodWait as e:
-            await asyncio.sleep(e.x)
-            try:
-                await client.delete_messages(chat_id=chat_id, message_ids=msg_id)
-            except Exception: pass
-        except Exception: pass
 
 
 
@@ -265,7 +242,7 @@ async def advantage_spoll_choker(bot, query):
     except Exception as e: logger.error(f"Failed to save missing movie '{movie}': {e}")
 
     button = [
-        [InlineKeyboardButton("⏳ Cᴏᴍɪɴɢ Sᴏᴏɴ", callback_data="not_available"), InlineKeyboardButton("❌ Ott വന്നിട്ടില്ല", callback_data="not_available")],
+        [InlineKeyboardButton("⏳ CᴏᴍɪɴɢSᴏᴏɴ", callback_data="not_available"), InlineKeyboardButton("❌ Ott വന്നിട്ടില്ല", callback_data="not_available")],
         [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
     ]
 
@@ -804,24 +781,21 @@ async def advantage_spell_chok(client, msg):
     mv_rqst = msg.text
     reqstr1 = msg.from_user.id if msg.from_user else 0
 
-    cleaned_query = re.sub(
-        r"\b(pl(i|e)\\\*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|"
-        r"br((o|u)h?)\\\*|^h(e|a)?(l)\\\*(o)\\\*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)\\\*|"
-        r"kit(t(i|y)?)?o(w)?|thar(u)?(o)\\\*w?|kittum(o)\\\*|aya(k)\\\*(um(o)\\\*)?|full\smovie|"
-        r"any(one)|with\ssubtitle(s)?)", "", mv_rqst, flags=re.I
-    ).strip()
+    cleaned_query = re.sub(r"\b(pl(i|e)\\\*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)\\\*|^h(e|a)?(l)\\\*(o)\\\*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)\\\*|kit(t(i|y)?)?o(w)?|thar(u)?(o)\\\*w?|kittum(o)\\\*|aya(k)\\\*(um(o)\\\*)?|full\smovie|any(one)|with\ssubtitle(s)?)", "", mv_rqst, flags=re.I).strip()
 
-    try:
-        movies = await get_poster(cleaned_query, bulk=True)
+    try: movies = await get_poster(cleaned_query, bulk=True)
     except Exception as e:
         logger.exception(e)
         movies = []
 
     if not movies:
+        try: await save_missing_movie(mv_rqst)
+        except Exception as e: logger.error(f"Failed to save missing movie '{mv_rqst}': {e}")
+
         req = quote_plus(mv_rqst)
         buttons = [
             [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={req}")],
-            [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
+            [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇǫᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
         ]
 
         try:
@@ -834,14 +808,12 @@ async def advantage_spell_chok(client, msg):
         except Exception: pass
         return
 
-    movielist = [f"{m.get('title')} ({m.get('year')})" if m.get("year") else m.get("title") for m in movies if m.get("title")]
-    if not movielist:
-        return
+    movielist = [f"{m.get('title')} ({m.get('year')})" if m.get('year') else m.get('title') for m in movies if m.get('title')]
+    if not movielist: return
 
     btn = [[InlineKeyboardButton(movie.strip(), callback_data=f"spol#{reqstr1}#{i}")] for i, movie in enumerate(movielist)]
     btn.append([InlineKeyboardButton("✘ ᴄʟᴏꜱᴇ ✘", callback_data=f"spol#{reqstr1}#close_spellcheck")])
-
-    caption = "<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏsᴇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>"
+    caption = "<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏsᴇ ᴛʜᴇ Cᴏʀʀᴇᴄᴛ Oɴᴇ Bᴇʟᴏᴡ 👇</b>"
 
     try:
         spell_check_del = await msg.reply_photo("https://files.catbox.moe/yt159d.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn), reply_to_message_id=msg.id, parse_mode=enums.ParseMode.HTML)
@@ -849,7 +821,6 @@ async def advantage_spell_chok(client, msg):
         spell_check_del = await msg.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn))
 
     SPELL_CHECK[spell_check_del.id] = {"movies": movielist, "user_msg_id": msg.id}
-
     await asyncio.sleep(50)
     SPELL_CHECK.pop(spell_check_del.id, None)
     try: await spell_check_del.delete()
@@ -859,91 +830,50 @@ async def advantage_spell_chok(client, msg):
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
     raw_name = text or message.text
-    
-    # ---- ക്ലീനിങ് ലോജിക് ----
+
     search = emoji.replace_emoji(raw_name, replace='')
     search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', search)
     search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
     search = re.sub(r"['‘’]", "", search)
     search = re.sub(r"[-–—_,#&?/( )\[\]\\\":\.¡%“”]", " ", search)
-    search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)                       
-                        
+    search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)
     find = search.lower().split(" ")
-    removes = {
-        "pls", "plz", "plzz", "please", "send", "snd", "snt",
-        "gib", "veno", "venam", "venum",
-        "undo", "ayakkumo", "ayakkamo", "und", "move", 
-        "multi", "dubb", "dub", "bro", "bruh", "broh", "dubbed", "link", "lnk",
-        "iruka", "pannunga", "pannungga", "anuppunga", "anupunga", "anuppungga", 
-        "anupungga", "subtile", "kitti", "kitty", "tharu", "kittumo", "kittum",
-        "da", "mwonse", "bhai", "share", "malayalm", "malylm", "subtitle"
-    }
-    search = " ".join([w for w in find if w not in removes])
+    removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkamo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
+    search = " ".join(w for w in find if w not in removes)
     clean_name = re.sub(r"\s+", " ", search).strip()
-    # -----------------------
 
     reply_id = message.reply_to_message.id if message.reply_to_message else message.id
     keywords = await get_gfilters('gfilters')
-    
+
     for keyword in reversed(sorted(keywords, key=len)):
         pattern = r"^" + re.escape(keyword.strip().lower()) + r"$"
-        
         if re.match(pattern, clean_name, flags=re.IGNORECASE):
             reply_text, btn, alert, fileid = await find_gfilter('gfilters', keyword)
-
-            if reply_text:
-                reply_text = reply_text.replace("\\n", "\n").replace("\\t", "\t")
+            if reply_text: reply_text = reply_text.replace("\\n", "\n").replace("\\t", "\t")
 
             if btn is not None:
                 try:
-                    # Safely parse buttons using json instead of eval
                     if btn != "[]":
-                        try:
-                            button = json.loads(btn)
-                        except Exception:
-                            button = eval(btn) # Fallback if stored in non-standard JSON format
-                    else:
-                        button = []
+                        try: button = json.loads(btn)
+                        except Exception: button = eval(btn)
+                    else: button = []
 
                     g_msg = None
                     if fileid == "None":
-                        if btn == "[]":
-                            while True:
-                                try:
-                                    g_msg = await client.send_message(
-                                        group_id, 
-                                        reply_text, 
-                                        disable_web_page_preview=True,
-                                        reply_to_message_id=reply_id
-                                    )
-                                    break
-                                except FloodWait as e:
-                                    logger.warning(f"FloodWait triggered! Sleeping for {e.value} seconds.")
-                                    await asyncio.sleep(e.value)
-                        else:
-                            while True:
-                                try:
-                                    g_msg = await client.send_message(
-                                        group_id,
-                                        reply_text,
-                                        disable_web_page_preview=True,
-                                        reply_markup=InlineKeyboardMarkup(button),
-                                        reply_to_message_id=reply_id
-                                    )
-                                    break
-                                except FloodWait as e:
-                                    logger.warning(f"FloodWait triggered! Sleeping for {e.value} seconds.")
-                                    await asyncio.sleep(e.value)
-
+                        while True:
+                            try:
+                                if btn == "[]":
+                                    g_msg = await client.send_message(group_id, reply_text, disable_web_page_preview=True, reply_to_message_id=reply_id)
+                                else:
+                                    g_msg = await client.send_message(group_id, reply_text, disable_web_page_preview=True, reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=reply_id)
+                                break
+                            except FloodWait as e:
+                                logger.warning(f"FloodWait triggered! Sleeping for {e.value} seconds.")
+                                await asyncio.sleep(e.value)
                     elif btn == "[]":
                         while True:
                             try:
-                                g_msg = await client.send_cached_media(
-                                    group_id,
-                                    fileid,
-                                    caption=reply_text or "",
-                                    reply_to_message_id=reply_id
-                                )
+                                g_msg = await client.send_cached_media(group_id, fileid, caption=reply_text or "", reply_to_message_id=reply_id)
                                 break
                             except FloodWait as e:
                                 logger.warning(f"FloodWait triggered! Sleeping for {e.value} seconds.")
@@ -951,22 +881,13 @@ async def global_filters(client, message, text=False):
                     else:
                         while True:
                             try:
-                                g_msg = await client.send_cached_media(
-                                    group_id,
-                                    fileid,
-                                    caption=reply_text or "",
-                                    reply_markup=InlineKeyboardMarkup(button),
-                                    reply_to_message_id=reply_id
-                                )
+                                g_msg = await client.send_cached_media(group_id, fileid, caption=reply_text or "", reply_markup=InlineKeyboardMarkup(button), reply_to_message_id=reply_id)
                                 break
                             except FloodWait as e:
                                 logger.warning(f"FloodWait triggered! Sleeping for {e.value} seconds.")
                                 await asyncio.sleep(e.value)
-                    
-                    # 🗑️ കസ്റ്റം ഫിൽട്ടർ മെസ്സേജ് വിജയകരമായി അയച്ചാൽ അത് ബാക്ക്ഗ്രൗണ്ടിൽ ഡിലീറ്റ് ചെയ്യാൻ ടാസ്ക് നൽകുന്നു
-                    if g_msg:
-                        asyncio.create_task(auto_delete_messages(client, group_id, [g_msg.id], AUTO_DELETE_TIME))
-                        
+
+                    if g_msg: asyncio.create_task(auto_delete_messages(client, group_id, [g_msg.id], AUTO_DELETE_TIME))
                 except Exception as e:
                     logger.exception(e)
                 break
