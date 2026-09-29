@@ -965,7 +965,6 @@ async def global_filters(client, message, text=False):
                                 logger.warning(f"FloodWait triggered! Sleeping for {e.value} seconds.")
                                 await asyncio.sleep(e.value)
 
-                    if g_msg: asyncio.create_task(auto_delete_messages(client, group_id, [g_msg.id], AUTO_DELETE_TIME))
                 except Exception as e:
                     logger.exception(e)
                 break
