@@ -72,6 +72,7 @@ async def check_file(media):
         
 
 
+
 async def clean_file_name(raw_name: str) -> str:
     """ഫയൽ നെയിം ശുദ്ധീകരിക്കാനുള്ള ഹെൽപർ ഫങ്ഷൻ"""
     # 1. ഫയൽ എക്സ്റ്റൻഷൻ നീക്കം ചെയ്യുന്നു (.mp4, .mkv മുതലായവ)
@@ -79,8 +80,12 @@ async def clean_file_name(raw_name: str) -> str:
     
     # --- പുതിയ മാറ്റം: info.py-ലെ TAGS ലിസ്റ്റിലുള്ളവ തുടക്കത്തിൽ വന്നാൽ മാത്രം ഒഴിവാക്കുന്നു ---
     if TAGS and isinstance(TAGS, list):
+        # പ്രധാന മാറ്റം: ടാഗുകളുടെ നീളം കൂടിയവ ആദ്യം വരുന്ന രീതിയിൽ സോർട്ട് ചെയ്യുന്നു.
+        # ഇത് വഴി @CC_NEW വന്നാൽ @CC മാത്രം കട്ട് ആയിപ്പോകുന്നത് തടയാം.
+        sorted_tags = sorted(TAGS, key=len, reverse=True)
+        
         # ലിസ്റ്റിലെ ടാഗുകൾ പൈത്തൺ റീജക്സിന് മനസ്സിലാകുന്ന രീതിയിലേക്ക് മാറ്റുന്നു
-        escaped_tags = "|".join(re.escape(tag) for tag in TAGS)
+        escaped_tags = "|".join(re.escape(tag) for tag in sorted_tags)
         
         # ഫയലിന്റെ തുടക്കത്തിൽ (^) ഈ ടാഗുകൾ വന്നാൽ അത് നീക്കം ചെയ്യുന്നു
         name_without_ext = re.sub(r'^(' + escaped_tags + r')[\s._-]*', '', name_without_ext, flags=re.IGNORECASE)    
@@ -90,7 +95,6 @@ async def clean_file_name(raw_name: str) -> str:
     
     # 3 & 4. മലയാളം, ഇംഗ്ലീഷ് (A-Z, a-z), അക്കങ്ങൾ (0-9) എന്നിവ മാത്രം നിലനിർത്തുന്നു.
     # മറ്റെല്ലാ പ്രത്യേക ചിഹ്നങ്ങൾക്ക് പകരവും സ്പേസ് നൽകുന്നു.
-    # [^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039] എന്നത് മലയാളം, ഇംഗ്ലീഷ്, അക്കങ്ങൾ അല്ലാത്തവയെ സൂചിപ്പിക്കുന്നു.
     cleaned_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', name_no_apostrophe)
     
     # 5. അനാവശ്യമായ ഒന്നിലധികം സ്പേസുകൾ ഒഴിവാക്കി ഒരൊറ്റ സ്പേസ് ആക്കുന്നു, ഇരുവശത്തെയും സ്പേസ് കളയുന്നു.
