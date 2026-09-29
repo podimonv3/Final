@@ -61,109 +61,25 @@ import aiohttp
 from bs4 import BeautifulSoup
 
 
-import aiohttp
-import urllib.parse
-from info import FANART_API_KEY
-
-
-async def get_fanart_landscape(movie_name, tmdb_api_key):
-    """
-    TMDB ഉപയോഗിച്ച് സിനിമയുടെ TMDB ID കണ്ടെത്തി,
-    Fanart.tv-ൽ നിന്ന് ഏറ്റവും കൂടുതൽ likes ഉള്ള
-    Landscape background URL തിരികെ നൽകുന്നു.
-    """
-
-    if not FANART_API_KEY or not tmdb_api_key or not movie_name:
-        return None
-
-    try:
-        async with aiohttp.ClientSession() as session:
-
-            # ── Step 1: TMDB വഴി Movie ID കണ്ടെത്തുക ─────────────
-            search_url = (
-                "https://api.themoviedb.org/3/search/movie"
-                f"?api_key={tmdb_api_key}"
-                f"&query={urllib.parse.quote(movie_name)}"
-            )
-
-            async with session.get(search_url, timeout=5) as response:
-                if response.status != 200:
-                    return None
-
-                search_data = await response.json()
-
-            results = search_data.get("results", [])
-
-            if not results:
-                return None
-
-            tmdb_id = results[0].get("id")
-
-            if not tmdb_id:
-                return None
-
-            # ── Step 2: Fanart.tv-ൽ നിന്ന് Background എടുക്കുക ───
-            fanart_url = (
-                f"https://webservice.fanart.tv/v3/movies/"
-                f"{tmdb_id}?api_key={FANART_API_KEY}"
-            )
-
-            async with session.get(fanart_url, timeout=5) as response:
-                if response.status != 200:
-                    return None
-
-                data = await response.json()
-
-            backgrounds = data.get("moviebackground", [])
-
-            if not backgrounds:
-                return None
-
-            # ── ഏറ്റവും കൂടുതൽ Likes ഉള്ള Background ആദ്യം ──────
-            backgrounds = sorted(
-                backgrounds,
-                key=lambda x: int(x.get("likes", 0) or 0),
-                reverse=True
-            )
-
-            return backgrounds[0].get("url")
-
-    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, KeyError):
-        return None
-
-    except Exception:
-        return None
-        
 # 1. TMDB Async
 async def get_tmdb_poster(movie_name, tmdb_api_key):
     try:
         url = (
-            "https://api.themoviedb.org/3/search/movie"
+            f"https://api.themoviedb.org/3/search/movie"
             f"?api_key={tmdb_api_key}"
             f"&query={urllib.parse.quote(movie_name)}"
         )
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=5) as response:
-                if response.status != 200:
-                    return None
-
                 data = await response.json()
 
                 if data.get("results"):
                     movie = data["results"][0]
 
-                    # 1. ആദ്യം Landscape / Backdrop എടുക്കുക
-                    if movie.get("backdrop_path"):
-                        return (
-                            "https://image.tmdb.org/t/p/w1280"
-                            f"{movie['backdrop_path']}"
-                        )
-
-                    # 2. Backdrop ഇല്ലെങ്കിൽ Portrait / Poster എടുക്കുക
                     if movie.get("poster_path"):
                         return (
-                            "https://image.tmdb.org/t/p/w500"
+                            f"https://image.tmdb.org/t/p/w500"
                             f"{movie['poster_path']}"
                         )
 
@@ -200,64 +116,8 @@ async def get_omdb_poster(movie_name, omdb_api_key):
     return None
 
 
-    
-# 4. Bing Scrapper Async
-async def scrape_bing_poster(movie_name):
-    try:
-        search_query = f"{movie_name} movie poster"
-        url = (
-            f"https://www.bing.com/images/search"
-            f"?q={urllib.parse.quote(search_query)}"
-        )
-
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/154.0.0.0 Safari/537.36"
-            )
-        }
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                url,
-                headers=headers,
-                timeout=5
-            ) as response:
-
-                if response.status != 200:
-                    return None
-
-                html = await response.text()
-
-        soup = BeautifulSoup(html, "html.parser")
-        image_tag = soup.find("a", class_="iusc")
-
-        if image_tag and image_tag.get("m"):
-            match = re.search(
-                r'"murl":"(.*?)"',
-                image_tag["m"]
-            )
-
-            if match:
-                return match.group(1)
-
-    except Exception:
-        pass
-
-    return None
-
 
 async def get_any_movie_poster(movie_name):
-    # 1. Fanart.tv - High Quality Landscape
-    if TMDB_API_KEY and FANART_API_KEY:
-        poster = await get_fanart_landscape(
-            movie_name,
-            TMDB_API_KEY
-        )
-        if poster:
-            return poster
-
     # 2. TMDB - Landscape Backdrop
     if TMDB_API_KEY:
         poster = await get_tmdb_poster(
@@ -279,9 +139,6 @@ async def get_any_movie_poster(movie_name):
 
     # 5. Nothing found
     return None
-
-
-
 
 
 
@@ -622,73 +479,32 @@ async def _omdb_get_details(imdb_id):
         '_source': 'omdb',
     }
     
-from urllib.parse import quote, quote_plus
-import aiohttp
-import re
-
-async def get_imdb_suggestions(query):
-    try:
-        url = f"https://v3.sg.media-imdb.com/suggestion/x/{quote(query.lower())}.json"
-        async with aiohttp.ClientSession(
-            headers={"User-Agent": "Mozilla/5.0"}
-        ) as session:
-            async with session.get(url, timeout=5) as r:
-                if r.status != 200:
-                    return []
-                data = await r.json(content_type=None)
-
-        valid = {
-            "feature", "TV series", "TV mini-series", "TV movie",
-            "video", "short", "TV special", "TV short", "documentary"
-        }
-
-        return [
-            {
-                "title": f"{x['l']} ({x['y']})" if x.get("y") else x["l"],
-                "id": x["id"]
-            }
-            for x in data.get("d", [])
-            if x.get("q") in valid and x.get("id") and x.get("l")
-        ]
-
-    except Exception as e:
-        logger.warning(f"IMDb suggestion error: {e}")
-        return []
-
 async def get_poster(query, bulk=False, id=False, file=None):
+    # ── Direct ID lookups ────────────────────────────────────────────────────
     if id:
-        return await _imdbio_get_details(query) or await _omdb_get_details(query)
+        result = await _imdbio_get_details(query)
+        if result:
+            return result
+        return await _omdb_get_details(query)
 
-    query = (query or "").strip().lower()
-    if not query:
-        return None
+    # ── Parse title + year ───────────────────────────────────────────────────
+    query = (query.strip()).lower()
+    title = query
+    year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
+    if year:
+        year = list_to_str(year[:1])
+        title = (query.replace(year, "")).strip()
+    elif file is not None:
+        year = re.findall(r'[1-2]\d{3}', file, re.IGNORECASE)
+        if year:
+            year = list_to_str(year[:1])
+    else:
+        year = None
 
-    if not bulk:
-        suggestions = await get_imdb_suggestions(query)
-        if suggestions:
-            imdb_id = suggestions[0]["id"]
-            result = await _imdbio_get_details(imdb_id)
-            if result:
-                return result
-            result = await _omdb_get_details(imdb_id)
-            if result:
-                return result
-
-    title, year = query, None
-    match = re.search(r"(?:[\s._(-]+)?([12]\d{3})\)?$", query)
-
-    if match:
-        year = match.group(1)
-        title = query[:match.start()].strip(" ._-()[]")
-    elif file:
-        match = re.search(r"\b([12]\d{3})\b", str(file))
-        if match:
-            year = match.group(1)
-
-    return (
-        await _imdbio_search(title, year=year, bulk=bulk)
-        or await _omdb_search(title, year=year, bulk=bulk)
-    )
+    result = await _imdbio_search(title, year=year, bulk=bulk)
+    if result:
+        return result
+    return await _omdb_search(title, year=year, bulk=bulk)
 
 
 def list_to_str(k, max_elm=5):  # ഇവിടെ 5 ആണ് DEFAULT വാല്യൂ
@@ -701,7 +517,8 @@ def list_to_str(k, max_elm=5):  # ഇവിടെ 5 ആണ് DEFAULT വാല�
         
     # എലമെന്റുകൾക്കിടയിൽ കൃത്യമായി കോമ വരാൻ ', '.join() ഉപയോഗിക്കാം
     return ', '.join(str(elem) for elem in k)
-    
+
+
 async def broadcast_messages(user_id, message):
     try:
         await message.copy(chat_id=user_id)
