@@ -96,9 +96,9 @@ TAGS = [
     "@Tamil_HD_Movies_Requests", "@Tamil_Linkz", "@Tamil_LinkzZ", "@Team_HDT",
     "@Theprofffesorr", "@TR_Moviez", "@TR_Updates", "@Tv2Us", "@TvSeriesBay",
     "@UCDump", "@WorldCinemaToday", "@X265 E4E", "@YTSLT", "@cinemaheist",
-    "@trolldcompany", "@yamandanmovies", "www.", "www.1TamilMV",
+    "@trolldcompany", "@yamandanmovies", "www.", "www.1TamilMV", "www_1TamilMV",
     "www.1TamilMV.fun", "www.1TamilMV.me", "www.1TamilMV.org", "www_1TamilMV",
-    "www_1TamilMV_fun", "www_DVDWap_Com_"
+    "www_1TamilMV_fun", "www_DVDWap_Com_", "Dvdworld", "@mfmixsouth", "www_TamilMV_pw", "MLM", "www_1TamilMV_rodeo"
 ]
 # Others
 LONG_IMDB_DESCRIPTION = is_enabled(environ.get("LONG_IMDB_DESCRIPTION", "False"), False)
