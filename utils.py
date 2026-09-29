@@ -622,32 +622,38 @@ async def _omdb_get_details(imdb_id):
         '_source': 'omdb',
     }
     
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
 import aiohttp
 import re
 
 async def get_imdb_suggestions(query):
     try:
         url = f"https://v3.sg.media-imdb.com/suggestion/x/{quote(query.lower())}.json"
-        async with aiohttp.ClientSession(headers={"User-Agent": "Mozilla/5.0"}) as s:
-            async with s.get(url, timeout=5) as r:
+        async with aiohttp.ClientSession(
+            headers={"User-Agent": "Mozilla/5.0"}
+        ) as session:
+            async with session.get(url, timeout=5) as r:
                 if r.status != 200:
                     return []
                 data = await r.json(content_type=None)
 
-        valid = {"feature", "TV series", "TV mini-series", "TV movie",
-                 "video", "short", "TV special", "TV short", "documentary"}
+        valid = {
+            "feature", "TV series", "TV mini-series", "TV movie",
+            "video", "short", "TV special", "TV short", "documentary"
+        }
 
         return [
-            {"title": f"{x['l']} ({x['y']})" if x.get("y") else x["l"], "id": x["id"]}
+            {
+                "title": f"{x['l']} ({x['y']})" if x.get("y") else x["l"],
+                "id": x["id"]
+            }
             for x in data.get("d", [])
             if x.get("q") in valid and x.get("id") and x.get("l")
         ]
-    except Exception as e:
-        try: logger.warning(f"IMDb suggestion error: {e}")
-        except: pass
-        return []
 
+    except Exception as e:
+        logger.warning(f"IMDb suggestion error: {e}")
+        return []
 
 async def get_poster(query, bulk=False, id=False, file=None):
     if id:
