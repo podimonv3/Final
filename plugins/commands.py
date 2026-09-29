@@ -131,407 +131,395 @@ async def send_file(client, query, ident, file_id):
     except Exception as e:
         logger.error(f"ഫയൽ അയക്കുന്നതിൽ പരാജയപ്പെട്ടു: {e}")
 
-    
-   
-@Client.on_message(filters.command("start") & filters.incoming)
-async def start(client, message):   
-    if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-        # ഗ്രൂപ്പിൽ റീപ്ലേ നൽകുന്നതും ലോഗ് ചാനലിലേക്ക് അയക്കുന്നതും ഒഴിവാക്കി
-        await asyncio.sleep(2) 
-        if not await db.get_chat(message.chat.id):
-            await db.add_chat(message.chat.id, message.chat.title)
-        return 
-        
-    # ബോട്ടിന്റെ PM (Private)-ൽ മാത്രം താഴെയുള്ള ഭാഗം പ്രവർത്തിക്കും
-    if not await db.is_user_exist(message.from_user.id):
-        await db.add_user(message.from_user.id, message.from_user.first_name)
-        # ഇവിടെയുണ്ടായിരുന്ന ലോഗ് ചാനൽ മെസ്സേജ് ഒഴിവാക്കി
-        
+
+
+@Client.on_message(filters.command("start") & filters.private)
+async def start(client, message):
     if len(message.command) != 2:
-        buttons = [
-            [
-                InlineKeyboardButton('👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥', url='https://t.me/+eb__Eg3RS2IyZWQ1')
-            ],
-            [
-                InlineKeyboardButton('📊 Sᴛᴀᴛs 📊', callback_data='stats'),
-                InlineKeyboardButton('✖️ Cʟᴏsᴇ ✖️', callback_data='close_data')
-            ]
-        ]       
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await message.reply_text(            
-            text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
-        return       
-    if REQ_CHANNEL1 and not await is_requested_one(client, message):
-        btn = [[
-            InlineKeyboardButton(
-                "✦ 𝑱𝑶𝑰𝑵 𝑼𝑷𝑫𝑨𝑻𝑬 𝑪𝑯𝑨𝑵𝑵𝑬𝑳 I✦", url=client.req_link1)
-        ]]
-        global should_run_check_loop_sub1, should_run_check_loop_sub
-        should_run_check_loop_sub1 = True
-        should_run_check_loop_sub = False
-        
-        pre = 'checksub'
-        file_id = None
-        
         try:
-            if REQ_CHANNEL2 and not await is_requested_two(client, message):
-                btn.append([
-                    InlineKeyboardButton(
-                        "✦ 𝑱𝑶𝑰𝑵 𝑼𝑷𝑫𝑨𝑻𝑬 𝑪𝑯𝑨𝑵𝑵𝑬𝑳 II✦", url=client.req_link2)
-                ])
-                should_run_check_loop_sub = True                      
+            if not await db.is_user_exist(message.from_user.id):
+                await db.add_user(message.from_user.id, message.from_user.first_name)
         except Exception as e:
-            print(e)
-            
-        if len(message.command) > 1 and message.command[1] != "subscribe": 
-            try:
-                kk, file_id = message.command[1].split("_", 1)
-                pre = 'checksubp' if kk == 'filep' else 'checksub' 
-                btn.append([InlineKeyboardButton("⟲ 𝘛𝘳𝘺 𝘈𝘨𝘢𝘪𝘯 ⟳", callback_data=f"{pre}#{file_id}")])
-            except (IndexError, ValueError):
-                btn.append([InlineKeyboardButton("⟲ 𝘛𝘳𝘺 𝘈𝘨𝘢𝘪𝘯 ⟳", url=f"https://t.me/{temp.U_NAME}?start={message.command[1]}")])
-        
-        sh = await client.send_message(
-            chat_id=message.from_user.id,
-            text=script.JOIN_TXT,
-            reply_markup=InlineKeyboardMarkup(btn),
-            parse_mode=enums.ParseMode.HTML
-        )
-        
-        check = False
-        if should_run_check_loop_sub:
-            check = await check_loop_sub(client, message)
-        elif should_run_check_loop_sub1:
-            check = await check_loop_sub1(client, message)
-            
-        if check and file_id:     
-            await send_file(client, message, pre, file_id)
-            await sh.delete()        
-            return
-        else:
-            return False           
-            
-    if REQ_CHANNEL2 and not await is_requested_two(client, message):
-        btn = [[
-            InlineKeyboardButton(
-                "Update Channel 2", url=client.req_link2)
-        ]]
-        
-        pre = 'checksub'
-        file_id = None
-        
-        if len(message.command) > 1 and message.command[1] != "subscribe":
-            try:
-                kk, file_id = message.command[1].split("_", 1)
-                pre = 'checksubp' if kk == 'filep' else 'checksub' 
-                btn.append([InlineKeyboardButton("⟲ 𝘛𝘳𝘺 𝘈𝘨𝘢𝘪𝘯 ⟳", callback_data=f"{pre}#{file_id}")])
-            except (IndexError, ValueError):
-                btn.append([InlineKeyboardButton("⟲ 𝘛𝘳𝘺 𝘈𝘨𝘢𝘪𝘯 ⟳", url=f"https://t.me/{temp.U_NAME}?start={message.command[1]}")])
-        
-        sh = await client.send_message(
-            chat_id=message.from_user.id,
-            text=script.JOIN_TXT,
-            reply_markup=InlineKeyboardMarkup(btn),
-            parse_mode=enums.ParseMode.HTML
-        )
-        check = await check_loop_sub2(client, message)
-        if check and file_id:
-            await send_file(client, message, pre, file_id)
-            await sh.delete()     
-            return 
-        else:
-            return False
-    if len(message.command) == 2 and message.command[1].startswith('getfile'):
-        searches = message.command[1].split("-", 1)[1] 
-        search = searches.replace('-',' ')
-        message.text = search 
-        await auto_filter(client, message) 
+            logger.exception(e)
+
+        btn = [
+            [InlineKeyboardButton("🔍 Search Here", switch_inline_query_current_chat="")],
+            [InlineKeyboardButton("👥 Add Me To Your Group", url=client.group_link)],
+            [InlineKeyboardButton("📊 Statistics", callback_data="stats"),
+             InlineKeyboardButton("❌ Close", callback_data="close")]
+        ]
+        try:
+            await message.reply_photo(
+                photo=client.start_pic,
+                caption=script.START_TXT.format(message.from_user.mention),
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+        except Exception as e:
+            logger.exception(e)
         return
-         
-    if len(message.command) == 2 and message.command[1] in ["subscribe", "error", "okay", "help"]:
-        buttons = [
-            [
-                InlineKeyboardButton('👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥', url='https://t.me/+eb__Eg3RS2IyZWQ1')
-            ],
-            [
-                InlineKeyboardButton('📊 Sᴛᴀᴛs 📊', callback_data='stats'),
-                InlineKeyboardButton('✖️ Cʟᴏsᴇ ✖️', callback_data='close_data')
-            ]
-        ]       
-        reply_markup = InlineKeyboardMarkup(buttons)
-        await message.reply_text(            
-            text=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
-            reply_markup=reply_markup,
-            parse_mode=enums.ParseMode.HTML
-        )
-        return
+
+    try:
+        if not await db.is_user_exist(message.from_user.id):
+            await db.add_user(message.from_user.id, message.from_user.first_name)
+    except Exception as e:
+        logger.exception(e)
+
     data = message.command[1]
     try:
-        pre, file_id = data.split('_', 1)
-    except:
-        file_id = data
-        pre = ""
-        
-    from pyrogram.errors import UserIsBlocked
+        pre, file_id = data.split("_", 1)
+    except Exception:
+        pre, file_id = "", data
 
-    
+    # ================= FORCE SUB CHANNEL 1 =================
+    if REQ_CHANNEL1 and not await is_requested_one(client, message):
+        btn = [[InlineKeyboardButton("📢 Join Channel 1", url=client.req_link1)]]
+        join_msg = await message.reply_text(
+            script.JOIN_TXT,
+            reply_markup=InlineKeyboardMarkup(btn)
+        )
+
+        if await check_loop_sub1(client, message):
+            try:
+                await join_msg.delete()
+            except Exception:
+                pass
+        else:
+            return
+
+    # ================= FORCE SUB CHANNEL 2 =================
+    if REQ_CHANNEL2 and not await is_requested_two(client, message):
+        btn = [[InlineKeyboardButton("📢 Join Channel 2", url=client.req_link2)]]
+        join_msg = await message.reply_text(
+            script.JOIN_TXT,
+            reply_markup=InlineKeyboardMarkup(btn)
+        )
+
+        if await check_loop_sub2(client, message):
+            try:
+                await join_msg.delete()
+            except Exception:
+                pass
+        else:
+            return
+
+    # ================= GETFILE =================
+    if data.startswith("getfile"):
+        try:
+            message.text = data.split("-", 1)[1].replace("-", " ")
+            await auto_filter(client, message, spoll=False)
+        except Exception as e:
+            logger.exception(e)
+        return
+
+    # ================= SPECIAL COMMANDS =================
+    if data in ["subscribe", "error", "okay", "help"]:
+        btn = [
+            [InlineKeyboardButton("👥 Add Me To Your Group", url=client.group_link)],
+            [InlineKeyboardButton("❌ Close", callback_data="close")]
+        ]
+        try:
+            await message.reply_photo(
+                photo=client.start_pic,
+                caption=script.START_TXT.format(message.from_user.mention),
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+        except Exception as e:
+            logger.exception(e)
+        return
+
+    # ================= BATCH =================
     if data.split("-", 1)[0] == "BATCH":
         try:
             sts = await message.reply("Please wait")
-        except UserIsBlocked:
-            logger.warning(f"യൂസർ ({message.from_user.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. ബാച്ച് പ്രോസസ്സ് തുടങ്ങാൻ കഴിഞ്ഞില്ല.")
-            return
-            
-        file_id = data.split("-", 1)[1]
-        msgs = BATCH_FILES.get(file_id)
-        if not msgs:
-            file = await client.download_media(file_id)
-            try: 
-                with open(file) as file_data:
-                    msgs=json.loads(file_data.read())
-            except:
-                try: await sts.edit("FAILED")
-                except: pass
-                return await client.send_message(LOG_CHANNEL, "UNABLE TO OPEN FILE.")
-            os.remove(file)
-            BATCH_FILES[file_id] = msgs
-            
-        # 📂 ബാച്ചായി അയക്കുന്ന ഫയലുകളുടെ മെസ്സേജ് ഐഡികൾ സൂക്ഷിക്കാൻ ലിസ്റ്റ്
-        batch_msg_ids = []
-        for msg in msgs:
-            title = msg.get("title")
-            size=get_size(int(msg.get("size", 0)))
-            f_caption=msg.get("caption", "")
-            if BATCH_FILE_CAPTION:
+            file_id = data.split("-", 1)[1]
+            msgs = BATCH_FILES.get(file_id)
+
+            if not msgs:
+                file = await client.download_media(file_id)
                 try:
-                    f_caption=BATCH_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
-                except Exception as e:
-                    logger.exception(e)
-                    f_caption=f_caption
-            if f_caption is None:
-                f_caption = f"{title}"
-            
-            # 🛠️ ഫയൽ കാപ്ഷന്റെ കൂടെ ഓട്ടോ ഡിലീറ്റ് ടെക്സ്റ്റ് Quote ആയി ചേർക്കുന്നു
-            final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
-            
-            try:
-                b_msg = await client.send_cached_media(
-                    chat_id=message.from_user.id,
-                    file_id=msg.get("file_id"),
-                    caption=final_caption,
-                    parse_mode=enums.ParseMode.HTML, # HTML എങ്കിൽ മാത്രമേ blockquote വർക്ക് ചെയ്യൂ
-                    protect_content=msg.get('protect', False),
-                    )
-                if b_msg:
-                    batch_msg_ids.append(b_msg.id) # ഐഡി ലിസ്റ്റിലേക്ക് ചേർക്കുന്നു
-            except FloodWait as e:
-                await asyncio.sleep(e.x)
-                logger.warning(f"Floodwait of {e.x} sec.")
+                    with open(file) as file_data:
+                        msgs = json.loads(file_data.read())
+                except Exception:
+                    try:
+                        await sts.edit("FAILED")
+                    except Exception:
+                        pass
+                    await client.send_message(LOG_CHANNEL, "UNABLE TO OPEN FILE.")
+                    return
+                os.remove(file)
+                BATCH_FILES[file_id] = msgs
+
+            batch_msg_ids = []
+
+            for msg in msgs:
+                title = msg.get("title")
+                size = get_size(int(msg.get("size", 0)))
+                f_caption = msg.get("caption", "")
+
+                if BATCH_FILE_CAPTION:
+                    try:
+                        f_caption = BATCH_FILE_CAPTION.format(
+                            file_name="" if title is None else title,
+                            file_size="" if size is None else size,
+                            file_caption="" if f_caption is None else f_caption
+                        )
+                    except Exception as e:
+                        logger.exception(e)
+
+                if f_caption is None:
+                    f_caption = f"{title}"
+
+                final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
+
                 try:
                     b_msg = await client.send_cached_media(
                         chat_id=message.from_user.id,
                         file_id=msg.get("file_id"),
                         caption=final_caption,
                         parse_mode=enums.ParseMode.HTML,
-                        protect_content=msg.get('protect', False),
-                        )
+                        protect_content=msg.get("protect", False)
+                    )
                     if b_msg:
                         batch_msg_ids.append(b_msg.id)
-                except UserIsBlocked:
-                    logger.warning(f"യൂസർ ({message.from_user.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. ഫ്ലഡ്‌വൈറ്റിന് ശേഷം ബാച്ച് മീഡിയ അയക്കാൻ കഴിഞ്ഞില്ല.")
-                    break
-                except Exception: continue
-            except UserIsBlocked:
-                logger.warning(f"യൂസർ ({message.from_user.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. ബാച്ച് മീഡിയ അയക്കാൻ കഴിഞ്ഞില്ല.")
-                break 
-            except Exception as e:
-                logger.warning(e, exc_info=True)
-                continue
-            await asyncio.sleep(1) 
-            
-        # ⏳ ബാച്ച് ഫയലുകൾ ഒന്നിച്ച് ഡിലീറ്റ് ചെയ്യാൻ നൽകുന്നു (സെപ്പറേറ്റ് വാർണിംഗ് മെസ്സേജ് ഒഴിവാക്കി)
-        if batch_msg_ids:
-            try:
-                # 🗑️ സുരക്ഷിതമായ ബാക്ക്ഗ്രൗണ്ട് ടാസ്ക് വഴി എല്ലാ ഫയലുകളും ഒന്നിച്ച് ഡിലീറ്റ് ചെയ്യാൻ നൽകുന്നു
-                asyncio.create_task(auto_delete_messages(client, message.from_user.id, batch_msg_ids, AUTO_DELETE_TIME))
-            except Exception as e:
-                logger.error(f"Error in BATCH auto-delete task: {e}")
-                
-        try: await sts.delete()
-        except: pass
-        return
 
-
-        
-    elif data.split("-", 1)[0] == "DSTORE":
-        try:
-            sts = await message.reply("Please wait")
-        except UserIsBlocked:
-            logger.warning(f"യൂസർ ({message.from_user.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. DSTORE പ്രോസസ്സ് തുടങ്ങാൻ കഴിഞ്ഞില്ല.")
-            return
-            
-        b_string = data.split("-", 1)[1]
-        decoded = (base64.urlsafe_b64decode(b_string + "=" * (-len(b_string) % 4))).decode("ascii")
-        try:
-            f_msg_id, l_msg_id, f_chat_id, protect = decoded.split("_", 3)
-        except:
-            f_msg_id, l_msg_id, f_chat_id = decoded.split("_", 2)
-            protect = "/pbatch" if PROTECT_CONTENT else "batch"
-        diff = int(l_msg_id) - int(f_msg_id)
-        
-        # 📂 അയക്കുന്ന ഫയലുകളുടെ മെസ്സേജ് ഐഡികൾ ശേഖരിക്കാൻ ഒരു ലിസ്റ്റ്
-        dstore_msg_ids = []
-        
-        async for msg in client.iter_messages(int(f_chat_id), int(l_msg_id), int(f_msg_id)):
-            copied_msg = None
-            if msg.media:
-                # 🛠️ ഫിക്സ്: Enum/None മൂലമുണ്ടാകുന്നTypeError ഒഴിവാക്കാൻ സ്ട്രിങ് വാല്യൂ കൃത്യമായി എടുക്കുന്നു
-                media_type = msg.media.value if hasattr(msg.media, "value") else str(msg.media)
-                media = getattr(msg, media_type, None) if media_type else None
-                
-                if media:
-                    if BATCH_FILE_CAPTION:
-                        try:
-                            f_caption=BATCH_FILE_CAPTION.format(file_name=getattr(media, 'file_name', ''), file_size=getattr(media, 'file_size', ''), file_caption=getattr(msg, 'caption', ''))
-                        except Exception as e:
-                            logger.exception(e)
-                            f_caption = getattr(msg, 'caption', '')
-                    else:
-                        file_name = getattr(media, 'file_name', '')
-                        f_caption = getattr(msg, 'caption', file_name)
-                    
-                    # 🛠️ ഫയൽ കാപ്ഷന്റെ കൂടെ ഓട്ടോ ഡിലീറ്റ് ടെക്സ്റ്റ് Quote ആയി ചേർക്കുന്നു
-                    final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
-                        
-                    try:
-                        copied_msg = await msg.copy(message.chat.id, caption=final_caption, parse_mode=enums.ParseMode.HTML, protect_content=True if protect == "/pbatch" else False)
-                        if copied_msg:
-                            dstore_msg_ids.append(copied_msg.id)
-                    except FloodWait as e:
-                        await asyncio.sleep(e.x)
-                        copied_msg = await msg.copy(message.chat.id, caption=final_caption, parse_mode=enums.ParseMode.HTML, protect_content=True if protect == "/pbatch" else False)
-                        if copied_msg:
-                            dstore_msg_ids.append(copied_msg.id)
-                    except UserIsBlocked:
-                        logger.warning(f"യൂസർ ({message.chat.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. ബാച്ച് ഫയൽ കോപ്പി ചെയ്യാൻ കഴിഞ്ഞില്ല.")
-                        break
-                    except Exception as e:
-                        logger.exception(e)
-                        continue
-            elif msg.empty:
-                continue
-            else:
-                # മീഡിയ അല്ലാത്ത സാധാ ടെക്സ്റ്റ് മെസ്സേജുകൾക്ക് ഇവിടെ ഫോട്ടോ കാപ്ഷൻ പോലെ ചെയ്യാൻ പറ്റാത്തതിനാൽ പഴയ രീതിയിൽ കോപ്പി ചെയ്യുന്നു
-                try:
-                    copied_msg = await msg.copy(message.chat.id, protect_content=True if protect == "/pbatch" else False)
-                    if copied_msg:
-                        dstore_msg_ids.append(copied_msg.id)
                 except FloodWait as e:
                     await asyncio.sleep(e.x)
-                    copied_msg = await msg.copy(message.chat.id, protect_content=True if protect == "/pbatch" else False)
+                    try:
+                        b_msg = await client.send_cached_media(
+                            chat_id=message.from_user.id,
+                            file_id=msg.get("file_id"),
+                            caption=final_caption,
+                            parse_mode=enums.ParseMode.HTML,
+                            protect_content=msg.get("protect", False)
+                        )
+                        if b_msg:
+                            batch_msg_ids.append(b_msg.id)
+                    except Exception:
+                        continue
+
+                except UserIsBlocked:
+                    return
+
+                except Exception as e:
+                    logger.warning(e, exc_info=True)
+                    continue
+
+                await asyncio.sleep(1)
+
+            if batch_msg_ids:
+                asyncio.create_task(
+                    auto_delete_messages(
+                        client,
+                        message.from_user.id,
+                        batch_msg_ids,
+                        AUTO_DELETE_TIME
+                    )
+                )
+
+            try:
+                await sts.delete()
+            except Exception:
+                pass
+
+        except Exception as e:
+            logger.exception(e)
+
+        return
+
+    # ================= DSTORE =================
+    if data.split("-", 1)[0] == "DSTORE":
+        try:
+            sts = await message.reply("Please wait")
+            b_string = data.split("-", 1)[1]
+            decoded = base64.urlsafe_b64decode(
+                b_string + "=" * (-len(b_string) % 4)
+            ).decode("ascii")
+
+            try:
+                f_msg_id, l_msg_id, f_chat_id, protect = decoded.split("_", 3)
+            except Exception:
+                f_msg_id, l_msg_id, f_chat_id = decoded.split("_", 2)
+                protect = "/pbatch" if PROTECT_CONTENT else "batch"
+
+            dstore_msg_ids = []
+
+            async for msg in client.iter_messages(
+                int(f_chat_id), int(l_msg_id), int(f_msg_id)
+            ):
+                try:
+                    if msg.media:
+                        media_type = msg.media.value if hasattr(msg.media, "value") else str(msg.media)
+                        media = getattr(msg, media_type, None)
+
+                        if not media:
+                            continue
+
+                        if BATCH_FILE_CAPTION:
+                            try:
+                                f_caption = BATCH_FILE_CAPTION.format(
+                                    file_name=getattr(media, "file_name", ""),
+                                    file_size=getattr(media, "file_size", ""),
+                                    file_caption=getattr(msg, "caption", "")
+                                )
+                            except Exception:
+                                f_caption = getattr(msg, "caption", "")
+                        else:
+                            f_caption = getattr(
+                                msg, "caption",
+                                getattr(media, "file_name", "")
+                            )
+
+                        copied_msg = await msg.copy(
+                            message.chat.id,
+                            caption=f"{f_caption}\n\n{AUTO_DEL_TEXT}",
+                            parse_mode=enums.ParseMode.HTML,
+                            protect_content=protect == "/pbatch"
+                        )
+                    elif not msg.empty:
+                        copied_msg = await msg.copy(
+                            message.chat.id,
+                            protect_content=protect == "/pbatch"
+                        )
+                    else:
+                        continue
+
                     if copied_msg:
                         dstore_msg_ids.append(copied_msg.id)
+
+                except FloodWait as e:
+                    await asyncio.sleep(e.x)
                 except UserIsBlocked:
-                    logger.warning(f"യൂസർ ({message.chat.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. ബാച്ച് മെസ്സേജ് കോപ്പി ചെയ്യാൻ കഴിഞ്ഞില്ല.")
-                    break
+                    return
                 except Exception as e:
                     logger.exception(e)
-                    continue
-            await asyncio.sleep(1) 
-            
-        # ⏳ ഫയലുകൾ കോപ്പി ചെയ്ത് കഴിഞ്ഞാൽ ഒന്നിച്ച് ഡിലീറ്റ് ചെയ്യാൻ നൽകുന്നു (സെപ്പറേറ്റ് വാർണിംഗ് മെസ്സേജ് ഒഴിവാക്കി)
-        if dstore_msg_ids:
+
+                await asyncio.sleep(1)
+
+            if dstore_msg_ids:
+                asyncio.create_task(
+                    auto_delete_messages(
+                        client,
+                        message.chat.id,
+                        dstore_msg_ids,
+                        AUTO_DELETE_TIME
+                    )
+                )
+
             try:
-                # 🗑️ ബാക്ക്ഗ്രൗണ്ട് ടാസ്ക് വഴി എല്ലാ ഫയലുകളും ഒന്നിച്ച് ഡിലീറ്റ് ചെയ്യാൻ നൽകുന്നു
-                asyncio.create_task(auto_delete_messages(client, message.chat.id, dstore_msg_ids, AUTO_DELETE_TIME))
-            except Exception as e:
-                logger.error(f"Error in DSTORE auto-delete task: {e}")
-                
-        return await sts.delete()
+                await sts.delete()
+            except Exception:
+                pass
 
+        except Exception as e:
+            logger.exception(e)
 
+        return
 
-        
-    files_ = await get_file_details(file_id)           
+    # ================= NORMAL FILE =================
+    try:
+        files_ = await get_file_details(file_id)
+    except Exception as e:
+        logger.exception(e)
+        files_ = None
+
     if not files_:
-        pre, file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
         try:
+            pre, file_id = base64.urlsafe_b64decode(
+                data + "=" * (-len(data) % 4)
+            ).decode("ascii").split("_", 1)
+
             msg = await client.send_cached_media(
                 chat_id=message.from_user.id,
                 file_id=file_id,
-                protect_content=True if pre == 'filep' else False,
-                )
-            
-            # 🛠️ ഫിക്സ്: Enum/None എറർ വരാതിരിക്കാൻ സ്ട്രിങ് വാല്യൂവിലേക്ക് മാറ്റുന്നു
-            if msg.media:
-                filetype = msg.media.value if hasattr(msg.media, "value") else str(msg.media)
-                file = getattr(msg, filetype, None)
-            else:
-                file = None
+                protect_content=pre == "filep"
+            )
+
+            file = getattr(
+                msg,
+                msg.media.value if hasattr(msg.media, "value") else str(msg.media),
+                None
+            ) if msg.media else None
 
             if not file:
-                return await message.reply('No such file exist.')
+                return await message.reply("No such file exist.")
 
             title = file.file_name
-            size=get_size(file.file_size)
+            size = get_size(file.file_size)
             f_caption = f"<code>{title}</code>"
+
             if CUSTOM_FILE_CAPTION:
                 try:
-                    f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption, mention=message.from_user.mention)    
-                except:
+                    f_caption = CUSTOM_FILE_CAPTION.format(
+                        file_name="" if title is None else title,
+                        file_size="" if size is None else size,
+                        file_caption=f_caption,
+                        mention=message.from_user.mention
+                    )
+                except Exception:
                     return
-            
-            # 🛠️ സിംഗിൾ കാഷെ ഫയൽ കാപ്ഷൻ എഡിറ്റ് ചെയ്യുമ്പോൾ വാർണിങ് Quote ആയി ചേർക്കുന്നു
-            final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
-            await msg.edit_caption(final_caption, parse_mode=enums.ParseMode.HTML)            
-            
-            # ഫയൽ മാത്രം ഡിലീറ്റ് ചെയ്യാൻ നൽകുന്നു (സെപ്പറേറ്റ് വാർണിങ് മെസ്സേജ് ഒഴിവാക്കി)
-            asyncio.create_task(auto_delete_messages(client, message.from_user.id, [msg.id], AUTO_DELETE_TIME))
+
+            await msg.edit_caption(
+                f"{f_caption}\n\n{AUTO_DEL_TEXT}",
+                parse_mode=enums.ParseMode.HTML
+            )
+
+            asyncio.create_task(
+                auto_delete_messages(
+                    client,
+                    message.from_user.id,
+                    [msg.id],
+                    AUTO_DELETE_TIME
+                )
+            )
             return
+
         except UserIsBlocked:
-            logger.warning(f"യൂസർ ({message.from_user.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. കാഷെഡ് മീഡിയ അയക്കാൻ കഴിഞ്ഞില്ല.")
             return
         except Exception:
-            pass
-        return await message.reply('No such file exist.')
-        
+            return await message.reply("No such file exist.")
+
     files = files_[0]
     title = files.file_name
-    size=get_size(files.file_size)
-    f_caption=files.caption
+    size = get_size(files.file_size)
+    f_caption = files.caption
+
     if CUSTOM_FILE_CAPTION:
         try:
-            f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption, mention=message.from_user.mention)
+            f_caption = CUSTOM_FILE_CAPTION.format(
+                file_name="" if title is None else title,
+                file_size="" if size is None else size,
+                file_caption="" if f_caption is None else f_caption,
+                mention=message.from_user.mention
+            )
         except Exception as e:
             logger.exception(e)
-            f_caption = f_caption
 
     if f_caption is None:
         f_caption = f"{title}"
-
-    # 🛠️ സാധാരണ ഫയൽ അയക്കുമ്പോഴും കാപ്ഷന്റെ കൂടെ ഓട്ടോ ഡിലീറ്റ് ടെക്സ്റ്റ് Quote ആയി ചേർക്കുന്നു
-    final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
 
     try:
         xd = await client.send_cached_media(
             chat_id=message.from_user.id,
             file_id=file_id,
-            caption=final_caption,
+            caption=f"{f_caption}\n\n{AUTO_DEL_TEXT}",
             parse_mode=enums.ParseMode.HTML,
-            protect_content=True if pre == 'filep' else False
+            protect_content=pre == "filep"
         )
-        
-        # ഫയൽ മാത്രം ഡിലീറ്റ് ചെയ്യാൻ നൽകുന്നു
-        asyncio.create_task(auto_delete_messages(client, message.from_user.id, [xd.id], AUTO_DELETE_TIME))
+
+        asyncio.create_task(
+            auto_delete_messages(
+                client,
+                message.from_user.id,
+                [xd.id],
+                AUTO_DELETE_TIME
+            )
+        )
+
     except UserIsBlocked:
-        logger.warning(f"യൂസർ ({message.from_user.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു.")
+        logger.warning("User %s blocked the bot", message.from_user.id)
     except Exception as e:
-        logger.error(f"മെസ്സേജ് അയക്കുന്നതിൽ പരാജയപ്പെട്ടു: {e}")
-
-
+        logger.error(e, exc_info=True)
+   
     
     
 @Client.on_message(filters.command('channel') & filters.user(ADMINS))
