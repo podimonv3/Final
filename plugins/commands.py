@@ -40,19 +40,6 @@ infile = indb['file_reply_text']
 restarti = indb['restart']
 
 
-# ⏱️ Auto delete time in seconds (e.g., 600 seconds = 10 minutes)
-AUTO_DELETE_TIME = 180
-
-# 📝 Short Warning Message Template in Blockquote
-AUTO_DEL_TEXT = (
-    "<blockquote>⚠️ <b>This file will be deleted in 3 mins. Forward to Saved Messages now!</b>\n\n"
-    "<i>കോപ്പിറൈറ്റ് ഒഴിവാക്കാൻ ഈ ഫയൽ 3 മിനിറ്റിനുള്ളിൽ ഡിലീറ്റ് ആകും. ഉടൻ തന്നെ Saved Messages-ലേക്ക് Forward ചെയ്യുക!</i></blockquote>"
-)
-
-
-
-
-
 async def admin_check(message: Message) -> bool:
     if not message.from_user: return False
     if message.chat.type not in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]: return False
@@ -77,18 +64,7 @@ def convert_time_to_seconds(time_str):
 
 
 
-# 🗑️ Function to delete messages safely after delay
-async def auto_delete_messages(client, chat_id, message_ids, delay):
-    await asyncio.sleep(delay)
-    for msg_id in message_ids:
-        try:
-            await client.delete_messages(chat_id=chat_id, message_ids=msg_id)
-        except FloodWait as e:
-            await asyncio.sleep(e.x)
-            try:
-                await client.delete_messages(chat_id=chat_id, message_ids=msg_id)
-            except Exception: pass
-        except Exception: pass
+
 
 
 
@@ -111,7 +87,7 @@ async def send_file(client, query, ident, file_id):
         f_caption = f"{title}"
 
     # 🛠️ കാപ്ഷന്റെ കൂടെ ഓട്ടോ ഡിലീറ്റ് ടെക്സ്റ്റ് Quote ആയി ചേർക്കുന്നു
-    final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
+    final_caption = f"{f_caption}"
 
     try:
         # 1. Send File with quote caption
@@ -121,11 +97,7 @@ async def send_file(client, query, ident, file_id):
             caption=final_caption,
             parse_mode=enums.ParseMode.HTML,
             protect_content=True if ident == 'checksubp' else False
-        )
-        
-        # 2. Trigger Auto Delete Task (ഫയൽ മെസ്സേജ് ഐഡി മാത്രം പാസ്സ് ചെയ്യുന്നു)
-        asyncio.create_task(auto_delete_messages(client, query.from_user.id, [ok.id], AUTO_DELETE_TIME))
-        
+        )                
     except UserIsBlocked:
         logger.warning(f"യൂസർ ({query.from_user.id}) ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുന്നു. ഫയൽ അയക്കാൻ കഴിഞ്ഞില്ല.")
     except Exception as e:
@@ -142,9 +114,8 @@ async def start(client, message):
         except Exception as e:
             logger.exception(e)
 
-        btn = [
-            [InlineKeyboardButton("🔍 Search Here", switch_inline_query_current_chat="")],
-            [InlineKeyboardButton("👥 Add Me To Your Group", url=client.group_link)],
+        btn = [           
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
             [InlineKeyboardButton("📊 Statistics", callback_data="stats"),
              InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
@@ -214,7 +185,7 @@ async def start(client, message):
     # ================= SPECIAL COMMANDS =================
     if data in ["subscribe", "error", "okay", "help"]:
         btn = [
-            [InlineKeyboardButton("👥 Add Me To Your Group", url=client.group_link)],
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
             [InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
         try:
@@ -249,7 +220,7 @@ async def start(client, message):
                 os.remove(file)
                 BATCH_FILES[file_id] = msgs
 
-            batch_msg_ids = []
+            # ❌ ഇവിടെ ഉണ്ടായിരുന്ന batch_msg_ids ലിസ്റ്റ് ഒഴിവാക്കി
 
             for msg in msgs:
                 title = msg.get("title")
@@ -269,31 +240,27 @@ async def start(client, message):
                 if f_caption is None:
                     f_caption = f"{title}"
 
-                final_caption = f"{f_caption}\n\n{AUTO_DEL_TEXT}"
+                final_caption = f"{f_caption}"
 
                 try:
-                    b_msg = await client.send_cached_media(
+                    await client.send_cached_media(
                         chat_id=message.from_user.id,
                         file_id=msg.get("file_id"),
                         caption=final_caption,
                         parse_mode=enums.ParseMode.HTML,
                         protect_content=msg.get("protect", False)
                     )
-                    if b_msg:
-                        batch_msg_ids.append(b_msg.id)
 
                 except FloodWait as e:
                     await asyncio.sleep(e.x)
                     try:
-                        b_msg = await client.send_cached_media(
+                        await client.send_cached_media(
                             chat_id=message.from_user.id,
                             file_id=msg.get("file_id"),
                             caption=final_caption,
                             parse_mode=enums.ParseMode.HTML,
                             protect_content=msg.get("protect", False)
                         )
-                        if b_msg:
-                            batch_msg_ids.append(b_msg.id)
                     except Exception:
                         continue
 
@@ -306,15 +273,7 @@ async def start(client, message):
 
                 await asyncio.sleep(1)
 
-            if batch_msg_ids:
-                asyncio.create_task(
-                    auto_delete_messages(
-                        client,
-                        message.from_user.id,
-                        batch_msg_ids,
-                        AUTO_DELETE_TIME
-                    )
-                )
+            # ❌ ഓട്ടോ ഡിലീറ്റ് ചെയ്യുന്ന ഭാഗം (asyncio.create_task) ഇവിടെ നിന്നും പൂർണ്ണമായി ഒഴിവാക്കി.
 
             try:
                 await sts.delete()
@@ -325,6 +284,7 @@ async def start(client, message):
             logger.exception(e)
 
         return
+
 
     # ================= DSTORE =================
     if data.split("-", 1)[0] == "DSTORE":
@@ -341,7 +301,7 @@ async def start(client, message):
                 f_msg_id, l_msg_id, f_chat_id = decoded.split("_", 2)
                 protect = "/pbatch" if PROTECT_CONTENT else "batch"
 
-            dstore_msg_ids = []
+            # ❌ ഇവിടെ ഉണ്ടായിരുന്ന dstore_msg_ids ലിസ്റ്റ് ഒഴിവാക്കി
 
             async for msg in client.iter_messages(
                 int(f_chat_id), int(l_msg_id), int(f_msg_id)
@@ -369,22 +329,20 @@ async def start(client, message):
                                 getattr(media, "file_name", "")
                             )
 
-                        copied_msg = await msg.copy(
+                        # ❌ ക്യാപ്ഷന്റെ കൂടെയുണ്ടായിരുന്ന \n\n{AUTO_DEL_TEXT} ഒഴിവാക്കി
+                        await msg.copy(
                             message.chat.id,
-                            caption=f"{f_caption}\n\n{AUTO_DEL_TEXT}",
+                            caption=f"{f_caption}",
                             parse_mode=enums.ParseMode.HTML,
                             protect_content=protect == "/pbatch"
                         )
                     elif not msg.empty:
-                        copied_msg = await msg.copy(
+                        await msg.copy(
                             message.chat.id,
                             protect_content=protect == "/pbatch"
                         )
                     else:
                         continue
-
-                    if copied_msg:
-                        dstore_msg_ids.append(copied_msg.id)
 
                 except FloodWait as e:
                     await asyncio.sleep(e.x)
@@ -395,15 +353,7 @@ async def start(client, message):
 
                 await asyncio.sleep(1)
 
-            if dstore_msg_ids:
-                asyncio.create_task(
-                    auto_delete_messages(
-                        client,
-                        message.chat.id,
-                        dstore_msg_ids,
-                        AUTO_DELETE_TIME
-                    )
-                )
+            # ❌ ഓട്ടോ ഡിലീറ്റ് ചെയ്യുന്ന ഭാഗം (asyncio.create_task) ഇവിടെ നിന്നും പൂർണ്ണമായി ഒഴിവാക്കി.
 
             try:
                 await sts.delete()
@@ -458,18 +408,10 @@ async def start(client, message):
                 except Exception:
                     return
 
+            # ❌ ആദ്യത്തെ സെക്ഷനിലെ ക്യാപ്ഷനിൽ നിന്നും AUTO_DEL_TEXT ഒഴിവാക്കി
             await msg.edit_caption(
-                f"{f_caption}\n\n{AUTO_DEL_TEXT}",
+                f"{f_caption}",
                 parse_mode=enums.ParseMode.HTML
-            )
-
-            asyncio.create_task(
-                auto_delete_messages(
-                    client,
-                    message.from_user.id,
-                    [msg.id],
-                    AUTO_DELETE_TIME
-                )
             )
             return
 
@@ -498,27 +440,22 @@ async def start(client, message):
         f_caption = f"{title}"
 
     try:
-        xd = await client.send_cached_media(
+        # ❌ രണ്ടാമത്തെ സെക്ഷനിലെ ക്യാപ്ഷനിൽ നിന്നും AUTO_DEL_TEXT ഒഴിവാക്കി
+        await client.send_cached_media(
             chat_id=message.from_user.id,
             file_id=file_id,
-            caption=f"{f_caption}\n\n{AUTO_DEL_TEXT}",
+            caption=f"{f_caption}",
             parse_mode=enums.ParseMode.HTML,
             protect_content=pre == "filep"
         )
 
-        asyncio.create_task(
-            auto_delete_messages(
-                client,
-                message.from_user.id,
-                [xd.id],
-                AUTO_DELETE_TIME
-            )
-        )
+        # ❌ രണ്ടാമത്തെ സെക്ഷനിലെ ഓട്ടോ ഡിലീറ്റ് ടാസ്ക് ഒഴിവാക്കി
 
     except UserIsBlocked:
         logger.warning("User %s blocked the bot", message.from_user.id)
     except Exception as e:
         logger.error(e, exc_info=True)
+
    
     
     
