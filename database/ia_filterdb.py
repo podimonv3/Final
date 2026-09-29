@@ -81,14 +81,7 @@ async def clean_file_name(raw_name: str) -> str:
     # 2. തുടക്കത്തിൽ വരുന്ന [MS], [@MS] തുടങ്ങിയ എല്ലാ സ്ക്വയർ ബ്രാക്കറ്റ് ഭാഗങ്ങളും നീക്കം ചെയ്യുന്നു
     name_without_ext = re.sub(r'^\[[^\]]+\][\s._-]*', '', name_without_ext, flags=re.IGNORECASE)
     
-    # 3. ഫയലിന്റെ തുടക്കത്തിൽ @ ചിഹ്നവും അതിനോട് ഒട്ടിനിൽക്കുന്ന വാക്കുകളും നീക്കം ചെയ്യുന്നു (ഉദാ: @CC, @CG)
-    name_without_ext = re.sub(r'^@\w+[\s._-]*', '', name_without_ext, flags=re.IGNORECASE)
-    
-    # --- പുതിയ മാറ്റം: ഫയലിന്റെ തുടക്കത്തിൽ (^) മാത്രം വരുന്ന വെബ്സൈറ്റ് പേരുകൾ നീക്കം ചെയ്യുന്നു ---
-    # ഇത് ://tamilmv.com, www_tamilmv_cz ഒക്കെ തുടക്കത്തിൽ വന്നാൽ മാത്രം കളയും
-    name_without_ext = re.sub(r'^www[-._\w]*\.[a-z]{2,6}[\s._-]*|^www[-._\w]+[\s._-]*', '', name_without_ext, flags=re.IGNORECASE)
-    
-    # 4. info.py-ലെ TAGS ലിസ്റ്റിലുള്ളവ തുടക്കത്തിൽ വന്നാൽ മാത്രം ഒഴിവാക്കുന്നു
+    # 3. info.py-ലെ TAGS ലിസ്റ്റിലുള്ളവ തുടക്കത്തിൽ വന്നാൽ മാത്രം ഒഴിവാക്കുന്നു
     if TAGS and isinstance(TAGS, list):
         # ലിസ്റ്റിലെ ടാഗുകൾ റീജക്സിന് മനസ്സിലാകുന്ന രീതിയിലേക്ക് മാറ്റുന്നു
         escaped_tags = "|".join(re.escape(tag) for tag in TAGS)
@@ -96,14 +89,14 @@ async def clean_file_name(raw_name: str) -> str:
         # ഫയലിന്റെ തുടക്കത്തിൽ (^) ഈ ടാഗുകൾ വന്നാൽ അത് നീക്കം ചെയ്യുന്നു
         name_without_ext = re.sub(r'^(' + escaped_tags + r')[\s._-]*', '', name_without_ext, flags=re.IGNORECASE)    
         
-    # 5. അപ്പോസ്ട്രോഫികൾ (') പൂർണ്ണമായി ഒഴിവാക്കുന്നു (i'm -> im)
+    # 4. അപ്പോസ്ട്രോഫികൾ (') പൂർണ്ണമായി ഒഴിവാക്കുന്നു (i'm -> im)
     name_no_apostrophe = name_without_ext.replace("'", "")
     
-    # 6. മലയാളം, ഇംഗ്ലീഷ് (A-Z, a-z), അക്കങ്ങൾ (0-9) എന്നിവ മാത്രം നിലനിർത്തുന്നു.
+    # 5. മലയാളം, ഇംഗ്ലീഷ് (A-Z, a-z), അക്കങ്ങൾ (0-9) എന്നിവ മാത്രം നിലനിർത്തുന്നു.
     # മറ്റെല്ലാ പ്രത്യേക ചിഹ്നങ്ങൾക്ക് പകരവും സ്പേസ് നൽകുന്നു.
     cleaned_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', name_no_apostrophe)
     
-    # 7. അനാവശ്യമായ ഒന്നിലധികം സ്പേസുകൾ ഒഴിവാക്കി ഒരൊറ്റ സ്പേസ് ആക്കുന്നു, ഇരുവശത്തെയും സ്പേസ് കളയുന്നു.
+    # 6. അനാവശ്യമായ ഒന്നിലധികം സ്പേസുകൾ ഒഴിവാക്കി ഒരൊറ്റ സ്പേസ് ആക്കുന്നു, ഇരുവശത്തെയും സ്പേസ് കളയുന്നു.
     final_name = re.sub(r'\s+', ' ', cleaned_chars).strip()
     
     return final_name
