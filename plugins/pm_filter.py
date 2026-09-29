@@ -58,13 +58,11 @@ async def pm_text(bot: Client, message):
         if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
             await asyncio.sleep(0.5)
-            alert_msg = await message.reply_text(
+            # തെറ്റായ ഫോർമാറ്റ് ആണെങ്കിൽ കാണിക്കുന്ന മെസ്സേജ് (ഇനി ഇത് തനിയെ ഡിലീറ്റ് ആകില്ല)
+            await message.reply_text(
                 text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9D%E0%B4%A8%E0%B4%A4-08-19")]])
             )
-            await asyncio.sleep(30)
-            try: await bot.delete_messages(chat_id=message.chat.id, message_ids=[alert_msg.id])
-            except Exception as e: logger.error(f"Error deleting alert message: {e}")
             return
 
     content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
@@ -81,7 +79,9 @@ async def pm_text(bot: Client, message):
             pre = 'filep' if settings['file_secure'] else 'file'
             key = f"{message.chat.id}-{message.id}"
             BUTTONS[key] = search_query
-            btn = get_filter_menu_buttons(user_id, key)
+            
+            # get_filter_menu_buttons ഒഴിവാക്കി ലിസ്റ്റ് ബ്ലാങ്ക് (Empty) ആക്കി മാറ്റി
+            btn = []
 
             if settings["button"]:
                 for file in files[:10]: btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
@@ -98,20 +98,14 @@ async def pm_text(bot: Client, message):
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
         await asyncio.sleep(0.5)
 
-        reply_msg = await message.reply_text(
+        # സിനിമ കിട്ടിയില്ലെങ്കിൽ സബ്മിറ്റ് ആയി എന്ന് കാണിക്കുന്ന മെസ്സേജ് (ഇതും ഇനി തനിയെ ഡിലീറ്റ് ആകില്ല)
+        await message.reply_text(
             text="<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me/Adhityan_edavattom")],
                 [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9D%E0%B4%A8%E0%B4%A4-08-19")]
             ])
         )
-
-        async def auto_delete():
-            await asyncio.sleep(30)
-            try: await bot.delete_messages(chat_id=message.chat.id, message_ids=[reply_msg.id])
-            except: pass
-
-        asyncio.create_task(auto_delete())
 
         log_reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]])
         log_text = f"<b>#PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
@@ -131,6 +125,7 @@ async def pm_text(bot: Client, message):
                 await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
         except Exception as e:
             logger.error(f"Error sending log to LOG_CHANNEL: {e}")
+
 
 
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
