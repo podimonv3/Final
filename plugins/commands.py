@@ -181,24 +181,21 @@ async def start(client, message):
         except Exception as e:
             logger.exception(e)
         return
-
-
     
     # ================= SPECIAL COMMANDS =================
     if data in ["subscribe", "error", "okay", "help"]:
-    btn = [
-        [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
-        [InlineKeyboardButton("❌ Close", callback_data="close")]
-    ]
-    caption = script.START_TXT.format(message.from_user.mention)
-    try:
-        await message.reply_photo(photo="https://files.catbox.moe/egu0ip.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
-    except Exception:
-        try:
-            await message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
-        except Exception:
-            pass
-    return
+        btn = [
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="[https://t.me/+eb__Eg3RS2IyZWQ1](https://t.me/+eb__Eg3RS2IyZWQ1)")],
+            [InlineKeyboardButton("❌ Close", callback_data="close")]
+        ]
+        try:
+            await message.reply_text(                
+                text=script.START_TXT.format(message.from_user.mention),
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+        except Exception as e:
+            logger.exception(e)
+        return 
  
     # ================= BATCH =================
     if data.split("-", 1)[0] == "BATCH":
