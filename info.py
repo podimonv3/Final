@@ -69,39 +69,37 @@ pyroutils.MIN_CHAT_ID = -999999999999
 pyroutils.MIN_CHANNEL_ID = -100999999999999
 
 # info.py ഫയലിൽ ഈ രീതിയിൽ നൽകാം
-TAGS = [
-    "@FBM_New", "@FBM_HW", "@FBM", "@FBM_Tamil", "@FBM_x265", "[KMH]", "@FBM_ALL",
-    "@mobile_mm", "@Mallu_Hub", "[HN]", "PDisk", "@VR", "@CC_New", "@CC_Links",
-    "@CC_ALL", "@tollywoodz", "[KML]", "RWD", "[@WORD_MOVIS]", "@360", "@cinema_company",
-    "@Cinematic_world", "@CC", "@CK_HEVC", "@koreanjournal", "@CK_Moviez", "[TC]", "@cinema library",
-    "[F&T]", "HDMVCOUNTER", "@C_V", "@KL_ROCKERZ", "@MM_New", "MM_New", "@MM_ALL",
-    "@MM_X265", "[MM-New]", "@MM_Linkz", "@MM", "[MM]", "MLM", "@E4E",
-    "@RickyChannel", "ғαιвεяsgαтє", "Tamil_LinkZz", "@MPC", "://tamilrockers.com", "www_1TamilMV_art", "[CF]",
-    "[CC]", "@PM", "[TIF]", "@desimovies", "@telugu_moviez", "[A2MOVIES]", "@CCM",
-    "@malayalam movies", "@CE_Links", "@WMR", "@ᒪᕈT", "@TeamHDT", "@MoviesTop10", "@colorkannadi_movies",
-    "@DVDWOALL", "DVDWORLD", "Malayalam_Full_Movie", "DVDWO", "@KR", "@Sharathrockers", "@HindiHDmovies",
-    "@I_M_D_B", "@moviesclub1234", "@mclubb_subtitles", "@mclubb", "@CVM",
-    "@filmreview", "【CP】", "[ᎡTemporary]", "TIF_HW", "@Ma_Cartoonzz", "@Mj_Linkz", "@AM", "@HEVC_MoviesZ",
-    "@CV", "Dvdworld", "@movieworldkdY", "@Adult_MovieX", "@Rarefilms", "@CK",
-    "[WMJ]", "@SY_MS", "@Mallu_Movies", "@BM_Links", "@CC_Telugu",
-    "[Hotstar_Tamil]", "[DnO]", "(@desimovies Telegram)", "[DFBC]", "[US]", "@Cinema_Villa",
-    "@CMVLA", "@TamilAnimationToday", "[ML]", "[USA]", "[HEVC]", "@HMF", "[FC]", "@MJ_HEVC",
-    "@MM_OLD", "@FBM_Dubbed", "NewHDMovies", "[MC_Moviecentral]",
-    "Malayalam_Comedy_Movie", "@CiNEWOD", "@MalluRockerZz", "(@UCMOVIE)", "MAPTAP_TEAM", "[CT™]", "@MoviezzClub",
-    "@butterfly_media", "@Mp4Mania", "[MSM]", "[CT™️]", "@SUBTLESUBS", "@TR", "E4E", "@FC_HEVC",
-    "Full Movie", "@Moviezwen", "[TG @FILMFEVE]", "@Mx Links",
-    "@EE", "@CPR", "[MASHOBUC]", "[YDF]", "CG", "@McParadiso", "@FilmBuzzMedia",
-    "@CL", "@MT", "ML", "NewRelease",
-    "സിനിമാ_കലവറ", "🎞", "www_1tamilmv_lease",
-    "@CineMallu_Linkz",
-    "TamilYogi.vip",
-    "[Movie Bazar]", "Movie Bazar", "[MF]", "@MoViezOnlYheRe", "[GC]", "GC",
-    "@HEVCHubX", "@HPC_Telegram", "@LinkZz_MBBS", "[D&O]", "[PF]", "@DramaOST", "Tg @MoviesHunt",
-    "@HDMovies", "[MJ]", "@IM", "@PVRCinemas", "@M©", "[DD]", "[@ML_Linkz]",
-    "@sherlibrary", "@M3", "@MCSouth", "@Movie_Blasters1", "@MCArchives", "[TM]",
-    "www_1tamilmv_", "HDTCPREDVDFILES"
-]
+# ================= NEW TAGS FROM SECOND LIST =================
 
+TAGS = [
+    "dvdwap.com", "A2MOVIES", "KC", "KC_", "MF", "MZone", "MoviezzClub",
+    "[@HK]", "[@MOVIES HUNT]", "[@TVseriesLand]", "[@AML]", "[Anylink Movies]",
+    "[BO]", "[CF] ", "[CKM]", "[CKMSERIES]", "[CK]", "[Dn0]", "[EC]", "[FFH]",
+    "[CLM]", "[GKL]", "[HK] Join @ғanѕzz", "[KBO]", "[KC]", "[M-Zone]", "[MABLG]",
+    "[MC]", "[MFA]", "[MS]", "[MoviesNowTamil]", "[PFM]", "[PM]", "[PS]",
+    "[SeriesLand4U]", "[TR]", "[TS]", "[WC]", "[YDF HD]", "[YM]", "[ᎡᴛᏴᴛ]",
+    "@ADrama_Lovers", "@AVA", "@CC_", "@CC_All", "@CC_NEW", "@CC_X265",
+    "@CCineClub", "@CMEHD", "@CR_Rockers", "@Cinema Company", "@Cinema_Company",
+    "@Cinema_Kottaka", "@CKMovies", "@CelluloidCineClub", "@DailyMovieZhunt",
+    "@DMovies", "@Dubbedmovies", "@DvdWap", "@E4E_Rockers", "@FILIMHOUSE",
+    "@FilmCage", "@Film_Kottaka", "@FrediesChannel", "@HEVC_Cinemaz",
+    "@HEVC_Moviesz", "@Hk", "@IndianMoviez", "@KBO", "@KD_Deck", "@KGRockers",
+    "@KW", "@KannadaWarriors", "@KeralaBoxOffice", "@Links2U", "@Linkz_MM",
+    "@M_Zone", "@MAASFILE", "@MC", "@MC_4U", "@MJ_Moviez", "@MM_Movies",
+    "@MM_NEW", "@MM_TvSeries", "@MOVIEHUNT", "@MOVIEZMOB", "@MalluRockers",
+    "@Mallu_Rockers", "@Mc_South", "@MovieWorld2000", "@Movie_Hub", "@bheeshmat",
+    "@desimovies Telegram", "@favio", "@film_down_load", "@iMediaShare",
+    "@infotainmentmedia", "@kickass_torrents", "@msp", "@moviescollection17",
+    "@moviesdeveloper", "@MoviesWar", "@myflixx", "@nanacinemas", "@OB", "@PIT",
+    "@PM_Old", "@Qualitymovies", "@RatedRMovies", "@Sky_MoviesHD", "@TG UPDATES1",
+    "@TN60_LinkzZ", "@TV 30NAMA1", "@TamilMV", "@TamilMV_Live", "@TamilRockers",
+    "@Tamil_HD_Movies_Requests", "@Tamil_Linkz", "@Tamil_LinkzZ", "@Team_HDT",
+    "@Theprofffesorr", "@TR_Moviez", "@TR_Updates", "@Tv2Us", "@TvSeriesBay",
+    "@UCDump", "@WorldCinemaToday", "@X265 E4E", "@YTSLT", "@cinemaheist",
+    "@trolldcompany", "@yamandanmovies", "www.", "www.1TamilMV",
+    "www.1TamilMV.fun", "www.1TamilMV.me", "www.1TamilMV.org", "www_1TamilMV",
+    "www_1TamilMV_fun", "www_DVDWap_Com_"
+]
 # Others
 LONG_IMDB_DESCRIPTION = is_enabled(environ.get("LONG_IMDB_DESCRIPTION", "False"), False)
 MAX_LIST_ELM = environ.get("MAX_LIST_ELM", None)
