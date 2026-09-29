@@ -289,7 +289,7 @@ async def advantage_spoll_choker(bot, query):
 
 @Client.on_callback_query(filters.regex(r"^not_available$"))
 async def not_available_callback(client, query):
-    await query.answer("Not Available", show_alert=True)
+    await query.answer("ഒന്ന് OTT ഇറങ്ങിക്കോട്ടെ", show_alert=True)
 
 
 
