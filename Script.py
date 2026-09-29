@@ -47,7 +47,7 @@ class script(object):
     "MLM", "MZone", "MoviezzClub", "NewRelease", "PDisk", "Tamil_LinkZz", "[@HK]", "[@MOVIES HUNT]",
     "[@TVseriesLand]", "[@WORD_MOVIS]", "[A2MOVIES]", "[AML]", "[Anylink Movies]", "[BO]", "[CC]", "[CF] ",
     "[CF]", "[CKM]", "[CKMSERIES]", "[CK]", "[CT™️]", "[CT™]", "[DFBC]", "[Dn0]",
-    "[DnO]", "[EC]", "[F&T]", "[FFH]", "[GKL]", "[HK] Join @ғanѕzz", "[HN]", "[KBO]",
+    "[DnO]", "[EC]", "[F&T]", "[FFH]", "[CLM]", "[GKL]", "[HK] Join @ғanѕzz", "[HN]", "[KBO]",
     "[KC]", "[KMH]", "[KML]", "[M-Zone]", "[MABLG]", "[MC_Moviecentral]", "[MC]", "[MFA]",
     "[MF]", "[MM-New]", "[MM]", "[MS]", "[Movie Bazar]", "[MoviesNowTamil]", "[PFM]", "[PM]",
     "[PS]", "[SeriesLand4U]", "[TC]", "[TIF]", "[TR]", "[TS]", "[WC]", "[YDF HD]",
