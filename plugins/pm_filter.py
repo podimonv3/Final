@@ -331,75 +331,109 @@ async def give_filters(client, message):
     await asyncio.gather(task1, task2, return_exceptions=True)
 
 
-@Client.on_callback_query(filters.regex(r"^spol"))
+@Client.on_callback_query(filters.regex(r"^spol#"))
 async def advantage_spoll_choker(bot, query):
-    _, user, movie_ = query.data.split('#')
-    
-    if int(user) != 0 and query.from_user.id != int(user):
+    try:
+        _, user, movie_ = query.data.split("#", 2)
+        user_id = int(user)
+    except (ValueError, AttributeError):
+        return await query.answer("Invalid request.", show_alert=True)
+
+    if user_id and query.from_user.id != user_id:
         return await query.answer("okDa", show_alert=True)
-        
+
     if movie_ == "close_spellcheck":
-        return await query.message.delete()
-        
-    movies = SPELL_CHECK.get(query.message.reply_to_message.id)
-    if not movies:
-        return await query.answer("You are clicking on an old button which is expired.", show_alert=True)
-        
-    movie = movies[(int(movie_))]
-    await query.answer('Checking for Movie in database...')
-    
-    # 🌟 യൂസർ സിനിമ സെലക്ട് ചെയ്ത ഉടൻ തന്നെ സ്പെൽചെക്ക് മെസ്സേജ് ഇവിടെ വച്ച് ഡിലീറ്റ് ചെയ്യുന്നു
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+        return
+
+    try:
+        index = int(movie_)
+        original = query.message.reply_to_message
+        movies = SPELL_CHECK.get(original.id) if original else None
+
+        if not movies or index >= len(movies):
+            return await query.answer(
+                "This button has expired.",
+                show_alert=True
+            )
+
+        movie = movies[index]
+    except (ValueError, TypeError, IndexError, AttributeError):
+        return await query.answer(
+            "Invalid or expired selection.",
+            show_alert=True
+        )
+
+    await query.answer("Checking for Movie in database...")
+
     try:
         await query.message.delete()
     except Exception:
         pass
 
-    k = await global_filters(bot, query.message, text=movie)
-    if k == False:
-        files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
-        if files:
-            k = (movie, files, offset, total_results)
-            await auto_filter(bot, query, k)
-        else:
-            # 🔍 ഡാറ്റാബേസിൽ സിനിമ ഇല്ലെങ്കിൽ ഗൂഗിൾ, റൂൾസ്, റിക്വസ്റ്റ് ലിങ്കുകൾ സെറ്റ് ചെയ്യുന്നു
-            reqst_gle = quote_plus(movie)
-            
-            # നിങ്ങളുടെ പുതിയ ബട്ടനുകൾ ഇവിടെ ആഡ് ചെയ്തിരിക്കുന്നു
-            button = [                
-                [
-                    InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-                    InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-                ]
-            ]        
-            
-            try:
-                # 1. ആദ്യം ഫോട്ടോയും ബട്ടണുകളും അയക്കാൻ ശ്രമിക്കുന്നു (info.py-ൽ നിന്നുള്ള SPELL_IMG)
-                google_msg = await query.message.reply_photo(
-                    photo="https://files.catbox.moe/egu0ip.jpg",
-                    caption=script.OTT_TEXT,                    
-                    reply_markup=InlineKeyboardMarkup(button),
-                    parse_mode=enums.ParseMode.HTML
-                )
-            except Exception as photo_error:
-                # 2. ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ (Error വന്നാൽ) ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
-                logger.warning(f"Photo failed to send, falling back to text: {photo_error}")
-                try:
-                    google_msg = await query.message.reply_text(
-                        text=script.OTT_TEXT, 
-                        reply_markup=InlineKeyboardMarkup(button),
-                        parse_mode=enums.ParseMode.HTML
-                    )
-                except Exception as text_error:
-                    logger.error(f"Text message also failed: {text_error}")
-                    google_msg = None
-            
-            # മെസ്സേജ് വിജയകരമായി അയച്ചിട്ടുണ്ടെങ്കിൽ 60 സെക്കന്റിന് ശേഷം ഡിലീറ്റ് ചെയ്യുന്നു
-            if google_msg:
-                try:
-                    await asyncio.sleep(60)
-                    await google_msg.delete()
-                except Exception:
-                    pass
+    try:
+        if await global_filters(bot, original, text=movie) is not False:
+            return
+    except Exception as e:
+        logger.exception(f"Global filter error: {e}")
+
+    try:
+        files, offset, total = await get_search_results(
+            movie, offset=0, filter=True
+        )
+    except Exception as e:
+        logger.exception(f"Search error: {e}")
+        files, offset, total = [], 0, 0
+
+    if files:
+        try:
+            await auto_filter(
+                bot, original, (movie, files, offset, total)
+            )
+        except Exception as e:
+            logger.exception(f"Auto filter error: {e}")
+        return
+
+    buttons = [[
+        InlineKeyboardButton(
+            "📜 Rᴜʟᴇs",
+            url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"
+        ),
+        InlineKeyboardButton(
+            "📥 Rᴇqᴜᴇsᴛ",
+            url="http://t.me/Promoviesearcher_bot"
+        )
+    ]]
+    markup = InlineKeyboardMarkup(buttons)
+
+    try:
+        msg = await original.reply_photo(
+            photo="https://files.catbox.moe/egu0ip.jpg",
+            caption=script.OTT_TEXT,
+            reply_markup=markup,
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception as e:
+        logger.warning(f"Photo failed: {e}")
+        try:
+            msg = await original.reply_text(
+                script.OTT_TEXT,
+                reply_markup=markup,
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception as e:
+            logger.exception(f"Text fallback failed: {e}")
+            return
+
+    await asyncio.sleep(60)
+
+    try:
+        await msg.delete()
+    except Exception:
+        pass
 
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
