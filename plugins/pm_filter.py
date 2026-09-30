@@ -899,8 +899,18 @@ async def advantage_spell_chok(client, msg):
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
     raw_name = text or message.text
+    
+    # 🌟 ഇവിടെ raw_name-നെ സുരക്ഷിതമായി സ്ട്രിംഗ് (str) ആക്കി മാറ്റുന്നു
+    # ഇത് Pyrogram-ന്റെ 'utf-16-le' ഡീകോഡിങ് എറർ പൂർണ്ണമായി ഇല്ലാതാക്കും
+    safe_name = str(raw_name) if raw_name else ""
 
-    search = emoji.replace_emoji(raw_name, replace='')
+    try:
+        # ഇമോജികൾ നീക്കം ചെയ്യുന്നു
+        search = emoji.replace_emoji(safe_name, replace='')
+    except Exception:
+        # ഏതെങ്കിലും സാഹചര്യത്തിൽ വീണ്ടും തകരാർ വന്നാൽ എറർ അടിക്കാതെ മുന്നോട്ട് പോകാൻ
+        search = safe_name
+
     search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', search)
     search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
     search = re.sub(r"['‘’]", "", search)
