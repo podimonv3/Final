@@ -3,6 +3,7 @@ import asyncio
 from pyrogram import Client, filters, enums
 from pyrogram.errors import FloodWait
 from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, ChatAdminRequired, UsernameInvalid, UsernameNotModified
+from pyrogram.errors import ChannelInvalid, UsernameInvalid, UsernameNotModified, ChatAdminRequired, ChannelPrivate
 from info import ADMINS
 from info import INDEX_REQ_CHANNEL as LOG_CHANNEL
 from database.ia_filterdb import save_file, save_filea, check_file
