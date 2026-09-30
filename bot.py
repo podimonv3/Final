@@ -5,17 +5,19 @@ import asyncio  # ഓട്ടോമാറ്റിക് ടാസ്ക് റ
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
-logging.getLogger().setLevel(logging.INFO)
+
+# (ശ്രദ്ധിക്കുക: logging.getLogger().setLevel(logging.INFO) എന്ന ലൈൻ ഇവിടെ നിന്ന് പൂർണ്ണമായി ഒഴിവാക്കിയിട്ടുണ്ട്)
+
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
 # asyncio വാർണിങ്ങുകൾ പൂർണ്ണമായി ഒഴിവാക്കാൻ താഴെ പറയുന്ന വരി ചേർക്കുക
 logging.getLogger("asyncio").setLevel(logging.ERROR)
-
 
 # imdbio ലോഗുകൾ പൂർണ്ണമായി ഒഴിവാക്കാൻ CRITICAL ലെവൽ നൽകുക
 logging.getLogger("imdbio").setLevel(logging.CRITICAL)
 logging.getLogger("imdbio.services").setLevel(logging.CRITICAL)
 logging.getLogger("imdbio.parsers").setLevel(logging.CRITICAL)
 logging.getLogger("httpx").setLevel(logging.CRITICAL)
+
 
 
 from pyrogram import Client, __version__
@@ -36,12 +38,14 @@ PORT = environ.get("PORT", "8050")
 
 load_dotenv("./dynamic.env", override=True, encoding="utf-8")
 
-# ഓട്ടോമാറ്റിക് ആയി മെമ്മറി ക്ലീൻ ചെയ്യാനുള്ള ഫങ്ഷൻ
 async def auto_clean_memory():
     while True:
-        await asyncio.sleep(1800) # 1800 സെക്കൻഡ് എന്നാൽ 30 മിനിറ്റ്
-        gc.collect() # റാം ക്ലീൻ ചെയ്യുന്ന കമാൻഡ്
-        logging.info("RAM cleared successfully to prevent Koyeb crash!")
+        await asyncio.sleep(1800)  # 30 മിനിറ്റ്
+        try:
+            gc.collect()  # റാം ക്ലീൻ ചെയ്യുന്നു
+        except Exception as e:
+            logging.error(f"RAM cleaning failed: {e}")  # എറർ ഉണ്ടായാൽ മാത്രം Koyeb-ൽ കാണിക്കും
+
 
 async def restart_bot(bot):
     progress_document = restarti.find_one({"_id": "frestart"})
