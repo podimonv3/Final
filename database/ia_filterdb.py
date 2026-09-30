@@ -220,7 +220,7 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media1, files_media2, total_results
 
 
-async def get_search_results(query, file_type=None, max_results=8, offset=0, filter=False):
+async def get_search_results(query, file_type=None, max_results=7, offset=0, filter=False):
     """Koyeb ഫ്രീ സെർവറിനായി ഡാറ്റാബേസ് ലെവലിൽ ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് സെർച്ച് (Fixed)"""
 
     query_no_apostrophe = query.replace("'", "")
