@@ -221,14 +221,19 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 async def get_search_results(query, file_type=None, max_results=7, offset=0, filter=False):
-    """Koyeb ഫ്രീ സെർവറിനായി ഡാറ്റാബേസ് ലെവലിൽ ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് സെർച്ച് (Fixed)"""
+    """Koyeb ഫ്രീ സെർവറിനായി ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് സെർച്ച് (Absolute Fallback to Last Character)"""
 
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
-    query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
+    original_query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
 
-    if not query:
+    if not original_query:
         return [], '', 0
+
+    # -----------------------------------------------------------------
+    # ഘട്ടം 1: നിങ്ങളുടെ സ്വന്തം എക്സാക്റ്റ് ലോജിക് (ആദ്യം ഒറിജിനൽ ക്വറി പരിശോധിക്കുന്നു)
+    # -----------------------------------------------------------------
+    query = original_query
 
     if ' ' not in query:
         raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
@@ -238,24 +243,76 @@ async def get_search_results(query, file_type=None, max_results=7, offset=0, fil
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
-        return [], '', 0
+        regex = None
 
-    if USE_CAPTION_FILTER:
-        filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]}
-    else:
-        filter_dict = {'file_name': regex}
+    files_media = []
+    files_mediaa = []
 
-    if file_type:
-        filter_dict['file_type'] = file_type
+    if regex:
+        if USE_CAPTION_FILTER:
+            filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]}
+        else:
+            filter_dict = {'file_name': regex}
 
-    # --- തിരുത്തിയ ഭാഗം: എറർ ഒഴിവാക്കാൻ $natural മാറ്റി file_name മാത്രം ഉപയോഗിച്ച് സോർട്ട് ചെയ്യുന്നു ---
-    cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
-    cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)])
+        if file_type:
+            filter_dict['file_type'] = file_type
 
-    # Koyeb സെർവർ റാം ക്രാഷ് ആകാതിരിക്കാൻ ലിമിറ്റ് 120 ആയി നിലനിർത്തുന്നു
-    files_media = await cursor_media.to_list(length=200)
-    files_mediaa = await cursor_mediaa.to_list(length=200)
+        cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
+        cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)])
 
+        files_media = await cursor_media.to_list(length=200)
+        files_mediaa = await cursor_mediaa.to_list(length=200)
+
+    # -----------------------------------------------------------------
+    # ഘട്ടം 2: ഫയലുകൾ കിട്ടിയില്ലെങ്കിൽ ഒരൊറ്റ അക്ഷരം ബാക്കി വരുന്നത് വരെ ഓരോന്നായി കുറയ്ക്കുന്നു
+    # -----------------------------------------------------------------
+    fallback_query = original_query
+    
+    if not files_media and not files_mediaa:
+        # ഇംഗ്ലീഷ് വാക്കാണെങ്കിൽ മാത്രം അക്ഷരങ്ങൾ കുറയ്ക്കുന്നു
+        if len(original_query) > 1 and not re.search(r'[\u0D00-\u0D7F]', original_query):
+            
+            # അക്ഷരങ്ങൾ ഓരോന്നായി കുറയ്ക്കുന്നു (വാക്കിന്റെ നീളം 1 അക്ഷരമാകുന്നതുവരെ ലൂപ്പ് തുടരും)
+            for chars_to_remove in range(1, len(original_query)):
+                fallback_query = original_query[:-chars_to_remove]
+                
+                # ഫുൾ കുറഞ്ഞ് വാക്ക് കാലിയായാൽ ലൂപ്പ് നിർത്തുന്നു
+                if not fallback_query:
+                    break
+                
+                if ' ' not in fallback_query:
+                    # ബാക്കി അക്ഷരങ്ങൾ കൂടി വരാൻ അവസാനം \w* ചേർക്കുന്നു
+                    raw_pattern = r'(\b|[\.\+\-_])' + fallback_query + r'(\b|[\.\+\-_]|\w*)'
+                else:
+                    raw_pattern = fallback_query.replace(' ', r'.*[\s\.\+\-_()]')
+
+                try:
+                    regex = re.compile(raw_pattern, flags=re.IGNORECASE)
+                except:
+                    regex = None
+
+                if regex:
+                    if USE_CAPTION_FILTER:
+                        filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]}
+                    else:
+                        filter_dict = {'file_name': regex}
+
+                    if file_type:
+                        filter_dict['file_type'] = file_type
+
+                    cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
+                    cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)])
+
+                    files_media = await cursor_media.to_list(length=200)
+                    files_mediaa = await cursor_mediaa.to_list(length=200)
+                    
+                    # ഏതെങ്കിലും സ്റ്റെപ്പിൽ (ഉദാഹരണത്തിന് 'Kuruth' ലോ 'Kuru' ലോ) ഫയലുകൾ ലഭിച്ചാൽ ലൂപ്പ് നിർത്തുന്നു
+                    if files_media or files_mediaa:
+                        break
+
+    # -----------------------------------------------------------------
+    # ഘട്ടം 3: ഇന്റർലീവിങ്ങും നിങ്ങളുടെ അതേ സോർട്ടിങ്ങും (Sorting Method)
+    # -----------------------------------------------------------------
     interleaved_files = []
     index_media1 = index_media2 = 0
     while index_media1 < len(files_media) or index_media2 < len(files_mediaa):
@@ -267,7 +324,8 @@ async def get_search_results(query, file_type=None, max_results=7, offset=0, fil
             index_media2 += 1
 
     if interleaved_files:
-        query_lower = query.lower().strip()
+        # ഫാൾബാക്ക് സിസ്റ്റം വഴിയാണ് ഫയലുകൾ കിട്ടിയതെങ്കിൽ സോർട്ടിങ്ങിനായി ആ ചുരുക്കിയ വാക്ക് നൽകുന്നു
+        query_lower = fallback_query.lower().strip() if (fallback_query != original_query and not original_query in [f.file_name.lower() for f in interleaved_files]) else original_query.lower().strip()
         
         def sort_by_exact_match(file_obj):
             file_name_lower = file_obj.file_name.lower().strip()
