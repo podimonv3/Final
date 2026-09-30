@@ -75,7 +75,7 @@ TAGS = [
     "dvdwap.com", "Dvdworld", "KC", "KC_", "MF", "MLM", "MZone", "MoviezzClub",
     "A2MOVIES",
 
-    "@ADrama_Lovers", "@AVA", "@CC_", "@CC_All", "@CC_NEW", "@CC_X265",
+    "@ADrama_Lovers", "@AVA", "@CC", "@CC_All", "@CC_NEW", "@CC_X265",
     "@CCineClub", "@CMEHD", "@CR_Rockers", "@cinecom88", "@Cinema Company", "@Cinema_Company",
     "@Cinema_Kottaka", "@CKMovies", "@CelluloidCineClub", "@DailyMovieZhunt", "@DM_LinkZzzz",
     "@DMovies", "@DramaOST", "@Dubbedmovies", "@DvdWap", "@E4E_Rockers", "@FILIMHOUSE",
