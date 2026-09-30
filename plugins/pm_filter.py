@@ -312,19 +312,19 @@ async def next_page(bot, query):
 
     if n_offset == '':
         btn.append([
-            InlineKeyboardButton("Bᴀᴄᴋ", callback_data=f"next_{req}_{key}_{off_set}"),
+            InlineKeyboardButton("Back", callback_data=f"next_{req}_{key}_{off_set}"),
             InlineKeyboardButton(f"{math.ceil(offset / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages")
         ])
     elif off_set is None:
         btn.append([
             InlineKeyboardButton(f"{math.ceil(offset / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages"),
-            InlineKeyboardButton("Nᴇxᴛ", callback_data=f"next_{req}_{key}_{n_offset}")
+            InlineKeyboardButton("Next", callback_data=f"next_{req}_{key}_{n_offset}")
         ])
     else:
         btn.append([
-            InlineKeyboardButton("Bᴀᴄᴋ", callback_data=f"next_{req}_{key}_{off_set}"),
+            InlineKeyboardButton("Back", callback_data=f"next_{req}_{key}_{off_set}"),
             InlineKeyboardButton(f"{math.ceil(offset / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages"),
-            InlineKeyboardButton("Nᴇxᴛ", callback_data=f"next_{req}_{key}_{n_offset}")
+            InlineKeyboardButton("Next", callback_data=f"next_{req}_{key}_{n_offset}")
         ])
 
     try:
@@ -726,11 +726,8 @@ async def auto_filter(client, msg, spoll=False):
             if not files:
                 keywords = await get_gfilters('gfilters')
                 if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords): return
-                try:
-                    await advantage_spell_chok(client, msg)
-                    return
-                except Exception:
-                    return
+                # ഇവിടെ നിന്നുമാണ് spellcheck ഒഴിവാക്കിയത്
+                return
         else:
             settings = await get_settings(msg.message.chat.id)
             return
@@ -752,29 +749,26 @@ async def auto_filter(client, msg, spoll=False):
         for file in files:
             btn.append([InlineKeyboardButton(text=f"{file.file_name}", callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=f"{get_size(file.file_size)}", callback_data=f'{pre}#{file.file_id}')])
 
-    if offset != "":
+    if offset != "":         
         try: offset = int(offset)
         except ValueError: offset = 0
     else: offset = 0
 
     if offset > 0:
-        btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{req}_{key}_{offset}")])
+        btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Next", callback_data=f"next_{req}_{key}_{offset}")])
 
-    poster = await get_any_movie_poster(search)
-    cap = f"<b><i>Found Results For Your Query {search}</i></b>\n\n<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
+    # പോസ്റ്റർ ഫങ്ക്ഷൻ ഒഴിവാക്കി, കാപ്ഷൻ മാറ്റിസ്ഥാപിച്ചു
+    cap = f"Here is what i found for your query {search}"
 
-    fmsg = None
-    if poster:
-        try:
-            fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=InlineKeyboardMarkup(btn))
-        except Exception as photo_error:
-            logger.warning(f"Photo അയക്കാൻ കഴിഞ്ഞില്ല, ടെക്സ്റ്റിലേക്ക് മാറുന്നു: {photo_error}")
-
-    if not fmsg:
-        try:
-            await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
-        except Exception as text_error:
-            logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
+    # ഫോട്ടോ അയക്കുന്ന ഭാഗം ഒഴിവാക്കി നേരിട്ട് ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
+    try:
+        await message.reply_text(
+            text=cap, 
+            reply_markup=InlineKeyboardMarkup(btn), 
+            disable_web_page_preview=True
+        )
+    except Exception as text_error:
+        logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിൽ എറർ വന്നിരിക്കുന്നു: {text_error}")
 
 
 async def advantage_spell_chok(client, msg):
