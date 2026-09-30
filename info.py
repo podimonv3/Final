@@ -77,7 +77,7 @@ TAGS = [
 
     "@ADrama_Lovers", "@AVA", "@CC_", "@CC_All", "@CC_NEW", "@CC_X265",
     "@CCineClub", "@CMEHD", "@CR_Rockers", "@cinecom88", "@Cinema Company", "@Cinema_Company",
-    "@Cinema_Kottaka", "@CKMovies", "@CelluloidCineClub", "@DailyMovieZhunt",
+    "@Cinema_Kottaka", "@CKMovies", "@CelluloidCineClub", "@DailyMovieZhunt", "@DM_LinkZzzz",
     "@DMovies", "@DramaOST", "@Dubbedmovies", "@DvdWap", "@E4E_Rockers", "@FILIMHOUSE",
     "@FilmCage", "@Film_Kottaka", "@FrediesChannel", "@HEVC_Cinemaz",
     "@HEVC_Moviesz", "@Hk", "@IndianMoviez", "@KBO", "@KD_Deck", "@KGRockers",
