@@ -73,7 +73,7 @@ pyroutils.MIN_CHANNEL_ID = -100999999999999
 
 TAGS = [
     "dvdwap.com", "Dvdworld", "DVDWORLD", "DVDWO", "KC", "KC_", "MF", "MLM", "MZone", "MoviezzClub", "HDMVCOUNTER",
-    "A2MOVIES",
+    "A2MOVIES", "HDTCPREDVDFILES",
 
     "@ADrama_Lovers", "@AVA", "@CC", "@CC_All", "@CC_ALL_MOVIES2", "@CC_NEW", "@CC_X265",
     "@CCineClub", "@CCM", "@CE_Links", "@CMEHD", "@CR_Rockers", "@cinecom88", " @Cinematic_world", "@Cinema Company", " @cinema_company", "@Cinema_Company", "@CINEMA_BUDDIES",
