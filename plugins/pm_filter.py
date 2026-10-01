@@ -727,7 +727,7 @@ async def auto_filter(client, msg, spoll=False):
                 keywords = await get_gfilters('gfilters')
                 if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords): return
                 
-                # 🔄 ഫയലുകൾ ലഭ്യമല്ലെങ്കിൽ പുതിയ ടെക്സ്റ്റ് ലിസ്റ്റ് സ്പെൽചെക്കിലേക്ക് പോകുന്നു
+                # 🔄 ഫയലുകൾ ഇല്ലെങ്കിൽ പുതിയ ടെക്സ്റ്റ് ലിസ്റ്റ് സ്പെൽചെക്കിലേക്ക് പോകുന്നു
                 try:
                     await advantage_spell_chok(client, msg)
                     return
@@ -762,28 +762,19 @@ async def auto_filter(client, msg, spoll=False):
     if offset > 0:
         btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{req}_{key}_{offset}")])
 
-    # 🔍 get_poster വഴി സിനിമയുടെ മുഴുവൻ വിവരങ്ങളും എടുക്കുന്നു
-    try:
-        imdb_data = await get_poster(search, bulk=False)
-    except Exception:
-        imdb_data = None
+    # ⚡ ലാഗ് ഒഴിവാക്കാൻ കോഡിൽ നിന്ന് തന്നെ ഇന്റർനെറ്റ് ഇല്ലാതെ വർഷം വേർതിരിച്ചെടുക്കുന്നു
+    year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
+    if not year_match and files:
+        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
+    
+    movie_year = f" ({year_match[0]})" if year_match else ""
+    clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
-    # 📝 blockquote ലേഔട്ടിലേക്ക് ക്യാപ്ഷൻ മാറ്റുന്നു
-    if imdb_data and isinstance(imdb_data, dict):
-        imdb_rating = imdb_data.get('rating', 'N/A')
-        imdb_year = imdb_data.get('year', 'N/A')
-        imdb_genres = imdb_data.get('genres', 'N/A')
-        imdb_runtime = imdb_data.get('runtime', 'N/A')
-        
-        cap = (
-            f"<blockquote><b><i>{search.upper()}</i></b></blockquote>\n\n"
-            f"📊 <b>IMDb Rᴀᴛɪɴɢ :</b> <code>{imdb_rating} / 10</code>\n"
-            f"📅 <b>Yᴇᴀʀ :</b> <code>{imdb_year}</code>\n"
-            f"⏳ <b>Rᴜᴛɪᴍᴇ :</b> <code>{imdb_runtime}</code>\n"
-            f"🎭 <b>Gᴇɴʀᴇꜱ :</b> <code>{imdb_genres}</code>"            
-        )
-    else:
-        cap = f"<blockquote><b><i>{search}</i></b></blockquote>\n\n<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
+    # 📝 വേഗതയേറിയ പുതിയ blockquote ലേഔട്ട്
+    cap = (
+        f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
+        f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
+    )
 
     poster = await get_any_movie_poster(search)
 
@@ -799,6 +790,7 @@ async def auto_filter(client, msg, spoll=False):
             await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
         except Exception as text_error:
             logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
+
 
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
