@@ -699,6 +699,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
 
+
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
@@ -726,7 +727,6 @@ async def auto_filter(client, msg, spoll=False):
                 keywords = await get_gfilters('gfilters')
                 if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords): return
                 
-                # 🔄 ഫയലുകൾ ഇല്ലെങ്കിൽ പുതിയ ടെക്സ്റ്റ് ലിസ്റ്റ് സ്പെൽചെക്കിലേക്ക് റീഡയറക്ട് ചെയ്യുന്നു
                 try:
                     await advantage_spell_chok(client, msg)
                     return
@@ -736,7 +736,6 @@ async def auto_filter(client, msg, spoll=False):
             settings = await get_settings(msg.message.chat.id)
             return
     else:
-        # ⚡ 'Message' object has no attribute 'message' എറർ പരിഹരിച്ചു
         if hasattr(msg, "message") and msg.message:
             message = msg.message.reply_to_message
         else:
@@ -748,28 +747,30 @@ async def auto_filter(client, msg, spoll=False):
     key = f"{message.chat.id}-{message.id}"
     BUTTONS[key] = search
     
-    # ⚡ കണ്ടെത്തിയ ഫയലുകളിൽ നിന്ന് വർഷം (Year) കൃത്യമായി വേർതിരിച്ചെടുക്കുന്നു
+    # ⚡ കണ്ടെത്തിയ ഫയലുകളിൽ നിന്ന് വർഷം വേർതിരിച്ചെടുക്കുന്നു
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
-    file_name_text = ""
-    if files:
-        if isinstance(files, list) and len(files) > 0:
-            file_name_text = getattr(files[0], 'file_name', '')
-        elif hasattr(files, 'file_name'):
-            file_name_text = files.file_name
+    
+    # 🔍 ആദ്യത്തെ 15 ഫയലുകളുടെ പേരുകൾ പരിശോധിക്കാൻ ഒരുമിച്ച് ചേർക്കുന്നു
+    combined_file_names = ""
+    if files and isinstance(files, list):
+        for file in files[:15]:
+            if hasattr(file, 'file_name') and file.file_name:
+                combined_file_names += " " + file.file_name.lower()
+    elif files and hasattr(files, 'file_name'):
+        combined_file_names = files.file_name.lower()
 
-    if not year_match and file_name_text:
-        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', file_name_text)
+    if not year_match and combined_file_names:
+        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', combined_file_names)
     
     detected_year = year_match[0] if year_match else ""
     movie_year = f" ({detected_year})" if detected_year else ""
     
-    # 🌐 എല്ലാ ഭാഷകളും കണ്ടെത്താനുള്ള ലോജിക്
+    # 🌐 ഭാഷകളും ക്വാളിറ്റികളും കണ്ടെത്തുന്നു
     languages_found = []
-    # 🎞️ ക്വാളിറ്റി കണ്ടെത്താനുള്ള ലോജിക്
     qualities_found = []
 
-    if file_name_text:
-        full_text_lower = file_name_text.lower() + " " + search.lower()
+    if combined_file_names:
+        full_text_lower = combined_file_names + " " + search.lower()
         
         # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
         if re.search(r'\b(malayalam|mal)\b', full_text_lower):
@@ -801,31 +802,24 @@ async def auto_filter(client, msg, spoll=False):
         if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
             qualities_found.append("#HD")
 
-    # ലഭിച്ച വിവരങ്ങൾ ഫോർമാറ്റ് ചെയ്യുന്നു
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
 
-    # സെർച്ച് ടെക്സ്റ്റിൽ നിന്ന് വർഷം ഒഴിവാക്കി ക്ലീൻ ടൈറ്റിൽ ആക്കുന്നു
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
     files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
 
-    # 📝 ഗ്രൂപ്പിൽ കാണിക്കേണ്ട മനോഹരമായ ലേഔട്ട്
     cap = (
         f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
-        f"🌐 <b>LᴀɴɢᴜᴀɢＥ:</b> <code>{detected_lang}</code>\n"
+        f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
         f"💎 <b>Qᴜᴀʟɪᴛʏ:</b> <code>{detected_quality}</code>\n"
         f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇs ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
 
-    # 🔘 ഗ്രൂപ്പാണോ പിഎം ആണോ എന്ന് നോക്കി ബട്ടണുകൾ മാറുന്നു
     if not spoll:
-        from urllib.parse import quote_plus
-        query_encoded = quote_plus(search)
-        
-        # ⚡ തിരുത്തിയ ഭാഗം: സ്ലാഷ് ( / ) കൃത്യമായി ചേർത്തു, അനാവശ്യ കണ്ടീഷനുകൾ ഒഴിവാക്കി
+        # ⚡ 64-ബൈറ്റ് ലിമിറ്റ് പ്രശ്നം വരാതിരിക്കാൻ സുരക്ഷിതമായ key ഉപയോഗിച്ചുള്ള ലിങ്ക്
         reply_markup = InlineKeyboardMarkup([[
-            InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ 📥", url=f"https://t.me/{temp.U_NAME}?start=search_{query_encoded}")
+            InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
         ]])
     else:
         btn = []
@@ -838,7 +832,7 @@ async def auto_filter(client, msg, spoll=False):
             for file in files:
                 btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
 
-        if update_offset := (offset != ""):
+        if (offset != ""):
             try: offset = int(offset)
             except ValueError: offset = 0
         else: offset = 0
@@ -854,16 +848,16 @@ async def auto_filter(client, msg, spoll=False):
     if poster:
         try:
             fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
-        except Exception as photo_error:
-            logger.warning(f"Photo negligence error: {photo_error}")
+        except Exception:
+            pass
 
     if not fmsg:
         try:
             await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-        except Exception as text_error:
-            logger.error(f"Text error message: {text_error}")
+        except Exception:
+            pass
 
-
+         
 
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
