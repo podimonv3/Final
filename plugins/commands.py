@@ -144,7 +144,14 @@ async def start(client, message):
             query = BUTTONS.get(req_key)
             
             if not query:
-                await message.reply_text("<b>❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                # ⚡ സുരക്ഷാ മാറ്റം: യൂസർ ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിട്ടുണ്ടെങ്കിൽ കോഡ് ക്രാഷ് ആകാതിരിക്കാൻ try-except ചേർത്തു
+                from pyrogram.errors import UserIsBlocked
+                try:
+                    await message.reply_text("<b>❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                except UserIsBlocked:
+                    logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send search expired text.")
+                except Exception:
+                    pass
                 return
 
             from database.ia_filterdb import get_search_results
@@ -153,7 +160,13 @@ async def start(client, message):
             if files:
                 await auto_filter(client, message, spoll=(query, files, offset, total_results))
             else:
-                await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
+                from pyrogram.errors import UserIsBlocked
+                try:
+                    await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
+                except UserIsBlocked:
+                    logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send files not found text.")
+                except Exception:
+                    pass
             return
         except Exception as e:
             logger.exception(e)
@@ -180,6 +193,7 @@ async def start(client, message):
         except Exception as e:
             logger.exception(e)
             return
+
 
 
         
