@@ -262,11 +262,11 @@ async def get_search_results(query, file_type=None, max_results=7, offset=0, fil
         filter_dict['file_type'] = file_type
 
     # Koyeb റാം ക്രാഷ് ഒഴിവാക്കാൻ ലിമിറ്റ് 150 ആയി നിജപ്പെടുത്തിയിരിക്കുന്നു
-    cursor_media = Media.find(filter_dict).sort([('file_name', 1)]).limit(150)
-    cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)]).limit(150)
+    cursor_media = Media.find(filter_dict).sort([('file_name', 1)]).limit(100)
+    cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)]).limit(100)
 
-    files_media = await cursor_media.to_list(length=150)
-    files_mediaa = await cursor_mediaa.to_list(length=150)
+    files_media = await cursor_media.to_list(length=100)
+    files_mediaa = await cursor_mediaa.to_list(length=100)
 
     interleaved_files = []
     index_media1 = index_media2 = 0
