@@ -700,7 +700,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 
 
-
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
@@ -756,7 +755,7 @@ async def auto_filter(client, msg, spoll=False):
     
     # ⚡ ബോട്ട് അൾട്രാ സ്പീഡ് ആകാൻ ആദ്യത്തെ 5 ഫയലുകൾ മാത്രം ലൂപ്പ് ചെയ്യുന്നു
     if files and isinstance(files, list):
-        for index, file in enumerate(files[:15]):
+        for index, file in enumerate(files[:11]):
             if hasattr(file, 'file_name') and file.file_name:
                 combined_file_names += " " + file.file_name.lower()
                 print_check_text += " " + file.file_name.lower()
@@ -773,7 +772,7 @@ async def auto_filter(client, msg, spoll=False):
     if combined_file_names:
         full_text_lower = combined_file_names + " " + search.lower()
         
-        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു (കൂടുതൽ ഭാഷകളും ഓഡിയോ ടാഗുകളും ഉൾപ്പെടുത്തിയത്)
+        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
         if re.search(r'\b(malayalam|mal)\b', full_text_lower):
             languages_found.append("#Malayalam")
         if re.search(r'\b(tamil|tam)\b', full_text_lower):
@@ -809,12 +808,11 @@ async def auto_filter(client, msg, spoll=False):
         if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
             qualities_found.append("#WEB-DL")
             
-        # 🛠️ തിരുത്തിയ ഭാഗം: hdrip, hdtv, hd എന്നിവ ഉണ്ടാവുകയും hdtc ഇല്ലാതിരിക്കുകയും ചെയ്താൽ മാത്രം #HD കാണിക്കുന്നു
         if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not re.search(r'\b(hdtc)\b', full_text_lower):
             if not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
                 qualities_found.append("#HD")
 
-    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു (hqcam, pre ഒഴിവാക്കി, HDTC ചേർത്തു)
+    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു
     detected_print = "#HD_Original" 
     if print_check_text:
         if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
@@ -834,8 +832,8 @@ async def auto_filter(client, msg, spoll=False):
         f"📂 <b>Tᴏᴛᴀʟ FɪʟＥs:</b> <code>{files_count}</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
+    
     if not spoll:
-        # ⚡ 64-ബൈറ്റ് ലിമിറ്റ് വരാത്ത രീതിയിലുള്ള സുരക്ഷിതമായ ലിങ്ക്
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
         ]])
@@ -860,21 +858,22 @@ async def auto_filter(client, msg, spoll=False):
         
         reply_markup = InlineKeyboardMarkup(btn)
 
-    # ⚡ പോസ്റ്റർ ഫെച്ചിങ് പൂർണ്ണമായി ഒഴിവാക്കി നേരിട്ട് ടെക്സ്റ്റ് മെസ്സേജ് മാത്രം അയക്കുന്നു (Ultra Speed)
+    # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു
+    poster_url = await get_any_movie_poster(clean_title)
     fmsg = None
+    
     try:
-        fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-    except Exception:
-        pass
+        if poster_url:
+            # പോസ്റ്റർ ലിങ്ക് ലഭിച്ചാൽ ഫോട്ടോയായി അയക്കുന്നു
+            fmsg = await message.reply_photo(photo=poster_url, caption=cap, reply_markup=reply_markup)
+        else:
+            # പോസ്റ്റർ ഇല്ലെങ്കിൽ വെറും ടെക്സ്റ്റ് മെസ്സേജ് ആയി അയക്കുന്നു
+            fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
+    except Exception as e:
+        # ഒരുപക്ഷേ ഫോട്ടോ അയക്കുന്നതിൽ എറർ വന്നാൽ ബാക്കപ്പ് ആയി ടെക്സ്റ്റ് അയക്കും
+        fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
 
-    # 🕒 ⚡ ഗ്രൂപ്പിൽ അയക്കുന്ന മെസ്സേജ് കൃത്യം 4 മിനിറ്റിന് (240 സെക്കന്റ്) ശേഷം തനിയെ ഡിലീറ്റ് ചെയ്യും
-    if not spoll and fmsg:
-        await asyncio.sleep(240)
-        try:
-            await fmsg.delete()
-        except Exception:
-            pass       
-            
+                       
                     
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
