@@ -812,7 +812,7 @@ async def auto_filter(client, msg, spoll=False):
         f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
         f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
         f"💎 <b>Qᴜᴀʟɪᴛʏ:</b> <code>{detected_quality}</code>\n"
-        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇs ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
+        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count}</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
 
