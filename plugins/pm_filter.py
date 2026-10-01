@@ -699,7 +699,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
 
-
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
@@ -737,7 +736,7 @@ async def auto_filter(client, msg, spoll=False):
             settings = await get_settings(msg.message.chat.id)
             return
     else:
-        # ⚡ 'Message' object has no attribute 'message' എറർ ഇവിടെ പരിഹരിച്ചു
+        # ⚡ 'Message' object has no attribute 'message' എറർ പരിഹരിച്ചു
         if hasattr(msg, "message") and msg.message:
             message = msg.message.reply_to_message
         else:
@@ -749,29 +748,86 @@ async def auto_filter(client, msg, spoll=False):
     key = f"{message.chat.id}-{message.id}"
     BUTTONS[key] = search
     
-    # ⚡ ലോക്കലായി വർഷം വേർതിരിച്ചെടുക്കുന്നു
+    # ⚡ കണ്ടെത്തിയ ഫയലുകളിൽ നിന്ന് വർഷം (Year) കൃത്യമായി വേർതിരിച്ചെടുക്കുന്നു
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
-    movie_year = f" ({year_match[0]})" if year_match else ""
-    clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
+    file_name_text = ""
+    if files:
+        if isinstance(files, list) and len(files) > 0:
+            file_name_text = getattr(files[0], 'file_name', '')
+        elif hasattr(files, 'file_name'):
+            file_name_text = files.file_name
 
+    if not year_match and file_name_text:
+        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', file_name_text)
+    
+    detected_year = year_match[0] if year_match else ""
+    movie_year = f" ({detected_year})" if detected_year else ""
+    
+    # 🌐 എല്ലാ ഭാഷകളും കണ്ടെത്താനുള്ള ലോജിക്
+    languages_found = []
+    # 🎞️ ക്വാളിറ്റി കണ്ടെത്താനുള്ള ലോജിക്
+    qualities_found = []
+
+    if file_name_text:
+        full_text_lower = file_name_text.lower() + " " + search.lower()
+        
+        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
+        if re.search(r'\b(malayalam|mal)\b', full_text_lower):
+            languages_found.append("#Malayalam")
+        if re.search(r'\b(tamil|tam)\b', full_text_lower):
+            languages_found.append("#Tamil")
+        if re.search(r'\b(telugu|tel)\b', full_text_lower):
+            languages_found.append("#Telugu")
+        if re.search(r'\b(hindi|hin)\b', full_text_lower):
+            languages_found.append("#Hindi")
+        if re.search(r'\b(english|eng)\b', full_text_lower):
+            languages_found.append("#English")
+        if re.search(r'\b(kannada|kan)\b', full_text_lower):
+            languages_found.append("#Kannada")
+
+        # 2. ക്വാളിറ്റികൾ ചെക്ക് ചെയ്യുന്നു
+        if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower):
+            qualities_found.append("#4K_UHD")
+        if re.search(r'\b(1080p|1080)\b', full_text_lower):
+            qualities_found.append("#1080p")
+        if re.search(r'\b(720p|720)\b', full_text_lower):
+            qualities_found.append("#720p")
+        if re.search(r'\b(480p|480)\b', full_text_lower):
+            qualities_found.append("#480p")
+        if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower):
+            qualities_found.append("#BluRay")
+        if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
+            qualities_found.append("#WEB-DL")
+        if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
+            qualities_found.append("#HD")
+
+    # ലഭിച്ച വിവരങ്ങൾ ഫോർമാറ്റ് ചെയ്യുന്നു
+    detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
+    detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
+
+    # സെർച്ച് ടെക്സ്റ്റിൽ നിന്ന് വർഷം ഒഴിവാക്കി ക്ലീൻ ടൈറ്റിൽ ആക്കുന്നു
+    clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
     files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
 
+    # 📝 ഗ്രൂപ്പിൽ കാണിക്കേണ്ട മനോഹരമായ ലേഔട്ട്
     cap = (
         f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
-        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇ省 ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
+        f"🌐 <b>LᴀɴɢᴜᴀɢＥ:</b> <code>{detected_lang}</code>\n"
+        f"💎 <b>Qᴜᴀʟɪᴛʏ:</b> <code>{detected_quality}</code>\n"
+        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇs ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
 
-    # 🔘 ഇവിടെയാണ് ഗ്രൂപ്പാണോ പിഎം ആണോ എന്ന് നോക്കി ബട്ടണുകൾ മാറുന്നത്
+    # 🔘 ഗ്രൂപ്പാണോ പിഎം ആണോ എന്ന് നോക്കി ബട്ടണുകൾ മാറുന്നു
     if not spoll:
-        # 🌐 ഗ്രൂപ്പിൽ കാണിക്കേണ്ട Download Movie ബട്ടൺ ലേഔട്ട്
         from urllib.parse import quote_plus
         query_encoded = quote_plus(search)
+        
+        # ⚡ തിരുത്തിയ ഭാഗം: സ്ലാഷ് ( / ) കൃത്യമായി ചേർത്തു, അനാവശ്യ കണ്ടീഷനുകൾ ഒഴിവാക്കി
         reply_markup = InlineKeyboardMarkup([[
-            InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ Mᴏᴠɪᴇ", url=f"https://t.me/{temp.U_NAME}?start=search_{query_encoded}")
+            InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ 📥", url=f"https://t.me/{temp.U_NAME}?start=search_{query_encoded}")
         ]])
     else:
-        # 📥 ബോട്ടിന്റെ PM ചാറ്റിൽ കാണിക്കേണ്ട യഥാർത്ഥ മൂവി ഫയലുകളുടെ ബട്ടൺ ലിസ്റ്റ്
         btn = []
         pre = 'filep' if settings['file_secure'] else 'file'
         
@@ -780,9 +836,9 @@ async def auto_filter(client, msg, spoll=False):
                 btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
         else:
             for file in files:
-                btn.append([InlineKeyboardButton(text=f"{file.file_name}", callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=f"{get_size(file.file_size)}", callback_data=f'{pre}#{file.file_id}')])
+                btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
 
-        if offset != "":
+        if update_offset := (offset != ""):
             try: offset = int(offset)
             except ValueError: offset = 0
         else: offset = 0
@@ -792,7 +848,6 @@ async def auto_filter(client, msg, spoll=False):
         
         reply_markup = InlineKeyboardMarkup(btn)
 
-    # 🖼️ പോസ്റ്റർ ലോഡ് ചെയ്യുന്നു
     poster = await get_any_movie_poster(search)
 
     fmsg = None
@@ -800,14 +855,13 @@ async def auto_filter(client, msg, spoll=False):
         try:
             fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
         except Exception as photo_error:
-            logger.warning(f"Photo അയക്കാൻ കഴിഞ്ഞില്ല, ടെക്സ്റ്റിലേക്ക് മാറുന്നു: {photo_error}")
+            logger.warning(f"Photo negligence error: {photo_error}")
 
     if not fmsg:
         try:
             await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
         except Exception as text_error:
-            logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
-
+            logger.error(f"Text error message: {text_error}")
 
 
 
