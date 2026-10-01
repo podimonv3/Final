@@ -88,7 +88,7 @@ TAGS = [
     "@desimovies Telegram", "@favio", "@film_down_load", "@iMediaShare",
     "@infotainmentmedia", "@kickass_torrents", "@msp", "@moviescollection17",
     "@moviesdeveloper", "@MoviesTop10", "@MoviesWar", "@myflixx", "@nanacinemas", "@OB", "PDisk", "@PIT", "@PM",
-    "@PM_Old", "@Qualitymovies", "@RickyChannel", "@RatedRMovies", "@Sky_MoviesHD", " @sherlibrary", "@telugu_moviez", "@TG UPDATES1",
+    "@PM_Old", "@Qualitymovies", "@R_A_R_B_G", "@RickyChannel", "@RatedRMovies", "@Sky_MoviesHD", " @sherlibrary", "@telugu_moviez", "@TG UPDATES1",
     "@TN60_LinkzZ", "@TEAMxKL", "@TV 30NAMA1", "@TamilDubbs", "@TamilMV", "@TamilMV_Live", "@TamilRockers",
     "@Tamil_HD_Movies_Requests", "@Tamil_Linkz", "Tamil_LinkZz", "@Tamil_LinkzZ", "@Tamil_Seriesz", "@TeamHDT", "@Team_HDT",
     "@Team_Hevc", "@Theprofffesorr", "@TR_Moviez", "@TR_Updates", "@Tv2Us",
