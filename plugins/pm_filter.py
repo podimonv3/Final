@@ -863,7 +863,7 @@ async def advantage_spell_chok(client, msg):
     
     # 🖼️ ഫോട്ടോ എടുക്കാൻ മാത്രം get_any_movie_poster ഉപയോഗിക്കുന്നു (ആദ്യത്തെ സിനിമയുടെ പേര് വച്ച്)
     try: 
-        photo_url = await get_any_movie_poster(cleaned_query, bulk=True)
+        photo_url = await get_any_movie_poster(cleaned_query)
     except Exception: 
         photo_url = None
 
