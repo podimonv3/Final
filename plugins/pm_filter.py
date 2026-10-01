@@ -771,6 +771,7 @@ async def auto_filter(client, msg, spoll=False):
         logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിൽ എറർ വന്നിരിക്കുന്നു: {text_error}")
 
 
+
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text
@@ -784,33 +785,33 @@ async def advantage_spell_chok(client, msg):
     )
     cleaned_query = cleaned_query.strip()
 
+    # 🔍 ഗൂഗിൾ സെർച്ചിനായുള്ള ലിങ്കും മറ്റ് ബട്ടണുകളും ഫോർമാറ്റ് ചെയ്യുന്നു
+    reqst_gle = quote_plus(mv_rqst)
+    google_button = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
+        [
+            InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
+            InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
+        ]
+    ])
+
     try:
+        # സിനിമയുടെ പേരുകൾ കണ്ടെത്താൻ നിങ്ങളുടെ പഴയ ഫങ്ക്ഷൻ തന്നെ ഉപയോഗിക്കുന്നു
         movies = await get_poster(cleaned_query, bulk=True)
     except Exception as e:
         logger.exception(e)
-        reqst_gle = quote_plus(mv_rqst)
-        button = [
-            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
-            [
-                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-            ]
-        ]
-        
         try:
-            # ഫോട്ടോ ലിങ്ക് നേരിട്ട് photo= എന്നതിൽ നൽകുന്നു
             k = await msg.reply_photo(
-                photo="https://files.catbox.moe/yt159d.jpg",
+                photo="https://catbox.moe",
                 caption=script.SPELL_TEXT.format(msg.from_user.mention),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=google_button,
                 reply_to_message_id=msg.id,
                 parse_mode=enums.ParseMode.HTML
             )
         except Exception:
-            # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
             k = await msg.reply_text(
                 text=script.SPELL_TEXT.format(msg.from_user.mention), 
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=google_button,
                 reply_to_message_id=msg.id,
                 parse_mode=enums.ParseMode.HTML
             )
@@ -820,29 +821,18 @@ async def advantage_spell_chok(client, msg):
         return
 
     if not movies:
-        reqst_gle = mv_rqst.replace(" ", "+")
-        button = [
-            [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
-            [
-                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-            ]
-        ]
-        
         try:
-            # ഫോട്ടോ ലിങ്ക് നേരിട്ട് photo= എന്നതിൽ നൽകുന്നു
             k = await msg.reply_photo(
-                photo="https://files.catbox.moe/yt159d.jpg",
+                photo="https://catbox.moe",
                 caption=script.SPELL_TEXT.format(msg.from_user.mention),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=google_button,
                 reply_to_message_id=msg.id,
                 parse_mode=enums.ParseMode.HTML
             )
         except Exception:
-            # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജ് അയക്കുന്നു
             k = await msg.reply_text(
                 text=script.SPELL_TEXT.format(msg.from_user.mention), 
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=google_button,
                 reply_to_message_id=msg.id,
                 parse_mode=enums.ParseMode.HTML
             )
@@ -858,29 +848,36 @@ async def advantage_spell_chok(client, msg):
 
     SPELL_CHECK[mv_id] = movielist
     _trim_dict(SPELL_CHECK)
-    btn = [
-        [InlineKeyboardButton(
-            text=movie_name.strip(),
-            callback_data=f"spol#{reqstr1}#{k}",
-        )]
-        for k, movie_name in enumerate(movielist)
-    ]
-    btn.append([InlineKeyboardButton(text="✘ ᴄʟᴏsᴇ ✘", callback_data=f'spol#{reqstr1}#close_spellcheck')])
+
+    # 📝 സിനിമകളുടെ പേര് ടെക്സ്റ്റ് ലിസ്റ്റാക്കി മാറ്റുന്നു
+    spell_list_text = "<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋေ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱੇ ᴛʜေ ᴄᴏʀʀੇᴄᴛ ᴏɴေ ᴀɴᴅ sੇɴᴅ ᴀɢᴀɪɴ 👇</b>\n\n"
+    for index, movie_name in enumerate(movielist, start=1):
+        spell_list_text += f"<b>{index}. {movie_name.strip()}</b>\n"
     
-    # ശരിയായ മൂവികൾ താഴെ ലിസ്റ്റ് ചെയ്യുമ്പോൾ ഫോട്ടോ കാണിക്കാൻ
+    # 🖼️ ഫോട്ടോ എടുക്കാൻ മാത്രം get_any_movie_poster ഉപയോഗിക്കുന്നു (ആദ്യത്തെ സിനിമയുടെ പേര് വച്ച്)
+    try: 
+        photo_url = await get_any_movie_poster(movielist)
+    except Exception: 
+        photo_url = None
+
+    if not photo_url:
+        photo_url = "https://files.catbox.moe/egu0ip.jpg"
+
     try:
+        # ഇവിടെ close_btn-ന് പകരം google_button നേരിട്ട് നൽകിയിരിക്കുന്നു
         spell_check_del = await msg.reply_photo(
-            photo="https://files.catbox.moe/yt159d.jpg",
-            caption="<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱੇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>",
-            reply_markup=InlineKeyboardMarkup(btn),
-            reply_to_message_id=msg.id
+            photo=photo_url,
+            caption=spell_list_text,
+            reply_markup=google_button,
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
         )
     except Exception:
-        # ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ സാധാരണ പോലെ ടെക്സ്റ്റ് അയക്കും
         spell_check_del = await msg.reply_text(
-            text="<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋᴇ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱੇ ᴛʜᴇ ᴄᴏʀʀᴇᴄᴛ ᴏɴᴇ ʙᴇʟᴏᴡ 👇</b>",
-            reply_markup=InlineKeyboardMarkup(btn),
-            reply_to_message_id=msg.id
+            text=spell_list_text,
+            reply_markup=google_button,
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML
         )
         
     await asyncio.sleep(50)
@@ -888,6 +885,8 @@ async def advantage_spell_chok(client, msg):
         await spell_check_del.delete()
     except Exception:
         pass
+
+            
         
 
 async def global_filters(client, message, text=False):
