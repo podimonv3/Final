@@ -135,6 +135,18 @@ async def start(client, message):
     except Exception:
         pre, file_id = "", data
 
+    # ================= PM SEARCH REDIRECTION =================
+    if data.startswith("search_"):
+        try:
+            from urllib.parse import unquote_plus
+            query = unquote_plus(data.replace("search_", ""))
+            message.text = query
+            await auto_filter(client, message)
+            return
+        except Exception as e:
+            logger.exception(e)
+            return        
+
     # ================= FORCE SUB CHANNEL 1 =================
     if REQ_CHANNEL1 and not await is_requested_one(client, message):
         btn = [[InlineKeyboardButton("📢 Join Channel 1", url=client.req_link1)]]
