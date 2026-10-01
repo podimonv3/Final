@@ -21,6 +21,11 @@ import re
 import json
 import base64
 import pymongo
+from pyrogram import Client, filters
+from info import ADMINS  # info.py-ൽ നിങ്ങളുടെ അഡ്മിൻ ഐഡികളുടെ ലിസ്റ്റ് (ADMINS) ഉണ്ടെന്ന് ഉറപ്പാക്കുക
+from database.postersave import get_db_stats
+from database.postersave import clear_entire_poster_db
+
 logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
@@ -892,14 +897,14 @@ async def clear_missing_requests(bot: Client, message: Message):
 
 
 
-
-
-from pyrogram import Client, filters
-from database.postersave import get_db_stats  # പാത്ത് നിങ്ങളുടെ പ്രോജക്റ്റ് അനുസരിച്ച് മാറ്റുക
-
-@Client.on_message(filters.command("dbstatus") & filters.private) # അഡ്മിൻമാർക്ക് മാത്രം വേണമെങ്കിൽ ഫിൽട്ടർ മാറ്റാം
+@Client.on_message(filters.command("dbstatus") & filters.private)
 async def show_database_status(client, message):
-    # ബോട്ട് കണക്ട് ചെയ്യുന്നത് വരെ ഒരു വെയിറ്റിംഗ് മെസ്സേജ് കാണിക്കുന്നു
+    # 🔐 സെക്യൂരിറ്റി ചെക്ക്: മെസ്സേജ് അയച്ച ആൾ അഡ്മിൻ ലിസ്റ്റിൽ ഉണ്ടോ എന്ന് നോക്കുന്നു
+    if message.from_user.id not in ADMINS:
+        await message.reply_text("❌ <b>Access Denied:</b> This command is restricted to Bot Admins only!")
+        return
+
+    # അഡ്മിൻ ആണെങ്കിൽ മാത്രം വിവരങ്ങൾ ശേഖരിക്കുന്നു
     status_msg = await message.reply_text("<code>Fetching Database Stats... 📊</code>")
     
     stats = await get_db_stats()
@@ -916,3 +921,20 @@ async def show_database_status(client, message):
     else:
         await status_msg.edit_text("❌ Failed to fetch database statistics.")
 
+
+@Client.on_message(filters.command("clearposterdb") & filters.private)
+async def clear_poster_database(client, message):
+    # 🔐 സെക്യൂരിറ്റി ചെക്ക്: മെസ്സേജ് അയച്ച ആൾ അഡ്മിൻ ലിസ്റ്റിൽ ഉണ്ടോ എന്ന് നോക്കുന്നു
+    if message.from_user.id not in ADMINS:
+        await message.reply_text("❌ <b>Access Denied:</b> This command is restricted to Bot Admins only!")
+        return
+
+    # ക്ലിയറിങ് പ്രോസസ്സ് സ്റ്റാർട്ട് ചെയ്യുന്നു
+    status_msg = await message.reply_text("<code>Clearing all cached movie posters from database... 🧹</code>")
+    
+    success = await clear_entire_poster_db()
+    
+    if success:
+        await status_msg.edit_text("✅ <b>sᴜᴄᴄᴇss:</b> The movie poster database has been completely cleared!")
+    else:
+        await status_msg.edit_text("❌ Failed to clear the database due to a database restriction.")
