@@ -59,7 +59,7 @@ import urllib.parse
 
 import aiohttp
 from bs4 import BeautifulSoup
-
+from info import TMDB_API_KEYS, OMDB_API_KEYS
 
 # 1. TMDB Async
 async def get_tmdb_poster(movie_name, tmdb_api_key):
@@ -116,51 +116,47 @@ async def get_omdb_poster(movie_name, omdb_api_key):
 
     return None
 
-from info import TMDB_API_KEYS, OMDB_API_KEYS
+
 
 async def get_any_movie_poster(movie_name):
-    tmdb_keys = [k.strip() for k in TMDB_API_KEYS.split(",") if k.strip()] if isinstance(TMDB_API_KEYS, str) else (TMDB_API_KEYS or [])
-    omdb_keys = [k.strip() for k in OMDB_API_KEYS.split(",") if k.strip()] if isinstance(OMDB_API_KEYS, str) else (OMDB_API_KEYS or [])
+    tmdb_keys = [k.strip() for k in TMDB_API_KEYS.split(",") if k.strip()] if isinstance(TMDB_API_KEYS, str) else (TMDB_API_KEYS or [])
+    omdb_keys = [k.strip() for k in OMDB_API_KEYS.split(",") if k.strip()] if isinstance(OMDB_API_KEYS, str) else (OMDB_API_KEYS or [])
 
-    # 1. TMDB പരിശോധിക്കുന്നു
-    if tmdb_keys:
-        chosen_key = random.choice(tmdb_keys)
-        try:
-            # 2 സെക്കൻഡ് ടൈംഔട്ട് സെറ്റ് ചെയ്തു
-            poster = await asyncio.wait_for(get_tmdb_poster(movie_name, chosen_key), timeout=2.0)
-            if poster: return poster
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            # ടൈംഔട്ട് ആയാൽ ലോഗ് ഒന്നും ചെയ്യാതെ ബാക്കി കീകൾ വേഗത്തിൽ നോക്കുന്നു (പരമാവധി 1.5 സെക്കൻഡ്)
-            for key in tmdb_keys:
-                if key == chosen_key: continue
-                try:
-                    poster = await asyncio.wait_for(get_tmdb_poster(movie_name, key), timeout=1.5)
-                    if poster: return poster
-                except Exception:
-                    continue
-        except Exception:
-            pass
+    # 1. TMDB പരിശോധിക്കുന്നു
+    if tmdb_keys:
+        chosen_key = random.choice(tmdb_keys)
+        try:
+            poster = await asyncio.wait_for(get_tmdb_poster(movie_name, chosen_key), timeout=2.0)
+            if poster: return poster
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            for key in tmdb_keys:
+                if key == chosen_key: continue
+                try:
+                    poster = await asyncio.wait_for(get_tmdb_poster(movie_name, key), timeout=1.5)
+                    if poster: return poster
+                except Exception:
+                    continue
+        except Exception:
+            pass
 
-    # 2. OMDb ബാക്കപ്പ്
-    if omdb_keys:
-        chosen_key = random.choice(omdb_keys)
-        try:
-            poster = await asyncio.wait_for(get_omdb_poster(movie_name, chosen_key), timeout=2.0)
-            if poster: return poster
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            for key in omdb_keys:
-                if key == chosen_key: continue
-                try:
-                    poster = await asyncio.wait_for(get_omdb_poster(movie_name, key), timeout=1.5)
-                    if poster: return poster
-                except Exception:
-                    continue
-        except Exception:
-            pass
+    # 2. OMDb ബാക്കപ്പ്
+    if omdb_keys:
+        chosen_key = random.choice(omdb_keys)
+        try:
+            poster = await asyncio.wait_for(get_omdb_poster(movie_name, chosen_key), timeout=2.0)
+            if poster: return poster
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            for key in omdb_keys:
+                if key == chosen_key: continue
+                try:
+                    poster = await asyncio.wait_for(get_omdb_poster(movie_name, key), timeout=1.5)
+                    if poster: return poster
+                except Exception:
+                    continue
+        except Exception:
+            pass
 
-    return None
-
-
+    return None
 
 
 async def check_loop_sub(client, message):
