@@ -752,14 +752,19 @@ async def auto_filter(client, msg, spoll=False):
     # ⚡ കണ്ടെത്തിയ ഫയലുകളിൽ നിന്ന് വർഷം വേർതിരിച്ചെടുക്കുന്നു
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
     
-    # 🔍 ആദ്യത്തെ 15 ഫയലുകളുടെ പേരുകൾ പരിശോധിക്കാൻ ഒരുമിച്ച് ചേർക്കുന്നു
+    # 🔍 ആദ്യത്തെ 15 ഫയലുകളുടെ പേരുകളും, പ്രിന്റ് നോക്കാൻ ആദ്യത്തെ 5 ഫയലുകളുടെ പേരുകളും എടുക്കുന്നു
     combined_file_names = ""
+    print_check_text = ""
+    
     if files and isinstance(files, list):
-        for file in files[:15]:
+        for index, file in enumerate(files[:15]):
             if hasattr(file, 'file_name') and file.file_name:
                 combined_file_names += " " + file.file_name.lower()
+                if index < 5:
+                    print_check_text += " " + file.file_name.lower()
     elif files and hasattr(files, 'file_name'):
         combined_file_names = files.file_name.lower()
+        print_check_text = files.file_name.lower()
 
     if not year_match and combined_file_names:
         year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', combined_file_names)
@@ -803,6 +808,15 @@ async def auto_filter(client, msg, spoll=False):
             qualities_found.append("#WEB-DL")
         if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
             qualities_found.append("#HD")
+    # 🎞️ ആദ്യത്തെ 5 ഫയലുകളിൽ പ്രീഡിവിഡി / തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു
+    detected_print = "#HD_Original" 
+    if print_check_text:
+        if re.search(r'\b(predvd|pre-dvd|dvdscr|pre)\b', print_check_text):
+            detected_print = "#PreDVD_⚠️"
+        elif re.search(r'\b(camrip|cam|hdcam|hqcam|telesync|ts)\b', print_check_text):
+            detected_print = "#Theater_CAM_⚠️"
+        elif re.search(r'\b(print|tc|telecine)\b', print_check_text):
+            detected_print = "#Theater_Print_⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
