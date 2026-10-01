@@ -699,7 +699,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
 
-
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
@@ -757,7 +756,7 @@ async def auto_filter(client, msg, spoll=False):
     print_check_text = ""
     
     if files and isinstance(files, list):
-        for index, file in enumerate(files[:15]):
+        for index, file in enumerate(files[:20]):
             if hasattr(file, 'file_name') and file.file_name:
                 combined_file_names += " " + file.file_name.lower()
                 if index < 5:
@@ -774,50 +773,49 @@ async def auto_filter(client, msg, spoll=False):
     
     # 🌐 ഭാഷകളും ക്വാളിറ്റികളും കണ്ടെത്തുന്നു
     languages_found = []
-qualities_found = []
+    qualities_found = []
 
-if combined_file_names:
-    # search.lower() എന്നത് ചെറിയ അക്ഷരത്തിലാക്കിയത് പോലെ combined_file_names-ഉം lower() ആക്കുന്നത് നന്നായിരിക്കും
-    full_text_lower = combined_file_names.lower() + " " + search.lower()
-    
-    # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
-    if re.search(r'\b(malayalam|mal)\b', full_text_lower):
-        languages_found.append("#Malayalam")
-    if re.search(r'\b(tamil|tam)\b', full_text_lower):
-        languages_found.append("#Tamil")
-    if re.search(r'\b(telugu|tel)\b', full_text_lower):
-        languages_found.append("#Telugu")
-    if re.search(r'\b(hindi|hin)\b', full_text_lower):
-        languages_found.append("#Hindi")
-    if re.search(r'\b(english|eng)\b', full_text_lower):
-        languages_found.append("#English")
-    if re.search(r'\b(kannada|kan)\b', full_text_lower):
-        languages_found.append("#Kannada")
+    if combined_file_names:
+        # search.lower() എന്നത് ചെറിയ അക്ഷരത്തിലാക്കിയത് പോലെ combined_file_names-ഉം lower() ആക്കുന്നത് നന്നായിരിക്കും
+        full_text_lower = combined_file_names.lower() + " " + search.lower()
+        
+        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
+        if re.search(r'\b(malayalam|mal)\b', full_text_lower):
+            languages_found.append("#Malayalam")
+        if re.search(r'\b(tamil|tam)\b', full_text_lower):
+            languages_found.append("#Tamil")
+        if re.search(r'\b(telugu|tel)\b', full_text_lower):
+            languages_found.append("#Telugu")
+        if re.search(r'\b(hindi|hin)\b', full_text_lower):
+            languages_found.append("#Hindi")
+        if re.search(r'\b(english|eng)\b', full_text_lower):
+            languages_found.append("#English")
+        if re.search(r'\b(kannada|kan)\b', full_text_lower):
+            languages_found.append("#Kannada")
 
-    # 2. ക്വാളിറ്റികൾ ചെക്ക് ചെയ്യുന്നു
-    if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower):
-        qualities_found.append("#4K_UHD")
-    if re.search(r'\b(1080p|1080)\b', full_text_lower):
-        qualities_found.append("#1080p")
-    if re.search(r'\b(720p|720)\b', full_text_lower):
-        qualities_found.append("#720p")
-    if re.search(r'\b(480p|480)\b', full_text_lower):
-        qualities_found.append("#480p")
-    if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower):
-        qualities_found.append("#BluRay")
-    if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
-        qualities_found.append("#WEB-DL")
-    if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
-        qualities_found.append("#HD")
+        # 2. ക്വാളിറ്റികൾ ചെക്ക് ചെയ്യുന്നു
+        if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower):
+            qualities_found.append("#4K_UHD")
+        if re.search(r'\b(1080p|1080)\b', full_text_lower):
+            qualities_found.append("#1080p")
+        if re.search(r'\b(720p|720)\b', full_text_lower):
+            qualities_found.append("#720p")
+        if re.search(r'\b(480p|480)\b', full_text_lower):
+            qualities_found.append("#480p")
+        if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower):
+            qualities_found.append("#BluRay")
+        if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
+            qualities_found.append("#WEB-DL")
+        if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
+            qualities_found.append("#HD")
 
-# 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു (ഇൻഡന്റേഷൻ ഇവിടെ കൃത്യമാക്കിയിട്ടുണ്ട്)
-detected_print = "#HD_Original" 
-if print_check_text:
-    if re.search(r'\b(predvd|pre-dvd|dvdscr|pre|hallprint|camrip|cam|hdcam|hqcam|hall-print|s-print|telesync|ts|print|tc|telecine|HDTC)\b', print_check_text.lower()):
-        detected_print = "#Theater_Print_⚠️"
+    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു (ഇൻഡന്റേഷൻ ഇവിടെ കൃത്യമാക്കിയിട്ടുണ്ട്)
+    detected_print = "#HD_Original" 
+    if print_check_text:
+        if re.search(r'\b(predvd|pre-dvd|dvdscr|pre|hallprint|camrip|cam|hdcam|hqcam|hall-print|s-print|telesync|ts|print|tc|telecine|HDTC)\b', print_check_text.lower()):
+            detected_print = "#Theater_Print_⚠️"
 
-detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
-
+    detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
 
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
@@ -872,7 +870,7 @@ detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
         except Exception:
             pass
 
-    # 🕒 ⚡ ഗ്രൂപ്പിൽ അയക്കുന്ന മെസ്സേജ് കൃത്യം 4 മിനിറ്റിന് (240 സെക്കന്റ്) ശേഷം തനിയെ ഡിലീറ്റ് ചെയ്യും
+    # 🕒 ⚡ ഗ്രൂപ്പിൽ അയക്കുന്ന മെസ്സേജ് കൃത്യം 4 മിനിറ്റിന് (240 സെയൻ്റ്) ശേഷം തനിയെ ഡിലീറ്റ് ചെയ്യും
     if not spoll and fmsg:
         await asyncio.sleep(240)
         try:
@@ -880,7 +878,7 @@ detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
         except Exception:
             pass
 
-         
+                    
 
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
