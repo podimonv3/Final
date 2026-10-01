@@ -61,3 +61,14 @@ async def get_db_stats():
     except Exception:
         # ആകെ എണ്ണം എടുക്കുന്നതിൽ പോലും വല്ല എററും വന്നാൽ പൂർണ്ണമായി സ്കിപ്പ് ചെയ്ത് None നൽകും
         return None
+
+
+async def clear_entire_poster_db():
+    """ഡാറ്റാബേസിലെ എല്ലാ പോസ്റ്റർ കാഷെയും പൂർണ്ണമായി ഡിലീറ്റ് ചെയ്യുന്നു (Koyeb ലോഗ്സ് ഉണ്ടാകില്ല)"""
+    try:
+        # കളക്ഷനിലുള്ള എല്ലാ ഡോക്യുമെന്റുകളും ഡിലീറ്റ് ചെയ്യുന്നു
+        await poster_collection.delete_many({})
+        return True
+    except Exception:
+        # ഡാറ്റാബേസ് എറർ വന്നാൽ ലോഗ് ചെയ്യാതെ സൈലന്റ് ആയി സ്കിപ്പ് ചെയ്യും
+        return False
