@@ -763,7 +763,9 @@ async def auto_filter(client, msg, spoll=False):
         btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{req}_{key}_{offset}")])
 
     poster = await get_any_movie_poster(search)
-    cap = f"<b><i>Found Results For Your Query {search}</i></b>\n\n<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
+    # 🌟 സെർച്ച് ചെയ്ത വാക്ക് മെസ്സേജിന്റെ നടുവിലായി വരാൻ അദൃശ്യമായ സ്പേസുകൾ ചേർക്കുന്നു
+    center_space = "                  "  
+    cap = f"{center_space}<b><i>{search.upper()}</i></b>\n\n<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
 
     fmsg = None
     if poster:
