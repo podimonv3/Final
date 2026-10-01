@@ -101,8 +101,6 @@ async def clean_file_name(raw_name: str) -> str:
     
     return final_name
 
-
-
 async def save_file(media):
     """Save file in database"""
     file_id, file_ref = unpack_new_file_id(media.file_id)
@@ -220,8 +218,8 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media1, files_media2, total_results
 
 
-async def get_search_results(query, file_type=None, max_results=7, offset=0, filter=False):
-    """Koyeb സെർവറിനായി ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് ഫസി സ്പ്ലിറ്റ് സെർച്ച്"""
+async def get_search_results(query, file_type=None, max_results=8, offset=0, filter=False):
+    """Koyeb ഫ്രീ സെർവറിനായി ഡാറ്റാബേസ് ലെവലിൽ ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് സെർച്ച് (Fixed)"""
 
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
@@ -230,43 +228,31 @@ async def get_search_results(query, file_type=None, max_results=7, offset=0, fil
     if not query:
         return [], '', 0
 
-    # 1. വാക്കുകളെ സ്പെയിസ് അടിസ്ഥാനമാക്കി മുറിക്കുന്നു (Split)
-    words = query.split()
-    
-    # ഡാറ്റാബേസ് ഫിൽട്ടറിനായുള്ള ലിസ്റ്റ്
-    and_filters = []
+    if ' ' not in query:
+        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
+    else:
+        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_()]')
 
-    for word in words:
-        # വളരെ ചെറിയ വാക്കുകളാണെങ്കിൽ കൃത്യമായി തിരയുന്നു
-        if len(word) <= 3:
-            raw_pattern = r'(\b|[\.\+\-_])' + re.escape(word) + r'(\b|[\.\+\-_])'
-        else:
-            # 3 അക്ഷരത്തിൽ കൂടുതൽ ഉണ്ടെങ്കിൽ ഫസി രീതിക്കായി അവസാനത്തെ 1 അക്ഷരം കുറച്ചുള്ള പാറ്റേൺ കൂടി ചേർക്കുന്നു
-            # ഉദാഹരണത്തിന്: 'kudumbha' വന്നാൽ 'kudumbh' അല്ലെങ്കിൽ 'kudumb' ഉള്ളവ തിരയും
-            fuzzy_part = word[:-1] if len(word) <= 6 else word[:-2]
-            raw_pattern = r'.*' + re.escape(fuzzy_part) + r'.*'
-        
-        try:
-            regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-            and_filters.append({'file_name': regex})
-        except:
-            continue
-
-    if not and_filters:
+    try:
+        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
+    except:
         return [], '', 0
 
-    # എല്ലാ കണ്ടീഷനുകളും മാച്ച് ചെയ്യുന്ന ഫയലുകൾ മാത്രം ($and ലോജിക്)
-    filter_dict = {'$and': and_filters}
+    if USE_CAPTION_FILTER:
+        filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]}
+    else:
+        filter_dict = {'file_name': regex}
 
     if file_type:
         filter_dict['file_type'] = file_type
 
-    # Koyeb റാം ക്രാഷ് ഒഴിവാക്കാൻ ലിമിറ്റ് 150 ആയി നിജപ്പെടുത്തിയിരിക്കുന്നു
-    cursor_media = Media.find(filter_dict).sort([('file_name', 1)]).limit(100)
-    cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)]).limit(100)
+    # --- തിരുത്തിയ ഭാഗം: എറർ ഒഴിവാക്കാൻ $natural മാറ്റി file_name മാത്രം ഉപയോഗിച്ച് സോർട്ട് ചെയ്യുന്നു ---
+    cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
+    cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)])
 
-    files_media = await cursor_media.to_list(length=100)
-    files_mediaa = await cursor_mediaa.to_list(length=100)
+    # Koyeb സെർവർ റാം ക്രാഷ് ആകാതിരിക്കാൻ ലിമിറ്റ് 120 ആയി നിലനിർത്തുന്നു
+    files_media = await cursor_media.to_list(length=200)
+    files_mediaa = await cursor_mediaa.to_list(length=200)
 
     interleaved_files = []
     index_media1 = index_media2 = 0
@@ -299,9 +285,22 @@ async def get_search_results(query, file_type=None, max_results=7, offset=0, fil
                 else:
                     custom_key.append(text)
 
-            if file_name_lower.startswith(query_lower):
+            exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
+            if re.search(exact_year_pattern, file_name_lower):
                 return (0, custom_key)
-            return (1, custom_key)
+
+            match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
+            if re.search(match_season_pattern, file_name_lower):
+                return (1, custom_key)
+
+            match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
+            if re.search(match_year_pattern, file_name_lower):
+                return (2, custom_key)
+                
+            if file_name_lower.startswith(query_lower):
+                return (3, custom_key)
+                
+            return (4, custom_key)
 
         interleaved_files.sort(key=sort_by_exact_match)
 
@@ -324,9 +323,9 @@ async def get_search_results(query, file_type=None, max_results=7, offset=0, fil
         return files, next_offset, total_results
     else:
         return files, '', total_results
+        
 
-
-
+                   
 async def get_file_details(query):
     filter = {'file_id': query}
     cursor_media = Media.find(filter)
