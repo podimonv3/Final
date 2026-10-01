@@ -727,7 +727,7 @@ async def auto_filter(client, msg, spoll=False):
                 keywords = await get_gfilters('gfilters')
                 if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords): return
                 
-                # 🔄 ഫയലുകൾ ഇല്ലെങ്കിൽ പുതിയ ടെക്സ്റ്റ് ലിസ്റ്റ് സ്പെൽചെക്കിലേക്ക് പോകുന്നു
+                # 🔄 ഫയലുകൾ ഇല്ലെങ്കിൽ പുതിയ ടെക്സ്റ്റ് ലിസ്റ്റ് സ്പെൽചെക്കിലേക്ക് റീഡയറക്ട് ചെയ്യുന്നു
                 try:
                     await advantage_spell_chok(client, msg)
                     return
@@ -744,25 +744,32 @@ async def auto_filter(client, msg, spoll=False):
     key = f"{message.chat.id}-{message.id}"
     BUTTONS[key] = search
 
-    # ⚡ ഇന്റർനെറ്റ് ഇല്ലാതെ വർഷം വേർതിരിച്ചെടുക്കുന്നു
+    # ⚡ ഇന്റർനെറ്റ് സഹായമില്ലാതെ ലോക്കലായി വർഷം വേർതിരിച്ചെടുക്കുന്നു (High Speed)
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
     if not year_match and files:
-        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
+        if isinstance(files, list) and len(files) > 0:
+            year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
+        elif hasattr(files, 'file_name'):
+            year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files.file_name)
     
     movie_year = f" ({year_match[0]})" if year_match else ""
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
-    # 📝 ഗ്രൂപ്പിൽ കാണിക്കേണ്ട blockquote ലേഔട്ട്
+    # 📊 ആകെ ലഭ്യമായ ഫയലുകളുടെ എണ്ണം കൃത്യമായി തിട്ടപ്പെടുത്തുന്നു
+    files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
+
+    # 📝 ഗ്രൂപ്പിൽ മാത്രം കാണിക്കേണ്ട പ്രീമിയം blockquote ലേഔട്ട് (ഫയൽ കൗണ്ട് സഹിതം)
     cap = (
         f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
+        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
 
-    # 📥 ബോട്ടിന്റെ PM-ലേക്ക് റീഡയറക്ട് ചെയ്യാനുള്ള ബട്ടൺ നിർമ്മിക്കുന്നു
-    # ഇവിടെ സെർച്ച് ക്വറി ബേസ്64 ലോ മറ്റോ മാറ്റാതെ സുരക്ഷിതമായി സ്റ്റാർട്ട് ലിങ്ക് ആക്കുന്നു
+    # 📥 ബോട്ടിന്റെ PM ചാറ്റിലേക്ക് സുരക്ഷിതമായി റീഡയറക്ട് ചെയ്യാനുള്ള ബട്ടൺ
+    from urllib.parse import quote_plus
     query_encoded = quote_plus(search)
     pm_btn = InlineKeyboardMarkup([[
-        InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ Mᴏᴠɪᴇ", url=f"https://t.me{temp.U_NAME}?start=search_{query_encoded}")
+        InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ Mᴏᴠɪᴇ", url=f"https://t.me/{temp.U_NAME}?start=search_{query_encoded}")
     ]])
 
     poster = await get_any_movie_poster(search)
