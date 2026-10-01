@@ -66,37 +66,28 @@ async def get_tmdb_poster(movie_name, tmdb_api_key):
     try:
         search_url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={urllib.parse.quote(movie_name)}"
         async with aiohttp.ClientSession() as session:
-            async with session.get(search_url, timeout=5) as response:
-                if response.status != 200:
-                    return None
+            async with session.get(search_url, timeout=aiohttp.ClientTimeout(total=4)) as response:
+                if response.status != 200: return None
                 data = await response.json()
-
-            if not data.get("results"):
-                return None
-
+            if not data.get("results"): return None
             movie = data["results"][0]
             movie_id = movie.get("id")
-
             if movie_id:
                 images_url = f"https://api.themoviedb.org/3/movie/{movie_id}/images?api_key={tmdb_api_key}"
-                async with session.get(images_url, timeout=5) as response:
+                async with session.get(images_url, timeout=aiohttp.ClientTimeout(total=4)) as response:
                     if response.status == 200:
                         images = await response.json()
-
                         backdrops = images.get("backdrops", [])
                         if backdrops:
                             backdrops.sort(key=lambda x: x.get("vote_average", 0), reverse=True)
                             path = backdrops[0].get("file_path")
-                            if path:
-                                return f"https://image.tmdb.org/t/p/w1280{path}"
-
+                            if path: return f"https://image.tmdb.org/t/p/w1280{path}"
             poster_path = movie.get("poster_path")
-            if poster_path:
-                return f"https://image.tmdb.org/t/p/w500{poster_path}"
-
-    except Exception as e:
-        logger.warning(f"TMDB poster error for '{movie_name}': {e}")
-
+            if poster_path: return f"https://image.tmdb.org/t/p/w500{poster_path}"
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        pass
     return None
 
 
@@ -125,30 +116,50 @@ async def get_omdb_poster(movie_name, omdb_api_key):
 
     return None
 
-
+from info import TMDB_API_KEYS, OMDB_API_KEYS
 
 async def get_any_movie_poster(movie_name):
-    # 2. TMDB - Landscape Backdrop
-    if TMDB_API_KEY:
-        poster = await get_tmdb_poster(
-            movie_name,
-            TMDB_API_KEY
-        )
-        if poster:
-            return poster
+    tmdb_keys = [k.strip() for k in TMDB_API_KEYS.split(",") if k.strip()] if isinstance(TMDB_API_KEYS, str) else (TMDB_API_KEYS or [])
+    omdb_keys = [k.strip() for k in OMDB_API_KEYS.split(",") if k.strip()] if isinstance(OMDB_API_KEYS, str) else (OMDB_API_KEYS or [])
 
-   
-    # 4. OMDb - Portrait Poster (last fallback)
-    if OMDB_API_KEY:
-        poster = await get_omdb_poster(
-            movie_name,
-            OMDB_API_KEY
-        )
-        if poster:
-            return poster
+    # 1. TMDB പരിശോധിക്കുന്നു
+    if tmdb_keys:
+        chosen_key = random.choice(tmdb_keys)
+        try:
+            # 2 സെക്കൻഡ് ടൈംഔട്ട് സെറ്റ് ചെയ്തു
+            poster = await asyncio.wait_for(get_tmdb_poster(movie_name, chosen_key), timeout=2.0)
+            if poster: return poster
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            # ടൈംഔട്ട് ആയാൽ ലോഗ് ഒന്നും ചെയ്യാതെ ബാക്കി കീകൾ വേഗത്തിൽ നോക്കുന്നു (പരമാവധി 1.5 സെക്കൻഡ്)
+            for key in tmdb_keys:
+                if key == chosen_key: continue
+                try:
+                    poster = await asyncio.wait_for(get_tmdb_poster(movie_name, key), timeout=1.5)
+                    if poster: return poster
+                except Exception:
+                    continue
+        except Exception:
+            pass
 
-    # 5. Nothing found
-    return None
+    # 2. OMDb ബാക്കപ്പ്
+    if omdb_keys:
+        chosen_key = random.choice(omdb_keys)
+        try:
+            poster = await asyncio.wait_for(get_omdb_poster(movie_name, chosen_key), timeout=2.0)
+            if poster: return poster
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            for key in omdb_keys:
+                if key == chosen_key: continue
+                try:
+                    poster = await asyncio.wait_for(get_omdb_poster(movie_name, key), timeout=1.5)
+                    if poster: return poster
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    return None
+
 
 
 
