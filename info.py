@@ -26,6 +26,14 @@ FANART_API_KEY = os.environ.get("FANART_API_KEY", "d56b45eb243c31ca1229bd37813e6
 
 
 
+
+# TMDB API Keys (കോമ ഇട്ട് എത്ര കീകൾ വേണമെങ്കിലും നൽകാം)
+TMDB_API_KEYS = os.environ.get("TMDB_API_KEYS", "key_one,key_two,key_three")
+
+# OMDb API Keys (ഇതുപോലെ കോമ ഇട്ട് നൽകുക)
+OMDB_API_KEYS = os.environ.get("OMDB_API_KEYS", "key_one,key_two,key_three")
+
+
 # Bot information
 SESSION = environ.get('SESSION', 'autodelete')
 API_ID = int(environ.get("API_ID", "19071424"))
