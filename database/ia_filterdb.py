@@ -260,8 +260,8 @@ async def get_search_results(query, file_type=None, max_results=7, offset=0, fil
         cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
         cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)])
 
-        files_media = await cursor_media.to_list(length=200)
-        files_mediaa = await cursor_mediaa.to_list(length=200)
+        files_media = await cursor_media.to_list(length=100)
+        files_mediaa = await cursor_mediaa.to_list(length=100)
 
     # -----------------------------------------------------------------
     # ഘട്ടം 2: ഫയലുകൾ കിട്ടിയില്ലെങ്കിൽ ഒരൊറ്റ അക്ഷരം ബാക്കി വരുന്നത് വരെ ഓരോന്നായി കുറയ്ക്കുന്നു
