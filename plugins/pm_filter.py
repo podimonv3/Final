@@ -862,7 +862,7 @@ async def auto_filter(client, msg, spoll=False):
     poster_url = None
     try:
         # 2 സെക്കൻഡിനുള്ളിൽ get_any_movie_poster മറുപടി തന്നില്ലെങ്കിൽ ടാസ്ക് ഇവിടെവെച്ച് Cancel ആകും
-        poster_url = await asyncio.wait_for(get_any_movie_poster(clean_title), timeout=2.0)
+        poster_url = await asyncio.wait_for(get_any_movie_poster(clean_title), timeout=3.0)
     except (asyncio.TimeoutError, asyncio.CancelledError):
         # ടൈംഔട്ട് ആയാൽ Koyeb ലോഗ്സ് വരാതിരിക്കാൻ ഇത് സഹായിക്കും
         poster_url = None
@@ -984,7 +984,7 @@ async def advantage_spell_chok(client, msg):
     spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n"
     
     # 2. ആദ്യത്തെ 6 എണ്ണം പർപ്പസ്ലി പാസേമോഡ് HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
-    for index, movie_name in enumerate(movielist[:6], start=1):
+    for index, movie_name in enumerate(movielist[:4], start=1):
         spell_list_text += f"<b>{index}. {movie_name}</b>\n"
 
 
