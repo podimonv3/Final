@@ -829,7 +829,7 @@ async def auto_filter(client, msg, spoll=False):
         f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
         f"💎 <b>QᴜᴀʟɪᴛY:</b> <code>{detected_quality}</code>\n"
         f"🎞️ <b>Pʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
-        f"📂 <b>Tᴏᴛᴀʟ FɪʟＥs:</b> <code>{files_count}</code>\n\n"
+        f"📂 <b>Tᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
     
@@ -858,22 +858,28 @@ async def auto_filter(client, msg, spoll=False):
         
         reply_markup = InlineKeyboardMarkup(btn)
 
-    # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു
-    poster_url = await get_any_movie_poster(clean_title)
+    # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു (പരമാവധി 2.0 സെക്കൻഡ് ടൈംഔട്ട് നേരിട്ട് നൽകിയിരിക്കുന്നു)
+    poster_url = None
+    try:
+        # 2 സെക്കൻഡിനുള്ളിൽ get_any_movie_poster മറുപടി തന്നില്ലെങ്കിൽ ടാസ്ക് ഇവിടെവെച്ച് Cancel ആകും
+        poster_url = await asyncio.wait_for(get_any_movie_poster(clean_title), timeout=2.0)
+    except (asyncio.TimeoutError, asyncio.CancelledError):
+        # ടൈംഔട്ട് ആയാൽ Koyeb ലോഗ്സ് വരാതിരിക്കാൻ ഇത് സഹായിക്കും
+        poster_url = None
+    except Exception:
+        poster_url = None
+
     fmsg = None
-    
     try:
         if poster_url:
-            # പോസ്റ്റർ ലിങ്ക് ലഭിച്ചാൽ ഫോട്ടോയായി അയക്കുന്നു
+            # 2 സെക്കൻഡിനുള്ളിൽ പോസ്റ്റർ ലഭിച്ചാൽ ഫോട്ടോയായി അയക്കുന്നു
             fmsg = await message.reply_photo(photo=poster_url, caption=cap, reply_markup=reply_markup)
         else:
-            # പോസ്റ്റർ ഇല്ലെങ്കിൽ വെറും ടെക്സ്റ്റ് മെസ്സേജ് ആയി അയക്കുന്നു
+            # സമയത്തിനകം കിട്ടിയില്ലെങ്കിലോ ക്യാൻസൽ ആയാലോ നേരിട്ട് ടെക്സ്റ്റ് അയക്കുന്നു
             fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
-    except Exception as e:
-        # ഒരുപക്ഷേ ഫോട്ടോ അയക്കുന്നതിൽ എറർ വന്നാൽ ബാക്കപ്പ് ആയി ടെക്സ്റ്റ് അയക്കും
+    except Exception:
         fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
 
-                       
                     
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
