@@ -741,28 +741,10 @@ async def auto_filter(client, msg, spoll=False):
         search, files, offset, total_results = spoll
         settings = await get_settings(message.chat.id)
 
-    pre = 'filep' if settings['file_secure'] else 'file'
-    req = message.from_user.id if message.from_user else 0
     key = f"{message.chat.id}-{message.id}"
     BUTTONS[key] = search
-    btn = []
 
-    if settings["button"]:
-        for file in files:
-            btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
-    else:
-        for file in files:
-            btn.append([InlineKeyboardButton(text=f"{file.file_name}", callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=f"{get_size(file.file_size)}", callback_data=f'{pre}#{file.file_id}')])
-
-    if offset != "":
-        try: offset = int(offset)
-        except ValueError: offset = 0
-    else: offset = 0
-
-    if offset > 0:
-        btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{req}_{key}_{offset}")])
-
-    # ⚡ ലാഗ് ഒഴിവാക്കാൻ കോഡിൽ നിന്ന് തന്നെ ഇന്റർനെറ്റ് ഇല്ലാതെ വർഷം വേർതിരിച്ചെടുക്കുന്നു
+    # ⚡ ഇന്റർനെറ്റ് ഇല്ലാതെ വർഷം വേർതിരിച്ചെടുക്കുന്നു
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
     if not year_match and files:
         year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
@@ -770,26 +752,34 @@ async def auto_filter(client, msg, spoll=False):
     movie_year = f" ({year_match[0]})" if year_match else ""
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
-    # 📝 വേഗതയേറിയ പുതിയ blockquote ലേഔട്ട്
+    # 📝 ഗ്രൂപ്പിൽ കാണിക്കേണ്ട blockquote ലേഔട്ട്
     cap = (
         f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
+
+    # 📥 ബോട്ടിന്റെ PM-ലേക്ക് റീഡയറക്ട് ചെയ്യാനുള്ള ബട്ടൺ നിർമ്മിക്കുന്നു
+    # ഇവിടെ സെർച്ച് ക്വറി ബേസ്64 ലോ മറ്റോ മാറ്റാതെ സുരക്ഷിതമായി സ്റ്റാർട്ട് ലിങ്ക് ആക്കുന്നു
+    query_encoded = quote_plus(search)
+    pm_btn = InlineKeyboardMarkup([[
+        InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ Mᴏᴠɪᴇ", url=f"https://t.me{temp.U_NAME}?start=search_{query_encoded}")
+    ]])
 
     poster = await get_any_movie_poster(search)
 
     fmsg = None
     if poster:
         try:
-            fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=InlineKeyboardMarkup(btn), parse_mode=enums.ParseMode.HTML)
+            fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=pm_btn, parse_mode=enums.ParseMode.HTML)
         except Exception as photo_error:
             logger.warning(f"Photo അയക്കാൻ കഴിഞ്ഞില്ല, ടെക്സ്റ്റിലേക്ക് മാറുന്നു: {photo_error}")
 
     if not fmsg:
         try:
-            await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
+            await message.reply_text(text=cap, reply_markup=pm_btn, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
         except Exception as text_error:
             logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
+
 
 
 async def advantage_spell_chok(client, msg):
