@@ -67,6 +67,10 @@ DATABASE_URI3 = environ.get('DATABASE_URI3', "mongodb+srv://sushankm16:4i1WAfPYK
 DATABASE_NAME = environ.get('DATABASE_NAME', "MammoottyV1")
 COLLECTION_NAME = environ.get('COLLECTION_NAME', 'mcu_files')
 
+
+# Koyeb Config Vars-ൽ നിന്ന് ലിങ്ക് എടുക്കുന്നു, ഇല്ലെങ്കിൽ ബാക്കപ്പ് ആയി രണ്ടാമത്തെ ലിങ്ക് ഉപയോഗിക്കും
+POSTER_DB = os.environ.get("POSTER_DB", "mongodb+srv://sreejithskumar9387_db_user:vi93eYFWbLSIedyV@cluster0.hxzaxzb.mongodb.net/?appName=Cluster0")
+
 # Auto approve
 CHAT_ID = [int(app_chat_id) if id_pattern.match(app_chat_id) else app_chat_id for app_chat_id in environ.get('CHAT_ID', '-1002303772763').split()]
 TEXT = environ.get("APPROVED_WELCOME_TEXT", "Hello {mention}\nWelcome To {title}\n\nYour request has been approved")
