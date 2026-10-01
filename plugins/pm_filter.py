@@ -737,55 +737,77 @@ async def auto_filter(client, msg, spoll=False):
             settings = await get_settings(msg.message.chat.id)
             return
     else:
-        message = msg.message.reply_to_message
+        # ⚡ 'Message' object has no attribute 'message' എറർ ഇവിടെ പരിഹരിച്ചു
+        if hasattr(msg, "message") and msg.message:
+            message = msg.message.reply_to_message
+        else:
+            message = msg
+            
         search, files, offset, total_results = spoll
         settings = await get_settings(message.chat.id)
 
     key = f"{message.chat.id}-{message.id}"
     BUTTONS[key] = search
-
-    # ⚡ ഇന്റർനെറ്റ് സഹായമില്ലാതെ ലോക്കലായി വർഷം വേർതിരിച്ചെടുക്കുന്നു (High Speed)
-    year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
-    if not year_match and files:
-        if isinstance(files, list) and len(files) > 0:
-            year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
-        elif hasattr(files, 'file_name'):
-            year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files.file_name)
     
+    # ⚡ ലോക്കലായി വർഷം വേർതിരിച്ചെടുക്കുന്നു
+    year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
     movie_year = f" ({year_match[0]})" if year_match else ""
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
-    # 📊 ആകെ ലഭ്യമായ ഫയലുകളുടെ എണ്ണം കൃത്യമായി തിട്ടപ്പെടുത്തുന്നു
     files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
 
-    # 📝 ഗ്രൂപ്പിൽ മാത്രം കാണിക്കേണ്ട പ്രീമിയം blockquote ലേഔട്ട് (ഫയൽ കൗണ്ട് സഹിതം)
     cap = (
         f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
-        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
+        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇ省 ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
 
-    # 📥 ബോട്ടിന്റെ PM ചാറ്റിലേക്ക് സുരക്ഷിതമായി റീഡയറക്ട് ചെയ്യാനുള്ള ബട്ടൺ
-    from urllib.parse import quote_plus
-    query_encoded = quote_plus(search)
-    pm_btn = InlineKeyboardMarkup([[
-        InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ Mᴏᴠɪᴇ", url=f"https://t.me/{temp.U_NAME}?start=search_{query_encoded}")
-    ]])
+    # 🔘 ഇവിടെയാണ് ഗ്രൂപ്പാണോ പിഎം ആണോ എന്ന് നോക്കി ബട്ടണുകൾ മാറുന്നത്
+    if not spoll:
+        # 🌐 ഗ്രൂപ്പിൽ കാണിക്കേണ്ട Download Movie ബട്ടൺ ലേഔട്ട്
+        from urllib.parse import quote_plus
+        query_encoded = quote_plus(search)
+        reply_markup = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📥 Dᴏᴡɴʟᴏᴀᴅ Mᴏᴠɪᴇ", url=f"https://t.me/{temp.U_NAME}?start=search_{query_encoded}")
+        ]])
+    else:
+        # 📥 ബോട്ടിന്റെ PM ചാറ്റിൽ കാണിക്കേണ്ട യഥാർത്ഥ മൂവി ഫയലുകളുടെ ബട്ടൺ ലിസ്റ്റ്
+        btn = []
+        pre = 'filep' if settings['file_secure'] else 'file'
+        
+        if settings["button"]:
+            for file in files:
+                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+        else:
+            for file in files:
+                btn.append([InlineKeyboardButton(text=f"{file.file_name}", callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=f"{get_size(file.file_size)}", callback_data=f'{pre}#{file.file_id}')])
 
+        if offset != "":
+            try: offset = int(offset)
+            except ValueError: offset = 0
+        else: offset = 0
+
+        if offset > 0:
+            btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
+        
+        reply_markup = InlineKeyboardMarkup(btn)
+
+    # 🖼️ പോസ്റ്റർ ലോഡ് ചെയ്യുന്നു
     poster = await get_any_movie_poster(search)
 
     fmsg = None
     if poster:
         try:
-            fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=pm_btn, parse_mode=enums.ParseMode.HTML)
+            fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
         except Exception as photo_error:
             logger.warning(f"Photo അയക്കാൻ കഴിഞ്ഞില്ല, ടെക്സ്റ്റിലേക്ക് മാറുന്നു: {photo_error}")
 
     if not fmsg:
         try:
-            await message.reply_text(text=cap, reply_markup=pm_btn, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
+            await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
         except Exception as text_error:
             logger.error(f"Text മെസ്സേജ് അയക്കുന്നതിലും എറർ വന്നിരിക്കുന്നു: {text_error}")
+
 
 
 
