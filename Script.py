@@ -33,11 +33,13 @@ class script(object):
 
 
     CUSTOM_FILE_CAPTION = """<code>{file_name}</code>"""
-    NO_TXT = """<blockquote><b>⚠️ OTT Not Available / Check Spelling</b>
+    NO_TXT = """<b>⚠️ OTT Not Available / Check Spelling
 
-<i>🎭 If the movie has already been released on OTT, please search using the exact corrected name provided below.
-
-🎭 If you still cannot find the movie you are looking for, simply click the Google Search button to locate it and share the correct details here!</i></blockquote>"""
+<i>🎭 If the movie released on OTT, please search using the exact corrected name provided below.
+🌲 Movie OTT ഇറങ്ങിയിട്ടില്ല കേട്ടോ 
+🌲 അഥവാ ഇറങ്ങിയിട്ടുണ്ടെങ്കിൽ താഴെ തന്നിരിക്കുന്ന ശെരിയായ SPELLING ഉപയോഗിച്ച് SEARCH തുടരുക 
+🌲 കിട്ടാത്ത പക്ഷം request / google 
+🎭 If you still cannot find the movie, click Google button and share the correct details here!</i></b>"""
 
 
 
