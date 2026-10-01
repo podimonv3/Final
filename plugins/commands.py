@@ -140,12 +140,22 @@ async def start(client, message):
         try:
             from urllib.parse import unquote_plus
             query = unquote_plus(data.replace("search_", ""))
-            message.text = query
-            await auto_filter(client, message)
+            
+            # 🔍 ഡാറ്റാബേസിൽ നിന്നും ഫയലുകൾ നേരിട്ട് തിരയുന്നു
+            from database.ia_filterdb import get_search_results
+            files, offset, total_results = await get_search_results(query.lower(), offset=0, filter=True)
+            
+            if files:
+                # 📝 ഫയലുകൾ പിഎമ്മിൽ കാണിക്കാൻ വേണ്ടി auto_filter-ലേക്ക് spoll പാരാമീറ്റർ അയക്കുന്നു
+                # ഇതിലൂടെ ബോട്ട് ബട്ടൺ കാണിക്കുന്നതിന് പകരം ഫയലുകൾ നേരിട്ട് ലിസ്റ്റ് ചെയ്യും
+                await auto_filter(client, message, spoll=(query, files, offset, total_results))
+            else:
+                await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
             return
         except Exception as e:
             logger.exception(e)
-            return        
+            return
+        
 
     # ================= FORCE SUB CHANNEL 1 =================
     if REQ_CHANNEL1 and not await is_requested_one(client, message):
