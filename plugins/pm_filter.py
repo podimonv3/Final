@@ -848,7 +848,8 @@ async def advantage_spell_chok(client, msg):
         await k.delete()
         return
 
-    movielist = [movie.get('title') for movie in movies]
+    # 1. ടൈറ്റിലും വർഷവും ഒരുമിച്ച് ലിസ്റ്റാക്കുന്നു (വർഷം ഇല്ലെങ്കിൽ 'N/A' എന്ന് കാണിക്കും)
+    movielist = [f"{movie.get('title')} {movie.get('year') if movie.get('year') else ''}".strip() for movie in movies]
     movielist = [title for title in movielist if title]
     if not movielist:
         return
@@ -856,13 +857,12 @@ async def advantage_spell_chok(client, msg):
     SPELL_CHECK[mv_id] = movielist
     _trim_dict(SPELL_CHECK)
 
-    # 📝 സിനിമകളുടെ പേര് ടെക്സ്റ്റ് ലിസ്റ്റാക്കി മാറ്റുന്നു
     spell_list_text = script.NO_TXT + "\n\n"
-    # 📌 സിനിമകളുടെ ലിസ്റ്റ് തുടങ്ങുന്നതിന് മുൻപ് ഹെഡിങ് ചേർക്കുന്നു
-    spell_list_text += "<b><u>SUGGESTIONS 👇</u></b>\n"
+    spell_list_text += "<b>SUGGESTIONS 👇</b>\n"
     
+    # 2. ആദ്യത്തെ 6 എണ്ണം വർഷത്തോടൊപ്പം ലിസ്റ്റ് ചെയ്യുന്നു
     for index, movie_name in enumerate(movielist[:6], start=1):
-        spell_list_text += f"<b>{index}. {movie_name.strip()}</b>\n"
+        spell_list_text += f"<b>{index}. {movie_name}</b>\n"
 
     
     # 🖼️ ഫോട്ടോ എടുക്കാൻ മാത്രം get_any_movie_poster ഉപയോഗിക്കുന്നു (ആദ്യത്തെ സിനിമയുടെ പേര് വച്ച്)
