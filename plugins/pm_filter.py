@@ -811,11 +811,11 @@ async def auto_filter(client, msg, spoll=False):
     # 🎞️ ആദ്യത്തെ 5 ഫയലുകളിൽ പ്രീഡിവിഡി / തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു
     detected_print = "#HD_Original" 
     if print_check_text:
-        if re.search(r'\b(predvd|pre-dvd|dvdscr|pre)\b', print_check_text):
+        if re.search(r'\b(predvd|pre-dvd|dvdscr|pre|hallprint)\b', print_check_text):
             detected_print = "#PreDVD_⚠️"
-        elif re.search(r'\b(camrip|cam|hdcam|hqcam|telesync|ts)\b', print_check_text):
+        elif re.search(r'\b(camrip|cam|hdcam|hqcam|hall-print|s-print|telesync|ts)\b', print_check_text):
             detected_print = "#Theater_CAM_⚠️"
-        elif re.search(r'\b(print|tc|telecine)\b', print_check_text):
+        elif re.search(r'\b(print|tc|telecine|HDTC)\b', print_check_text):
             detected_print = "#Theater_Print_⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
@@ -829,7 +829,7 @@ async def auto_filter(client, msg, spoll=False):
         f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
         f"💎 <b>QᴜᴀʟɪᴛY:</b> <code>{detected_quality}</code>\n"
         f"🎞️ <b>Pʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
-        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count} ꜰɪʟᴇs ᴀᴠᴀɪʟᴀʙʟᴇ</code>\n\n"
+        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count}</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
     if not spoll:
