@@ -889,3 +889,30 @@ async def clear_missing_requests(bot: Client, message: Message):
     except Exception as e:
         logger.error(f"Error clearing missing movies database: {e}")
         await status_msg.edit_text(f"<b>❌ ഡാറ്റാബേസ് ക്ലിയർ ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു!\nError: <code>{e}</code></b>")
+
+
+
+
+
+from pyrogram import Client, filters
+from database.postersave import get_db_stats  # പാത്ത് നിങ്ങളുടെ പ്രോജക്റ്റ് അനുസരിച്ച് മാറ്റുക
+
+@Client.on_message(filters.command("dbstatus") & filters.private) # അഡ്മിൻമാർക്ക് മാത്രം വേണമെങ്കിൽ ഫിൽട്ടർ മാറ്റാം
+async def show_database_status(client, message):
+    # ബോട്ട് കണക്ട് ചെയ്യുന്നത് വരെ ഒരു വെയിറ്റിംഗ് മെസ്സേജ് കാണിക്കുന്നു
+    status_msg = await message.reply_text("<code>Fetching Database Stats... 📊</code>")
+    
+    stats = await get_db_stats()
+    
+    if stats:
+        text = (
+            "📊 <b><u>ᴍᴏᴠɪᴇ ᴘᴏsᴛᴇʀ ᴅʙ sᴛᴀᴛᴜs</u></b>\n\n"
+            f"📂 <b>ᴛᴏᴛᴀʟ ᴘᴏsᴛᴇʀs ᴄᴀᴄʜᴇᴅ:</b> <code>{stats['total']}</code>\n"
+            f"💾 <b>ᴜsᴇᴅ sᴘᴀᴄᴇ (sᴛᴏʀᴀɢᴇ):</b> <code>{stats['used']} MB</code>\n"
+            f"🆓 <b>ᴇsᴛɪᴍᴀᴛᴇᴅ ғʀᴇᴇ sᴘᴀᴄᴇ:</b> <code>{stats['free']} MB</code>\n\n"
+            "⚡ <i>Cache is optimized and running active!</i>"
+        )
+        await status_msg.edit_text(text)
+    else:
+        await status_msg.edit_text("❌ Failed to fetch database statistics.")
+
