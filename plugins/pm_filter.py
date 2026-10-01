@@ -700,6 +700,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 
 
+
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
@@ -733,7 +734,6 @@ async def auto_filter(client, msg, spoll=False):
                 except Exception:
                     return
         else:
-            # ⚡ തിരുത്തിയ ഭാഗം: 'Message' ഒബ്‌ജക്റ്റിൽ നിന്ന് സുരക്ഷിതമായി chat.id എടുക്കുന്നു
             chat_id = msg.chat.id if hasattr(msg, "chat") and msg.chat else (msg.message.chat.id if hasattr(msg, "message") and msg.message else msg.from_user.id)
             settings = await get_settings(chat_id)
             return
@@ -749,22 +749,17 @@ async def auto_filter(client, msg, spoll=False):
     key = f"{message.chat.id}-{message.id}"
     BUTTONS[key] = search
     
-    # ⚡ കണ്ടെത്തിയ ഫയലുകളിൽ നിന്ന് വർഷം വേർതിരിച്ചെടുക്കുന്നു
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
     
-    # 🔍 ആദ്യത്തെ 15 ഫയലുകളുടെ പേരുകളും, പ്രിന്റ് നോക്കാൻ ആദ്യത്തെ 5 ഫയലുകളുടെ പേരുകളും എടുക്കുന്നു
     combined_file_names = ""
     print_check_text = ""
     
+    # ⚡ ബോട്ട് അൾട്രാ സ്പീഡ് ആകാൻ ആദ്യത്തെ 5 ഫയലുകൾ മാത്രം ലൂപ്പ് ചെയ്യുന്നു
     if files and isinstance(files, list):
         for index, file in enumerate(files[:15]):
             if hasattr(file, 'file_name') and file.file_name:
                 combined_file_names += " " + file.file_name.lower()
-                if index < 5:
-                    print_check_text += " " + file.file_name.lower()
-    elif files and hasattr(files, 'file_name'):
-        combined_file_names = files.file_name.lower()
-        print_check_text = files.file_name.lower()
+                print_check_text += " " + file.file_name.lower()
 
     if not year_match and combined_file_names:
         year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', combined_file_names)
@@ -772,15 +767,13 @@ async def auto_filter(client, msg, spoll=False):
     detected_year = year_match[0] if year_match else ""
     movie_year = f" ({detected_year})" if detected_year else ""
     
-    # 🌐 ഭാഷകളും ക്വാളിറ്റികളും കണ്ടെത്തുന്നു
     languages_found = []
     qualities_found = []
 
     if combined_file_names:
-        # search.lower() എന്നത് ചെറിയ അക്ഷരത്തിലാക്കിയത് പോലെ combined_file_names-ഉം lower() ആക്കുന്നത് നന്നായിരിക്കും
-        full_text_lower = combined_file_names.lower() + " " + search.lower()
+        full_text_lower = combined_file_names + " " + search.lower()
         
-        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
+        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു (കൂടുതൽ ഭാഷകളും ഓഡിയോ ടാഗുകളും ഉൾപ്പെടുത്തിയത്)
         if re.search(r'\b(malayalam|mal)\b', full_text_lower):
             languages_found.append("#Malayalam")
         if re.search(r'\b(tamil|tam)\b', full_text_lower):
@@ -793,6 +786,14 @@ async def auto_filter(client, msg, spoll=False):
             languages_found.append("#English")
         if re.search(r'\b(kannada|kan)\b', full_text_lower):
             languages_found.append("#Kannada")
+        if re.search(r'\b(marathi|mar)\b', full_text_lower):
+            languages_found.append("#Marathi")
+        if re.search(r'\b(bengali|ben)\b', full_text_lower):
+            languages_found.append("#Bengali")
+        if re.search(r'\b(odia|ori)\b', full_text_lower):
+            languages_found.append("#Odia")
+        if re.search(r'\b(multi|audio|dual)\b', full_text_lower):
+            languages_found.append("#Multi_Audio")
 
         # 2. ക്വാളിറ്റികൾ ചെക്ക് ചെയ്യുന്നു
         if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower):
@@ -807,13 +808,16 @@ async def auto_filter(client, msg, spoll=False):
             qualities_found.append("#BluRay")
         if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
             qualities_found.append("#WEB-DL")
-        if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
-            qualities_found.append("#HD")
+            
+        # 🛠️ തിരുത്തിയ ഭാഗം: hdrip, hdtv, hd എന്നിവ ഉണ്ടാവുകയും hdtc ഇല്ലാതിരിക്കുകയും ചെയ്താൽ മാത്രം #HD കാണിക്കുന്നു
+        if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not re.search(r'\b(hdtc)\b', full_text_lower):
+            if not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
+                qualities_found.append("#HD")
 
-    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു (ഇൻഡന്റേഷൻ ഇവിടെ കൃത്യമാക്കിയിട്ടുണ്ട്)
+    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു (hqcam, pre ഒഴിവാക്കി, HDTC ചേർത്തു)
     detected_print = "#HD_Original" 
     if print_check_text:
-        if re.search(r'\b(predvd|pre-dvd|dvdscr|pre|hallprint|camrip|hdcam|hqcam|hall-print|s-print)\b', print_check_text.lower()):
+        if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
             detected_print = "#Theater_Print_⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
@@ -827,11 +831,11 @@ async def auto_filter(client, msg, spoll=False):
         f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
         f"💎 <b>QᴜᴀʟɪᴛY:</b> <code>{detected_quality}</code>\n"
         f"🎞️ <b>Pʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
-        f"📂 <b>Tᴏᴛᴀʟ Fɪʟᴇs:</b> <code>{files_count}</code>\n\n"
+        f"📂 <b>Tᴏᴛᴀʟ FɪʟＥs:</b> <code>{files_count}</code>\n\n"
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
     if not spoll:
-        # ⚡ 64-ബൈറ്റ് ലിമിറ്റ് പ്രശ്നം വരാതിരിക്കാൻ സുരക്ഷിതമായ key ഉപയോഗിച്ചുള്ള ലിങ്ക്
+        # ⚡ 64-ബൈറ്റ് ലിമിറ്റ് വരാത്ത രീതിയിലുള്ള സുരക്ഷിതമായ ലിങ്ക്
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
         ]])
@@ -856,29 +860,21 @@ async def auto_filter(client, msg, spoll=False):
         
         reply_markup = InlineKeyboardMarkup(btn)
 
-    poster = await get_any_movie_poster(search)
-
+    # ⚡ പോസ്റ്റർ ഫെച്ചിങ് പൂർണ്ണമായി ഒഴിവാക്കി നേരിട്ട് ടെക്സ്റ്റ് മെസ്സേജ് മാത്രം അയക്കുന്നു (Ultra Speed)
     fmsg = None
-    if poster:
-        try:
-            fmsg = await message.reply_photo(photo=poster, caption=cap, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
-        except Exception:
-            pass
+    try:
+        fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
+    except Exception:
+        pass
 
-    if not fmsg:
-        try:
-            fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
-        except Exception:
-            pass
-
-    # 🕒 ⚡ ഗ്രൂപ്പിൽ അയക്കുന്ന മെസ്സേജ് കൃത്യം 4 മിനിറ്റിന് (240 സെയൻ്റ്) ശേഷം തനിയെ ഡിലീറ്റ് ചെയ്യും
+    # 🕒 ⚡ ഗ്രൂപ്പിൽ അയക്കുന്ന മെസ്സേജ് കൃത്യം 4 മിനിറ്റിന് (240 സെക്കന്റ്) ശേഷം തനിയെ ഡിലീറ്റ് ചെയ്യും
     if not spoll and fmsg:
         await asyncio.sleep(240)
         try:
             await fmsg.delete()
         except Exception:
-            pass
-      
+            pass       
+            
                     
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
