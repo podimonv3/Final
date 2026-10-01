@@ -861,7 +861,7 @@ async def advantage_spell_chok(client, msg):
     # 📌 സിനിമകളുടെ ലിസ്റ്റ് തുടങ്ങുന്നതിന് മുൻപ് ഹെഡിങ് ചേർക്കുന്നു
     spell_list_text += "<b><u>SUGGESTIONS 👇</u></b>\n"
     
-    for index, movie_name in enumerate(movielist, start=1):
+    for index, movie_name in enumerate(movielist[:6], start=1):
         spell_list_text += f"<b>{index}. {movie_name.strip()}</b>\n"
 
     
