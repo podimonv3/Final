@@ -699,6 +699,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             )
 
 
+
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
@@ -756,7 +757,7 @@ async def auto_filter(client, msg, spoll=False):
     print_check_text = ""
     
     if files and isinstance(files, list):
-        for index, file in enumerate(files[:20]):
+        for index, file in enumerate(files[:15]):
             if hasattr(file, 'file_name') and file.file_name:
                 combined_file_names += " " + file.file_name.lower()
                 if index < 5:
@@ -776,6 +777,7 @@ async def auto_filter(client, msg, spoll=False):
     qualities_found = []
 
     if combined_file_names:
+        # search.lower() എന്നത് ചെറിയ അക്ഷരത്തിലാക്കിയത് പോലെ combined_file_names-ഉം lower() ആക്കുന്നത് നന്നായിരിക്കും
         full_text_lower = combined_file_names.lower() + " " + search.lower()
         
         # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
@@ -805,21 +807,14 @@ async def auto_filter(client, msg, spoll=False):
             qualities_found.append("#BluRay")
         if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
             qualities_found.append("#WEB-DL")
-            
-        # 🛠️ തിരുത്തിയ ഭാഗം: ഫയലിന്റെ പേരിൽ hdtc / hd-tc ഇല്ലെങ്കിൽ മാത്രം #HD എന്ന് കാണിക്കുന്നു
-        if re.search(r'\b(hdrip|hdtv)\b|\bhd\b', full_text_lower) and not re.search(r'\b(hdtc|hd-tc)\b', full_text_lower):
-            if not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
-                qualities_found.append("#HD")
+        if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
+            qualities_found.append("#HD")
 
-    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു
+    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു (ഇൻഡന്റേഷൻ ഇവിടെ കൃത്യമാക്കിയിട്ടുണ്ട്)
     detected_print = "#HD_Original" 
     if print_check_text:
-        if re.search(r'\b(predvd|pre-dvd|dvdscr|pre|hallprint|camrip|cam|hdcam|hqcam|hall-print|s-print|telesync|ts|print|tc|telecine|HDTC)\b', print_check_text.lower()):
+        if re.search(r'\b(predvd|pre-dvd|dvdscr|pre|hallprint|camrip|hdcam|hqcam|hall-print|s-print)\b', print_check_text.lower()):
             detected_print = "#Theater_Print_⚠️"
-
-    # 🛠️ തിരുത്തിയ ഭാഗം: തീയറ്റർ പ്രിന്റ് ആണെന്ന് കണ്ടാൽ മറ്റ് ക്വാളിറ്റികൾ ഒഴിവാക്കി #Theater_Quality ആക്കുന്നു
-    if detected_print == "#Theater_Print_⚠️":
-        qualities_found = ["#Theater_Quality"]
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
@@ -883,9 +878,8 @@ async def auto_filter(client, msg, spoll=False):
             await fmsg.delete()
         except Exception:
             pass
-
+      
                     
-
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text
