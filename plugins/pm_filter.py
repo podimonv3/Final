@@ -880,6 +880,12 @@ async def advantage_spell_chok(client, msg):
     )
     cleaned_query = cleaned_query.strip()
 
+    # 📌 സിനിമ ഡാറ്റാബേസിൽ ഇല്ലാത്തതിനാൽ ഇത് മിസ്സിംഗ് ലിസ്റ്റിലേക്ക് ആദ്യം തന്നെ സേവ് ചെയ്യുന്നു
+    try:
+        await save_missing_movie(cleaned_query)
+    except Exception as e:
+        logger.error(f"Missing movie save error: {e}")
+
     # 🔍 ഗൂഗിൾ സെർച്ചിനായുള്ള ലിങ്കും മറ്റ് ബട്ടണുകളും ഫോർമാറ്റ് ചെയ്യുന്നു
     reqst_gle = quote_plus(mv_rqst)
     google_button = InlineKeyboardMarkup([
