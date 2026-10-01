@@ -853,7 +853,15 @@ async def auto_filter(client, msg, spoll=False):
 
     if not fmsg:
         try:
-            await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
+            fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True, parse_mode=enums.ParseMode.HTML)
+        except Exception:
+            pass
+
+    # 🕒 ⚡ ഗ്രൂപ്പിൽ അയക്കുന്ന മെസ്സേജ് കൃത്യം 4 മിനിറ്റിന് (240 സെക്കന്റ്) ശേഷം തനിയെ ഡിലീറ്റ് ചെയ്യും
+    if not spoll and fmsg:
+        await asyncio.sleep(240)
+        try:
+            await fmsg.delete()
         except Exception:
             pass
 
