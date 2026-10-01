@@ -849,20 +849,36 @@ async def advantage_spell_chok(client, msg):
         return
 
     # 1. ടൈറ്റിലും വർഷവും ഒരുമിച്ച് ലിസ്റ്റാക്കുന്നു (വർഷം ഇല്ലെങ്കിൽ 'N/A' എന്ന് കാണിക്കും)
-    movielist = [f"{movie.get('title')} {movie.get('year') if movie.get('year') else ''}".strip() for movie in movies]
-    movielist = [title for title in movielist if title]
+    # 1. API ക്ലാസുകളിൽ നിന്ന് ടൈറ്റിലും വർഷവും കൃത്യമായി വേർതിരിച്ച് ലിസ്റ്റാക്കുന്നു
+    movielist = []
+    for movie in movies:
+        title = movie.get('title')
+        year = movie.get('year')
+        
+        if title:
+            # വർഷം ഉണ്ടെങ്കിൽ അതിൽ നിന്നും 4 അക്കങ്ങൾ മാത്രം (Year) വേർതിരിച്ചെടുക്കുന്നു
+            if year and str(year) != "N/A":
+                year_str = re.findall(r'\b(19\d{2}|20\d{2})\b', str(year))
+                year_val = f" {year_str[0]}" if year_str else ""
+            else:
+                year_val = ""
+                
+            movielist.append(f"{title.strip()}{year_val}")
+
     if not movielist:
         return
 
     SPELL_CHECK[mv_id] = movielist
     _trim_dict(SPELL_CHECK)
 
+    # 📝 Heading ചേർക്കുന്നു
     spell_list_text = script.NO_TXT + "\n\n"
     spell_list_text += "<b>SUGGESTIONS 👇</b>\n"
     
-    # 2. ആദ്യത്തെ 6 എണ്ണം വർഷത്തോടൊപ്പം ലിസ്റ്റ് ചെയ്യുന്നു
+    # 2. ആദ്യത്തെ 6 എണ്ണം പർപ്പസ്ലി പാസേമോഡ് HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
     for index, movie_name in enumerate(movielist[:6], start=1):
         spell_list_text += f"<b>{index}. {movie_name}</b>\n"
+
 
     
     # 🖼️ ഫോട്ടോ എടുക്കാൻ മാത്രം get_any_movie_poster ഉപയോഗിക്കുന്നു (ആദ്യത്തെ സിനിമയുടെ പേര് വച്ച്)
