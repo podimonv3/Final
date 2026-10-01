@@ -755,7 +755,7 @@ async def auto_filter(client, msg, spoll=False):
     
     # ⚡ ബോട്ട് അൾട്രാ സ്പീഡ് ആകാൻ ആദ്യത്തെ 5 ഫയലുകൾ മാത്രം ലൂപ്പ് ചെയ്യുന്നു
     if files and isinstance(files, list):
-        for index, file in enumerate(files[:11]):
+        for index, file in enumerate(files[:5]):
             if hasattr(file, 'file_name') and file.file_name:
                 combined_file_names += " " + file.file_name.lower()
                 print_check_text += " " + file.file_name.lower()
