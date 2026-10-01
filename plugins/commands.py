@@ -159,6 +159,29 @@ async def start(client, message):
             logger.exception(e)
             return
 
+    # ================= DYNAMIC LINK (GETFILE) REDIRECTION =================
+    elif data.startswith("getfile-"):
+        try:
+            from plugins.pm_filter import auto_filter
+            # getfile- ഒഴിവാക്കി ബാക്കി എല്ലാ ഹൈഫനുകളെയും തിരികെ സ്പെയ്സ് ആക്കുന്നു
+            query = data.replace("getfile-", "").replace("-", " ")
+            
+            from database.ia_filterdb import get_search_results
+            files, offset, total_results = await get_search_results(query.lower(), offset=0, filter=True)
+            
+            if files:
+                # PM-ൽ ഫയലുകൾ ഇൻസ്റ്റന്റ് ആയി ബട്ടണുകളായി ലിസ്റ്റ് ചെയ്യുന്നു
+                await auto_filter(client, message, spoll=(query, files, offset, total_results))
+            else:
+                # ഫയലുകൾ ഇല്ലെങ്കിൽ ബോട്ട് മിസ്സിംഗ് ലിസ്റ്റിലേക്ക് സേവ് ചെയ്ത് സ്പെൽചെക്ക് കാണിക്കും
+                message.text = query
+                await auto_filter(client, message)
+            return
+        except Exception as e:
+            logger.exception(e)
+            return
+
+
         
 
     # ================= FORCE SUB CHANNEL 1 =================
