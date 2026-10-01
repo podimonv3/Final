@@ -873,7 +873,7 @@ async def advantage_spell_chok(client, msg):
 
     # 📝 Heading ചേർക്കുന്നു
     spell_list_text = script.NO_TXT + "\n\n"
-    spell_list_text += "<b>SUGGESTIONS 👇</b>\n"
+    spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n"
     
     # 2. ആദ്യത്തെ 6 എണ്ണം പർപ്പസ്ലി പാസേമോഡ് HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
     for index, movie_name in enumerate(movielist[:6], start=1):
