@@ -733,7 +733,9 @@ async def auto_filter(client, msg, spoll=False):
                 except Exception:
                     return
         else:
-            settings = await get_settings(msg.message.chat.id)
+            # ⚡ തിരുത്തിയ ഭാഗം: 'Message' ഒബ്‌ജക്റ്റിൽ നിന്ന് സുരക്ഷിതമായി chat.id എടുക്കുന്നു
+            chat_id = msg.chat.id if hasattr(msg, "chat") and msg.chat else (msg.message.chat.id if hasattr(msg, "message") and msg.message else msg.from_user.id)
+            settings = await get_settings(chat_id)
             return
     else:
         if hasattr(msg, "message") and msg.message:
