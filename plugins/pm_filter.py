@@ -857,7 +857,7 @@ async def advantage_spell_chok(client, msg):
     _trim_dict(SPELL_CHECK)
 
     # 📝 സിനിമകളുടെ പേര് ടെക്സ്റ്റ് ലിസ്റ്റാക്കി മാറ്റുന്നു
-    spell_list_text = script.NO_TXT + "\n"
+    spell_list_text = script.NO_TXT + "\n\n"
     # 📌 സിനിമകളുടെ ലിസ്റ്റ് തുടങ്ങുന്നതിന് മുൻപ് ഹെഡിങ് ചേർക്കുന്നു
     spell_list_text += "<b><u>SUGGESTIONS 👇</u></b>\n"
     
