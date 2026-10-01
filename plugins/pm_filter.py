@@ -857,13 +857,13 @@ async def advantage_spell_chok(client, msg):
     _trim_dict(SPELL_CHECK)
 
     # 📝 സിനിമകളുടെ പേര് ടെക്സ്റ്റ് ലിസ്റ്റാക്കി മാറ്റുന്നു
-    spell_list_text = "<b>Sᴘᴇʟʟɪɴɢ Mɪꜱᴛᴀᴋေ Bʀᴏ ‼️\n\nᴅᴏɴ'ᴛ ᴡᴏʀʀʏ 😊 Cʜᴏᴏꜱੇ ᴛʜေ ᴄᴏʀʀੇᴄᴛ ᴏɴေ ᴀɴᴅ sੇɴᴅ ᴀɢᴀɪɴ 👇</b>\n\n"
+    spell_list_text = script.NO_TXT
     for index, movie_name in enumerate(movielist, start=1):
         spell_list_text += f"<b>{index}. {movie_name.strip()}</b>\n"
     
     # 🖼️ ഫോട്ടോ എടുക്കാൻ മാത്രം get_any_movie_poster ഉപയോഗിക്കുന്നു (ആദ്യത്തെ സിനിമയുടെ പേര് വച്ച്)
     try: 
-        photo_url = await get_any_movie_poster(movielist)
+        photo_url = await get_any_movie_poster(cleaned_query, bulk=True)
     except Exception: 
         photo_url = None
 
