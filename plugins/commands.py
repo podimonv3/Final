@@ -136,18 +136,21 @@ async def start(client, message):
         pre, file_id = "", data
 
     # ================= PM SEARCH REDIRECTION =================
-    if data.startswith("search_"):
+    if data.startswith("key_"):
         try:
-            from urllib.parse import unquote_plus
-            query = unquote_plus(data.replace("search_", ""))
+            req_key = data.replace("key_", "")
+            # BUTTONS-ൽ നിന്ന് ആ കീ വെച്ച് ഒറിജിനൽ സിനിമയുടെ പേര് തിരിച്ചെടുക്കുന്നു
+            from plugins.pm_filter import BUTTONS, auto_filter
+            query = BUTTONS.get(req_key)
             
-            # 🔍 ഡാറ്റാബേസിൽ നിന്നും ഫയലുകൾ നേരിട്ട് തിരയുന്നു
+            if not query:
+                await message.reply_text("<b>❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                return
+
             from database.ia_filterdb import get_search_results
             files, offset, total_results = await get_search_results(query.lower(), offset=0, filter=True)
             
             if files:
-                # 📝 ഫയലുകൾ പിഎമ്മിൽ കാണിക്കാൻ വേണ്ടി auto_filter-ലേക്ക് spoll പാരാമീറ്റർ അയക്കുന്നു
-                # ഇതിലൂടെ ബോട്ട് ബട്ടൺ കാണിക്കുന്നതിന് പകരം ഫയലുകൾ നേരിട്ട് ലിസ്റ്റ് ചെയ്യും
                 await auto_filter(client, message, spoll=(query, files, offset, total_results))
             else:
                 await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
@@ -155,6 +158,7 @@ async def start(client, message):
         except Exception as e:
             logger.exception(e)
             return
+
         
 
     # ================= FORCE SUB CHANNEL 1 =================
