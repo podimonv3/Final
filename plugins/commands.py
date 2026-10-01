@@ -824,3 +824,31 @@ async def get_missing_requests(bot: Client, message):
         caption=f"<b>📊 <u>Missing Movies Report</u>\n\nTotal unique requests: <code>{len(missing_movies)}</code>\n\n(സിനിമകളുടെ പേരും അവ എത്ര തവണ തിരഞ്ഞു എന്ന വിവരവും ഫയലിൽ ലഭ്യമാണ്)</b>",
         parse_mode=enums.ParseMode.HTML
     )
+
+
+
+@Client.on_message(filters.command("clearmissing") & filters.user(ADMINS))
+async def clear_missing_requests(bot: Client, message: Message):
+    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+    
+    status_msg = await message.reply_text("<b>ക്ലിയറിംഗ് പ്രോസസ്സ് ആരംഭിക്കുന്നു... ⏳</b>")
+    
+    try:
+        # ⚡ requests_db ഫയലിൽ നിന്നും യഥാർത്ഥ കളക്ഷൻ നേരിട്ട് ഇമ്പോർട്ട് ചെയ്യുന്നു
+        from database.requests_db import collection as missing_collection
+        
+        # ആകെ എത്ര സിനിമകൾ ലിസ്റ്റിൽ ഉണ്ടെന്ന് നോക്കുന്നു
+        total_docs = await missing_collection.count_documents({})
+        
+        if total_docs == 0:
+            await status_msg.edit_text("<b>❌ മിസ്സിംഗ് ലിസ്റ്റിൽ നിലവിൽ സിനിമകൾ ഒന്നും തന്നെയില്ല!</b>")
+            return
+            
+        # 🗑️ കളക്ഷനിലെ എല്ലാ ഡാറ്റയും ഡിലീറ്റ് ചെയ്യുന്നു (ഡാറ്റാബേസ് ഇൻഡക്സുകൾ നഷ്ടപ്പെടാതിരിക്കാൻ delete_many ഉപയോഗിക്കുന്നു)
+        await missing_collection.delete_many({})
+        
+        await status_msg.edit_text(f"<b>✅ വിജയകരമായി ഡാറ്റാബേസ് ക്ലിയർ ചെയ്തു!\n\n🗑️ ആകെ ഇല്ലാതാക്കിയ റിക്വസ്റ്റുകൾ: <code>{total_docs}</code></b>")
+        
+    except Exception as e:
+        logger.error(f"Error clearing missing movies database: {e}")
+        await status_msg.edit_text(f"<b>❌ ഡാറ്റാബേസ് ക്ലിയർ ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു!\nError: <code>{e}</code></b>")
