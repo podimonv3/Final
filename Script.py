@@ -22,19 +22,12 @@ class script(object):
  🌿 request ചെയ്തോളൂ.. request ചെയ്യും മുൻപ് rules വായിക്കുന്നത് നല്ലതായിരിക്കും</b></i></blockquote>"""
 
 
-    JOIN_TXT = """⚠️ <b>Access Restricted / പ്രവേശന അനുമതി നിഷേധിക്കപ്പെട്ടിരിക്കുന്നു</b>
+    JOIN_TXT = """<b>𝐇𝐞𝐲..𝐁𝐫𝐮𝐡 🙋‍♂
 
-<blockquote>To successfully receive your requested movie, you must join both of our official channels listed below.
+⚠ ᴘʟᴇᴀꜱᴇ ᴊᴏɪɴ ʙᴏᴛ ᴜᴘᴅᴀᴛᴇꜱ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ʙᴏᴛ..!!👇👇
 
-നിങ്ങൾ തിരഞ്ഞ സിനിമ ലഭിക്കുന്നതിനായി താഴെ നൽകിയിരിക്കുന്ന രണ്ട് ഔദ്യോഗിക ചാനലുകളിലും നിർബന്ധമായും ജോയിൻ ചെയ്യേണ്ടതുണ്ട്.</blockquote>
-
-📌 <b>Important Instructions / പ്രധാന നിർദ്ദേശം:</b>
-1. Click and join the <b>First Channel</b>.
-2. Wait for <b>2 seconds</b>.
-3. Then click and join the <b>Second Channel</b>.
-
-<i>👉 ആദ്യം ഒന്നാമത്തെ ചാനലിൽ ജോയിൻ ചെയ്ത ശേഷം 2 സെക്കൻഡ് കാത്തിരിക്കുക, അതിനുശേഷം മാത്രം രണ്ടാമത്തെ ചാനലിൽ ജോയിൻ ചെയ്യുക.</i>
-
+⚠ താഴെ കാണുന്ന ബട്ടണിൽ ക്ലിക്ക് ചെയിത് ചാനലിൽ ജോയിൻ ചെയ്യുക..!!👇👇</b>
+    
 <b>⚡ Powered by:</b>
 👉 <i><a href="https://t.me/UrvashiTheaters_Main">© Team Urvashi Theaters™</a></i>"""
 
