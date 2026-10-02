@@ -3,7 +3,7 @@ from os import environ
 from Script import script
 from pyrogram import utils as pyroutils
 
-# ടെലിഗ്രാം ഐഡികൾ കൃത്യമായി തിരിച്ചറിയാൻ ഈ പാറ്റേൺ ഉപയോഗിക്കുക (Fixed)
+# ടെലഗ്രാം ഐഡികൾ കൃത്യമായി തിരിച്ചറിയാൻ ഈ പാറ്റേൺ ഉപയോഗിക്കുക (Fixed)
 id_pattern = re.compile(r'^-?\d+$')
 
 def is_enabled(value, default):
@@ -61,9 +61,9 @@ req_ch2 = environ.get("REQ_CHANNEL2")
 REQ_CHANNEL2 = int(req_ch2) if (req_ch2 and id_pattern.match(req_ch2)) else False
 
 # MongoDB information
-DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://gimilat757:0wiQwyG8cIRJOmXs@cluster0.f2qk2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-DATABASE_URI2 = environ.get('DATABASE_URI2', "mongodb+srv://sushankm16:4i1WAfPYKWyqPIDD@cluster0.sngp9pz.mongodb.net/?retryWrites=true&w=majority")
-DATABASE_URI3 = environ.get('DATABASE_URI3', "mongodb+srv://sushankm16:4i1WAfPYKWyqPIDD@cluster0.sngp9pz.mongodb.net/?retryWrites=true&w=majority")
+# DATABASE_URI3 പൂർണ്ണമായി ഒഴിവാക്കി. നിങ്ങളുടെ മെയിൻ മംഗോഡിബി ലിങ്ക് മാത്രം നിലനിർത്തി.
+DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://...")
+DATABASE_URI2 = environ.get('DATABASE_URI2', "mongodb+srv://...") 
 DATABASE_NAME = environ.get('DATABASE_NAME', "MammoottyV1")
 COLLECTION_NAME = environ.get('COLLECTION_NAME', 'mcu_files')
 
