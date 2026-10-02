@@ -13,10 +13,14 @@ from info import DATABASE_URI2, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILT
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# ഫയലുകൾ സൂക്ഷിക്കാൻ DATABASE_URI2 ഉപയോഗിക്കുന്നു
-client = AsyncIOMotorClient(DATABASE_URI2)
+# മെയിൻ യൂസർ ഡാറ്റാബേസ് കണക്ഷൻ (For commands/stats)
+client = AsyncIOMotorClient(DATABASE_URI)
 db = client[DATABASE_NAME]
-instance = Instance.from_db(db)
+
+# സിനിമ ഫയലുകൾ സൂക്ഷിക്കുന്ന പുതിയ ഡാറ്റാബേസ് കണക്ഷൻ
+client1 = AsyncIOMotorClient(DATABASE_URI2)
+db1 = client1[DATABASE_NAME] # 👈 ഇതാണ് commands.py-ലേക്ക് ഇമ്പോർട്ട് ചെയ്യുന്നത്
+instance = Instance.from_db(db1)
 
 @instance.register
 class Media(Document):
