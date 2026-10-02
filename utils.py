@@ -296,98 +296,35 @@ def _cat(m, key):
         return "N/A"
 
 async def _imdbio_search(title, year=None, bulk=False):
-    """Search movies/shows via imdbio (no API key required)."""
     if not IMDBIO_AVAILABLE:
         return None
     try:
         result = await asyncio.to_thread(_imdbio.search_title, title, year=year)
-    except _ImdbioError:        
-        return None
-    except TypeError:
-        # upstream bug ലോഗ് ചെയ്യുന്നത് ഒഴിവാക്കി
-        return None
     except Exception:
-        # മറ്റെല്ലാ അപ്രതീക്ഷിത എറർ ലോഗുകളും ഒഴിവാക്കി
         return None
-
     if not result or not result.titles:
         return None
     if bulk:
-        return [_ImdbioFakeMovie(t) for t in result.titles[:10]]
+        return [{"title": t.title, "year": str(t.year) if t.year else "N/A"} for t in result.titles[:6]]
     return await _imdbio_get_details(result.titles[0].imdb_id)
 
 
+
+
+# ⚡ വെറും Title, Year മാത്രം എടുക്കുന്ന optimized IMDBIO function
 async def _imdbio_get_details(imdb_id):
-    """Fetch full details via imdbio by IMDb ID."""
     if not IMDBIO_AVAILABLE:
         return None
     if isinstance(imdb_id, str) and imdb_id.startswith("imdbio_"):
         imdb_id = imdb_id[len("imdbio_"):]
     try:
         m = await asyncio.to_thread(_imdbio.get_movie, imdb_id)
-    except _ImdbioError as e:
-        logger.warning(f"imdbio details error: {e}")
-        return None
-    except Exception as e:
-        logger.exception(f"imdbio details unexpected error: {e}")
+    except Exception:
         return None
     if not m:
         return None
+    return {"title": m.title or "N/A", "year": str(m.year) if m.year else "N/A"}
 
-    plot = m.plot or "N/A"
-    if not LONG_IMDB_DESCRIPTION and plot and plot != "N/A" and len(plot) > 800:
-        plot = plot[:800] + "..."
-
-    try:
-        seasons = len(m.info_series.display_seasons) if getattr(m, "info_series", None) else None
-    except (AttributeError, TypeError):
-        seasons = None
-
-    try:
-        cast = _names(m.categories.get("cast", []))
-        if cast == "N/A":
-            cast = _names(m.stars)
-    except (AttributeError, TypeError):
-        cast = _names(m.stars) if getattr(m, "stars", None) else "N/A"
-
-    try:
-        box_office = (m.box_office or {}).get("cumulativeWorldwideGross") \
-            or (m.box_office or {}).get("grossWorldwide") \
-            or m.worldwide_gross or "N/A"
-    except (AttributeError, TypeError):
-        box_office = "N/A"
-
-    return {
-        'title': m.title or "N/A",
-        'votes': str(m.votes) if m.votes else "N/A",
-        "aka": list_to_str(m.title_akas) if getattr(m, "title_akas", None) else "N/A",
-        "seasons": seasons,
-        "box_office": box_office,
-        'localized_title': m.title_localized or m.title or "N/A",
-        'kind': "tv series" if m.is_series() else ("episode" if m.is_episode() else "movie"),
-        "imdb_id": m.imdb_id or "N/A",
-        "cast": cast,
-        "runtime": f"{m.duration} min" if getattr(m, "duration", None) else "N/A",
-        "countries": list_to_str(m.countries) if getattr(m, "countries", None) else "N/A",
-        "certificates": m.mpaa or m.certificate or "N/A",
-        "languages": list_to_str(m.languages_text or m.languages) if (getattr(m, "languages_text", None) or getattr(m, "languages", None)) else "N/A",
-        "director": _names(m.directors) if getattr(m, "directors", None) else "N/A",
-        "writer": _cat(m, "writer"),
-        "producer": _cat(m, "producer"),
-        "composer": _cat(m, "composer"),
-        "cinematographer": _cat(m, "cinematographer"),
-        "music_team": "N/A",
-        "distributors": "N/A",
-        'release_date': m.release_date or "N/A",
-        'year': str(m.year) if m.year else "N/A",
-        'genres': list_to_str(m.genres) if getattr(m, "genres", None) else "N/A",
-        'poster': _hq_poster(m.cover_url),
-        'plot': plot,
-        'rating': str(m.rating) if m.rating else "N/A",
-        'url': m.url or (f"https://www.imdb.com/title/{m.imdb_id}/" if m.imdb_id else "N/A"),
-        'trailers': list(m.trailers) if getattr(m, "trailers", None) else [],
-        '_source': 'imdbio',
-    }
 
 def _hq_poster(url):
     """OMDb poster URLs point at Amazon's image CDN with a size-limiting suffix
@@ -418,90 +355,46 @@ async def fetch_poster_bytes(url):
 
 
 async def _omdb_search(title, year=None, bulk=False):
-    """Search movies/shows via OMDb."""
     if not OMDB_API_KEY:
-        logger.warning("OMDB_API_KEY not set, cannot search OMDb")
         return None
     try:
         params = {"apikey": OMDB_API_KEY, "s": title}
         if year:
             params["y"] = year
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get("https://www.omdbapi.com/", params=params)
+            resp = await client.get("https://omdbapi.com", params=params)
             resp.raise_for_status()
             data = resp.json()
-    except Exception as e:
-        logger.exception(f"omdb search error: {e}")
+    except Exception:
         return None
-
     if data.get("Response") != "True":
         return None
     results = data.get("Search", [])
     if not results:
         return None
     if bulk:
-        return [_OmdbFakeMovie(r) for r in results[:10]]
+        return [{"title": r.get("Title"), "year": r.get("Year") or "N/A"} for r in results[:6]]
     return await _omdb_get_details(results[0]["imdbID"])
 
+
+# ⚡ വെറും Title, Year മാത്രം എടുക്കുന്ന optimized OMDB function
 async def _omdb_get_details(imdb_id):
-    """Fetch full details via OMDb by IMDb ID."""
     if not OMDB_API_KEY:
         return None
     if isinstance(imdb_id, str) and imdb_id.startswith("omdb_"):
         imdb_id = imdb_id[len("omdb_"):]
     try:
-        params = {"apikey": OMDB_API_KEY, "i": imdb_id, "plot": "full" if LONG_IMDB_DESCRIPTION else "short"}
+        params = {"apikey": OMDB_API_KEY, "i": imdb_id, "plot": "short"}
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get("https://www.omdbapi.com/", params=params)
+            resp = await client.get("https://omdbapi.com", params=params)
             resp.raise_for_status()
             m = resp.json()
-    except Exception as e:
-        logger.exception(f"omdb details error: {e}")
+    except Exception:
         return None
     if not m or m.get("Response") != "True":
         return None
+    return {"title": m.get("Title", "N/A"), "year": m.get("Year", "N/A")}
 
-    plot = m.get("Plot") or "N/A"
-    if not LONG_IMDB_DESCRIPTION and plot and len(plot) > 800:
-        plot = plot[:800] + "..."
-
-    def _split(field):
-        v = m.get(field)
-        if not v or v == "N/A":
-            return "N/A"
-        return list_to_str([p.strip() for p in v.split(",")])
-
-    return {
-        'title': m.get("Title", "N/A"),
-        'votes': m.get("imdbVotes", "N/A"),
-        "aka": "N/A",
-        "seasons": m.get("totalSeasons"),
-        "box_office": m.get("BoxOffice", "N/A"),
-        'localized_title': m.get("Title", "N/A"),
-        'kind': "tv series" if m.get("Type") == "series" else "movie",
-        "imdb_id": m.get("imdbID", "N/A"),
-        "cast": _split("Actors"),
-        "runtime": m.get("Runtime", "N/A"),
-        "countries": _split("Country"),
-        "certificates": m.get("Rated", "N/A"),
-        "languages": _split("Language"),
-        "director": _split("Director"),
-        "writer": _split("Writer"),
-        "producer": "N/A",
-        "composer": "N/A",
-        "cinematographer": "N/A",
-        "music_team": "N/A",
-        "distributors": "N/A",
-        'release_date': m.get("Released", "N/A"),
-        'year': m.get("Year", "N/A"),
-        'genres': _split("Genre"),
-        'poster': _hq_poster(m.get("Poster")),
-        'plot': plot,
-        'rating': m.get("imdbRating", "N/A"),
-        'url': f"https://www.imdb.com/title/{m.get('imdbID')}/" if m.get("imdbID") else "N/A",
-        'trailers': [],  # OMDb has no trailer data
-        '_source': 'omdb',
-    }
     
 async def get_poster(query, bulk=False, id=False, file=None):
     # ── Direct ID lookups ────────────────────────────────────────────────────
