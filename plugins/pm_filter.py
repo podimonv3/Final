@@ -456,12 +456,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
             alert = alert.replace("\\n", "\n").replace("\\t", "\t")
             await query.answer(alert, show_alert=True) 
             
-    # cb_handler ഫങ്ക്ഷന്റെ ഉള്ളിലുള്ള ഫയൽ ചെക്കിങ് ഭാഗം മാത്രം:
+    # cb_handler ഫങ്ക്ഷന്റെ ഉള്ളിലുള്ള "if query.data.startswith("file"):" എന്ന ഭാഗം ഈ രീതിയിലേക്ക് മാറ്റുക:
     if query.data.startswith("file"):
         ident, file_id = query.data.split("#")
         files_ = await get_file_details(file_id)
         if not files_:
-            return await query.answer('No such file exist.')
+            return await query.answer('No such file exist.', show_alert=True)
+            
         files = files_[0]
         title = files.file_name
         size = get_size(files.file_size)
@@ -469,24 +470,29 @@ async def cb_handler(client: Client, query: CallbackQuery):
         
         if CUSTOM_FILE_CAPTION:
             try:
-                f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption, mention=query.from_user.mention)
+                f_caption = CUSTOM_FILE_CAPTION.format(
+                    file_name='' if title is None else title, 
+                    file_size='' if size is None else size, 
+                    file_caption='' if f_caption is None else f_caption, 
+                    mention=query.from_user.mention
+                )
             except Exception as e:
                 logger.exception(e)
+                
         if f_caption is None:
             f_caption = f"{title}"
             
         try:
-            # നേരിട്ട് PM-ലേക്ക് റീഡയറക്ട് ചെയ്യുന്നു (ഡാറ്റാബേസ് കോൾ ഇല്ല)
-            await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
-            return
-        except QueryIdInvalid:
-            await query.answer("This query is no longer valid.", show_alert=True)
-        except UserIsBlocked:
-            await query.answer('Unblock the bot mahn !', show_alert=True)
-        except PeerIdInvalid:
-            await query.answer(url=f"https://t.me{temp.U_NAME}?start={ident}_{file_id}")
+            # ⚡ ബോട്ടിന്റെ PM-ൽ വെച്ച് ബട്ടൺ ഞെക്കുമ്പോൾ അവിടെത്തന്നെ ഫയൽ ഡോക്യുമെന്റായി സെൻഡ് ചെയ്യുന്നു
+            await client.send_cached_media(
+                chat_id=query.message.chat.id,
+                file_id=files.file_id,
+                caption=f_caption
+            )
+            await query.answer("✅ File Sent inside Bot PM!")
         except Exception as e:
-            await query.answer(url=f"https://t.me{temp.U_NAME}?start={ident}_{file_id}")
+            logger.exception(e)
+            await query.answer("❌ Failed to send file.", show_alert=True)
 
             
                     
@@ -668,14 +674,15 @@ async def auto_filter(client, msg, spoll=False):
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
     
-    pre = 'file'  # ഫിക്സഡ് പ്രീഫിക്സ്
-    
     if not spoll:
+        # ⚡ ഗ്രൂപ്പിൽ സെർച്ച് ചെയ്യുമ്പോൾ ഒരൊറ്റ ഡൗൺലോഡ് ബട്ടൺ മാത്രം നൽകുന്നു (തുടക്കത്തിൽ 'kw_' ചേർത്തു)
         reply_markup = InlineKeyboardMarkup([[
-            InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
+            InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=kw_{key}")
         ]])
     else:
+        # ⚡ ബോട്ടിന്റെ PM-ൽ എത്തിയ ശേഷം ലിസ്റ്റ് ചെയ്യാനുള്ള ബട്ടണുകൾ
         btn = []
+        pre = 'file'
         for file in files:
             btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
 
@@ -686,7 +693,6 @@ async def auto_filter(client, msg, spoll=False):
             btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
         
         reply_markup = InlineKeyboardMarkup(btn)
-
     # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു (പരമാവധി 2.0 സെക്കൻഡ് ടൈംഔട്ട് നേരിട്ട് നൽകിയിരിക്കുന്നു)
     poster_url = None
     try:
