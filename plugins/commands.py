@@ -146,15 +146,29 @@ async def start(client, message):
             req_key = data.replace("key_", "")
             # BUTTONS-ൽ നിന്ന് ആ കീ വെച്ച് ഒറിജിനൽ സിനിമയുടെ പേര് തിരിച്ചെടുക്കുന്നു
             from plugins.pm_filter import BUTTONS, auto_filter
-            query = BUTTONS.get(req_key)
+            button_data = BUTTONS.get(req_key)
             
-            if not query:
-                # ⚡ സുരക്ഷാ മാറ്റം: യൂസർ ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിട്ടുണ്ടെങ്കിൽ കോഡ് ക്രാഷ് ആകാതിരിക്കാൻ try-except ചേർത്തു
+            # 5 മിനിറ്റ് കഴിഞ്ഞതുകൊണ്ട് മെമ്മറിയിൽ നിന്ന് ഡാറ്റ ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ ഈ ചെക്ക് പ്രവർത്തിക്കും
+            if not button_data:
                 from pyrogram.errors import UserIsBlocked
                 try:
                     await message.reply_text("<b>❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
                 except UserIsBlocked:
                     logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send search expired text.")
+                except Exception:
+                    pass
+                return
+
+            # ഡിക്ഷണറി ഫോർമാറ്റിൽ നിന്നോ പഴയ സ്ട്രിങ് ഫോർമാറ്റിൽ നിന്നോ സിനിമയുടെ പേര് മാത്രം വേർതിരിച്ചെടുക്കുന്നു
+            if isinstance(button_data, dict):
+                query = button_data.get("query")
+            else:
+                query = button_data
+
+            # പേര് കൃത്യമായി ലഭിച്ചില്ലെങ്കിലും എറർ വരാതിരിക്കാൻ
+            if not query:
+                try:
+                    await message.reply_text("<b>❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
                 except Exception:
                     pass
                 return
@@ -176,6 +190,7 @@ async def start(client, message):
         except Exception as e:
             logger.exception(e)
             return
+
 
     # ================= DYNAMIC LINK (GETFILE) REDIRECTION =================
     elif data.startswith("getfile-"):
