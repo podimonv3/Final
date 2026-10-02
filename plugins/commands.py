@@ -142,56 +142,39 @@ async def start(client, message):
     except Exception:
         pre, file_id = "", data
 
-    # ================= PM SEARCH REDIRECTION =================
+    # ================= ⚡ NEW OPTIMIZED: PM MULTIPLE BUTTONS REDIRECTION ⚡ =================
     if data.startswith("key_"):
         try:
             req_key = data.replace("key_", "")
-            # BUTTONS-ൽ നിന്ന് ആ കീ വെച്ച് ഒറിജിനൽ സിനിമയുടെ പേര് തിരിച്ചെടുക്കുന്നു
             from plugins.pm_filter import BUTTONS, auto_filter
             button_data = BUTTONS.get(req_key)
             
-            # 5 മിനിറ്റ് കഴിഞ്ഞതുകൊണ്ട് മെമ്മറിയിൽ നിന്ന് ഡാറ്റ ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ ഈ ചെക്ക് പ്രവർത്തിക്കും
             if not button_data:
-                from pyrogram.errors import UserIsBlocked
-                try:
-                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
-                except UserIsBlocked:
-                    logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send search expired text.")
-                except Exception:
-                    pass
+                try: await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                except Exception: pass
                 return
 
-            # ഡിക്ഷണറി ഫോർമാറ്റിൽ നിന്നോ പഴയ സ്ട്രിങ് ഫോർമാറ്റിൽ നിന്നോ സിനിമയുടെ പേര് മാത്രം വേർതിരിച്ചെടുക്കുന്നു
-            if isinstance(button_data, dict):
-                query = button_data.get("query")
-            else:
-                query = button_data
+            query = button_data.get("query") if isinstance(button_data, dict) else button_data
 
-            # പേര് കൃത്യമായി ലഭിച്ചില്ലെങ്കിലും എറർ വരാതിരിക്കാൻ
             if not query:
-                try:
-                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
-                except Exception:
-                    pass
+                try: await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                except Exception: pass
                 return
 
             from database.ia_filterdb import get_search_results
             files, offset, total_results = await get_search_results(query.lower(), offset=0, filter=True)
             
             if files:
+                # ⚡ ബോട്ടിന്റെ PM ചാറ്റിലേക്ക് ഫയൽ ബട്ടണുകളുടെ ലിസ്റ്റ് തനിയെ അയക്കുന്നു
                 await auto_filter(client, message, spoll=(query, files, offset, total_results))
             else:
-                from pyrogram.errors import UserIsBlocked
-                try:
-                    await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
-                except UserIsBlocked:
-                    logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send files not found text.")
-                except Exception:
-                    pass
+                try: await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
+                except Exception: pass
             return
         except Exception as e:
             logger.exception(e)
             return
+
 
 
     # ================= DYNAMIC LINK (GETFILE) REDIRECTION =================
@@ -215,49 +198,7 @@ async def start(client, message):
         except Exception as e:
             logger.exception(e)
             return
-
-
-
-        
-
-    # ================= ⚡ NEW: PM MULTIPLE BUTTONS RE-DIRECTION ⚡ =================
-    if data.startswith("kw_"):
-        try:
-            req_key = data.replace("kw_", "")
-            from plugins.pm_filter import BUTTONS, auto_filter
-            button_data = BUTTONS.get(req_key)
-            
-            if not button_data:
-                try:
-                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
-                except Exception:
-                    pass
-                return
-
-            query = button_data.get("query") if isinstance(button_data, dict) else button_data
-
-            if not query:
-                try:
-                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
-                except Exception:
-                    pass
-                return
-
-            from database.ia_filterdb import get_search_results
-            files, offset, total_results = await get_search_results(query.lower(), offset=0, filter=True)
-            
-            if files:
-                # ⚡ ബോട്ടിന്റെ PM ചാറ്റിലേക്ക് ഫയൽ ബട്ടണുകളുടെ മുഴുവൻ ലിസ്റ്റും ഓട്ടോമാറ്റിക്കായി അയക്കുന്നു
-                await auto_filter(client, message, spoll=(query, files, offset, total_results))
-            else:
-                try:
-                    await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
-                except Exception:
-                    pass
-            return
-        except Exception as e:
-            logger.exception(e)
-            return
+    
 
     # ================= FORCE SUB CHANNELS (EXISTING CODE) =================
     if REQ_CHANNEL1 and not await is_requested_one(client, message):
