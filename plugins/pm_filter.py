@@ -42,7 +42,6 @@ def _trim_dict(d: dict, max_size: int = 250):  # ഇവിടെ 1000 ആണ് 
             
 
 BUTTONS = {}
-SPELL_CHECK = {}
 
 
 @Client.on_message(filters.private & (filters.text | filters.photo | filters.video | filters.sticker) & filters.incoming)
@@ -172,90 +171,6 @@ async def give_filters(client, message):
     if k == False:
         await auto_filter(client, message)
 
-
-# 1. പ്രധാന സ്പെൽചെക്ക് ഫങ്ക്ഷൻ
-@Client.on_callback_query(filters.regex(r"^spol"))
-async def advantage_spoll_choker(bot, query):
-    _, user, movie_idx = query.data.split('#')
-    
-    # 🔐 യൂസർ വെരിഫിക്കേഷൻ
-    if int(user) and query.from_user.id != int(user):
-        return await query.answer("This is not for you!", show_alert=True)
-        
-    # ❌ സ്പെൽചെക്ക് ക്ലോസ് ചെയ്യൽ
-    if movie_idx == "close_spellcheck":
-        return await query.message.delete()
-        
-    # ⏳ യൂസറുടെ ഒറിജിനൽ റിക്വസ്റ്റ് മെസ്സേജ് ട്രാക്ക് ചെയ്യുന്നു
-    reply_to_msg = query.message.reply_to_message
-    if not reply_to_msg:
-        return await query.answer("Expired button.", show_alert=True)
-        
-    movies = SPELL_CHECK.get(reply_to_msg.id)
-    if not movies:
-        return await query.answer("Expired button.", show_alert=True)
-        
-    movie = movies[int(movie_idx)]
-    await query.answer('Searching database...')
-    
-    try: await query.message.delete()
-    except: pass
-
-    # 🔍 ഫിൽറ്ററുകൾ പരിശോധിക്കുന്നു
-    if await global_filters(bot, query.message, text=movie) == False:
-        files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
-        if files:
-            return await auto_filter(bot, query, (movie, files, offset, total_results))
-            
-        # 📌 സിനിമ ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ മിസ്സിംഗ് ലിസ്റ്റിലേക്ക് സേവ് ചെയ്യുന്നു
-        try: await save_missing_movie(movie)
-        except: pass
-
-        # 🔘 പുതിയ ബട്ടൺ ടെക്സ്റ്റുകൾ മുകളിലും ലിങ്ക് ബട്ടണുകൾ താഴെയും (2x2 Grid Layout)
-        buttons = InlineKeyboardMarkup((
-            (
-                InlineKeyboardButton("📢 Coming Soon", callback_data="alert_channel"),
-                InlineKeyboardButton("🫴 OTT വന്നിട്ടില്ല", callback_data="alert_google")
-            ),
-            (
-                InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B1%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A4-08-19"),
-                InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-            )
-        ))
-        
-        # 🖼️ മൂവി പോസ്റ്റർ ഡൈനാമിക് ചെക്കിംഗ്
-        try: photo_url = await get_any_movie_poster(movie)
-        except: photo_url = None
-
-        if not photo_url:
-            photo_url = "https://files.catbox.moe/egu0ip.jpg"
-
-        msg = None
-        # 1. ആദ്യം ലഭ്യമായ ഫോട്ടോ യൂസറുടെ മെസ്സേജിന് റിപ്ലൈ ആയി അയക്കാൻ ശ്രമിക്കുന്നു
-        try:
-            msg = await query.message.reply_photo(
-                photo=photo_url,
-                caption=script.OTT_TEXT,                    
-                reply_markup=buttons,
-                parse_mode=enums.ParseMode.HTML,
-                reply_to_message_id=reply_to_msg.id  # ↩️ ഇവിടെ ഒറിജിനൽ മെസ്സേജിന് റിപ്ലൈ നൽകുന്നു
-            )
-        except:
-            # 2. ബാക്കപ്പ് ഫോട്ടോയും ഫെയിൽ ആയാൽ നോർമൽ ടെക്സ്റ്റ് മെസ്സേജ് റിപ്ലൈ ആയി അയക്കും
-            try:
-                msg = await query.message.reply_text(
-                    text=script.OTT_TEXT, 
-                    reply_markup=buttons,
-                    parse_mode=enums.ParseMode.HTML,
-                    reply_to_message_id=reply_to_msg.id  # ↩️ ഇവിടെ ഒറിജിനൽ മെസ്സേജിന് റിപ്ലൈ നൽകുന്നു
-                )
-            except: pass
-        
-        # 🕒 60 സെക്കന്റിന് ശേഷം അലേർട്ട് മെസ്സേജ് ഓട്ടോമാറ്റിക് ആയി ഡിലീറ്റ് ചെയ്യും
-        if msg:
-            await asyncio.sleep(60)
-            try: await msg.delete()
-            except: pass
 
 # 2. "📢 Coming Soon" ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ഉള്ള അലേർട്ട്
 @Client.on_callback_query(filters.regex("^alert_channel$"))
