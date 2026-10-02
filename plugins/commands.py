@@ -152,7 +152,7 @@ async def start(client, message):
             if not button_data:
                 from pyrogram.errors import UserIsBlocked
                 try:
-                    await message.reply_text("<b>❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
                 except UserIsBlocked:
                     logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send search expired text.")
                 except Exception:
@@ -168,7 +168,7 @@ async def start(client, message):
             # പേര് കൃത്യമായി ലഭിച്ചില്ലെങ്കിലും എറർ വരാതിരിക്കാൻ
             if not query:
                 try:
-                    await message.reply_text("<b>❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
                 except Exception:
                     pass
                 return
