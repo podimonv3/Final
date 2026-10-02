@@ -880,7 +880,7 @@ async def auto_filter(client, msg, spoll=False):
     except Exception:
         fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
 
-                    
+
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text
@@ -911,60 +911,44 @@ async def advantage_spell_chok(client, msg):
     ])
 
     try:
-        # സിനിമയുടെ പേരുകൾ കണ്ടെത്താൻ നിങ്ങളുടെ പഴയ ഫങ്ക്ഷൻ തന്നെ ഉപയോഗിക്കുന്നു
+        # സിനിമയുടെ പേരുകൾ കണ്ടെത്താൻ ഒപ്റ്റിമൈസ് ചെയ്ത ഫങ്ക്ഷൻ ഉപയോഗിക്കുന്നു
         movies = await get_poster(cleaned_query, bulk=True)
     except Exception as e:
         logger.exception(e)
-        try:
-            k = await msg.reply_photo(
-                photo="https://catbox.moe",
-                caption=script.SPELL_TEXT.format(msg.from_user.mention),
-                reply_markup=google_button,
-                reply_to_message_id=msg.id,
-                parse_mode=enums.ParseMode.HTML
-            )
-        except Exception:
-            k = await msg.reply_text(
-                text=script.SPELL_TEXT.format(msg.from_user.mention), 
-                reply_markup=google_button,
-                reply_to_message_id=msg.id,
-                parse_mode=enums.ParseMode.HTML
-            )
-            
-        await asyncio.sleep(30)
+        k = await msg.reply_text(
+            text=script.SPELL_TEXT.format(msg.from_user.mention), 
+            reply_markup=google_button,
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML,
+            disable_web_page_preview=True
+        )
+        await asyncio.sleep(20)
         await k.delete()
         return
 
     if not movies:
-        try:
-            k = await msg.reply_photo(
-                photo="https://catbox.moe",
-                caption=script.SPELL_TEXT.format(msg.from_user.mention),
-                reply_markup=google_button,
-                reply_to_message_id=msg.id,
-                parse_mode=enums.ParseMode.HTML
-            )
-        except Exception:
-            k = await msg.reply_text(
-                text=script.SPELL_TEXT.format(msg.from_user.mention), 
-                reply_markup=google_button,
-                reply_to_message_id=msg.id,
-                parse_mode=enums.ParseMode.HTML
-            )
-            
-        await asyncio.sleep(40)
+        k = await msg.reply_text(
+            text=script.SPELL_TEXT.format(msg.from_user.mention), 
+            reply_markup=google_button,
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML,
+            disable_web_page_preview=True
+        )
+        await asyncio.sleep(20)
         await k.delete()
         return
 
-    # 1. ടൈറ്റിലും വർഷവും ഒരുമിച്ച് ലിസ്റ്റാക്കുന്നു (വർഷം ഇല്ലെങ്കിൽ 'N/A' എന്ന് കാണിക്കും)
-    # 1. API ക്ലാസുകളിൽ നിന്ന് ടൈറ്റിലും വർഷവും കൃത്യമായി വേർതിരിച്ച് ലിസ്റ്റാക്കുന്നു
+    # 1. ലിസ്റ്റിൽ നിന്ന് ടൈറ്റിലും വർഷവും വേർതിരിച്ചെടുക്കുന്നു
     movielist = []
     for movie in movies:
-        title = movie.get('title')
-        year = movie.get('year')
+        if isinstance(movie, dict):
+            title = movie.get('title')
+            year = movie.get('year')
+        else:
+            title = movie.get('title') if hasattr(movie, 'get') else getattr(movie, 'title', None)
+            year = movie.get('year') if hasattr(movie, 'get') else getattr(movie, 'year', None)
         
         if title:
-            # വർഷം ഉണ്ടെങ്കിൽ അതിൽ നിന്നും 4 അക്കങ്ങൾ മാത്രം (Year) വേർതിരിച്ചെടുക്കുന്നു
             if year and str(year) != "N/A":
                 year_str = re.findall(r'\b(19\d{2}|20\d{2})\b', str(year))
                 year_val = f" {year_str[0]}" if year_str else ""
@@ -976,20 +960,15 @@ async def advantage_spell_chok(client, msg):
     if not movielist:
         return
 
-    SPELL_CHECK[mv_id] = movielist
-    _trim_dict(SPELL_CHECK)
-
     # 📝 Heading ചേർക്കുന്നു
     spell_list_text = script.NO_TXT + "\n\n"
     spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n"
     
-    # 2. ആദ്യത്തെ 6 എണ്ണം പർപ്പസ്ലി പാസേമോഡ് HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
+    # സജഷനുകൾ HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
     for index, movie_name in enumerate(movielist[:4], start=1):
         spell_list_text += f"<b>{index}. {movie_name}</b>\n"
 
-
-    
-    # 🖼️ ഫോട്ടോ എടുക്കാൻ മാത്രം get_any_movie_poster ഉപയോഗിക്കുന്നു (ആദ്യത്തെ സിനിമയുടെ പേര് വച്ച്)
+    # 🖼️ ഫോട്ടോ എടുക്കാൻ get_any_movie_poster നിലനിർത്തിയിരിക്കുന്നു
     try: 
         photo_url = await get_any_movie_poster(cleaned_query)
     except Exception: 
@@ -998,8 +977,8 @@ async def advantage_spell_chok(client, msg):
     if not photo_url:
         photo_url = "https://files.catbox.moe/egu0ip.jpg"
 
+    # 📥 ഫോട്ടോ സഹിതം മറുപടി അയക്കുന്നു
     try:
-        # ഇവിടെ close_btn-ന് പകരം google_button നേരിട്ട് നൽകിയിരിക്കുന്നു
         spell_check_del = await msg.reply_photo(
             photo=photo_url,
             caption=spell_list_text,
@@ -1008,20 +987,27 @@ async def advantage_spell_chok(client, msg):
             parse_mode=enums.ParseMode.HTML
         )
     except Exception:
-        spell_check_del = await msg.reply_text(
-            text=spell_list_text,
-            reply_markup=google_button,
-            reply_to_message_id=msg.id,
-            parse_mode=enums.ParseMode.HTML
-        )
+        # ഫോട്ടോ അയക്കുന്നതിൽ എന്തെങ്കിലും തടസ്സം വന്നാൽ ബാക്കപ്പ് ആയി ടെക്സ്റ്റ് അയക്കും
+        try:
+            spell_check_del = await msg.reply_text(
+                text=spell_list_text,
+                reply_markup=google_button,
+                reply_to_message_id=msg.id,
+                parse_mode=enums.ParseMode.HTML,
+                disable_web_page_preview=True
+            )
+        except Exception:
+            return
         
-    await asyncio.sleep(50)
+    # 🕒 50 സെക്കൻഡ് കാത്തുനിൽക്കാതെ 20 സെക്കന്റിൽ മെസ്സേജ് ഡിലീറ്റ് ആകും 
+    # (ബാക്ക്ഗ്രൗണ്ടിൽ ആക്റ്റീവ് ടാസ്കുകൾ കുറയ്ക്കാനും റാം വേഗത്തിൽ ഫ്രീ ആകാനും ഇത് സഹായിക്കും)
+    await asyncio.sleep(20)
     try:
         await spell_check_del.delete()
     except Exception:
         pass
 
-            
+                               
         
 
 async def global_filters(client, message, text=False):
