@@ -28,17 +28,27 @@ import logging
 from database.requests_db import save_missing_movie, get_all_missing_movies
 import io
 from urllib.parse import quote_plus
+import time
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 
-def _trim_dict(d: dict, max_size: int = 250):  # ഇവിടെ 1000 ആണ് DEFAULT വാല്യൂ
-    """Remove oldest 20% of entries when dict exceeds max size."""
+def _trim_dict(d: dict, max_size: int = 100):
+    """5 മിനിറ്റിൽ കൂടുതൽ പഴക്കമുള്ളതോ അല്ലെങ്കിൽ ലിസ്റ്റ് ഫുൾ ആകുമ്പോഴോ ഉള്ള ഡാറ്റ നീക്കം ചെയ്യും"""
+    current_time = time.time()
+    
+    # 1. ആദ്യം 5 മിനിറ്റിൽ (300 സെക്കൻഡ്) കൂടുതൽ പഴക്കമുള്ള എല്ലാ കീകളും ഡിലീറ്റ് ചെയ്യും
+    expired_keys = [k for k, v in d.items() if (current_time - v.get('time', 0)) > 300]
+    for k in expired_keys:
+        d.pop(k, None)
+        
+    # 2. എന്നിട്ടും ലിസ്റ്റ് 100-ൽ കൂടുതൽ ആണെങ്കിൽ പഴയ 20% ഡാറ്റ കളയും
     if len(d) > max_size:
         keys_to_remove = list(d.keys())[:len(d) // 5]
         for k in keys_to_remove:
             d.pop(k, None)
+
             
 
 BUTTONS = {}
@@ -77,7 +87,8 @@ async def pm_text(bot: Client, message):
             settings = await get_settings(message.chat.id)
             pre = 'filep' if settings['file_secure'] else 'file'
             key = f"{message.chat.id}-{message.id}"
-            BUTTONS[key] = search_query
+            _trim_dict(BUTTONS) # പഴയ മെമ്മറി ഇവിടെ വെച്ച് ക്ലിയർ ചെയ്യുന്നു
+            BUTTONS[key] = {"query": search_query, "time": time.time()} # സമയവും കൂടി സേവ് ചെയ്യുന്നു
             
             # get_filter_menu_buttons ഒഴിവാക്കി ലിസ്റ്റ് ബ്ലാങ്ക് (Empty) ആക്കി മാറ്റി
             btn = []
@@ -195,7 +206,16 @@ async def next_page(bot, query):
     except ValueError:
         offset = 0
 
-    search = BUTTONS.get(key)
+    # 1. ഗ്ലോബൽ നിഘണ്ടുവിൽ നിന്ന് ഡാറ്റ ഡിക്ഷണറിയായി എടുക്കുന്നു
+    button_data = BUTTONS.get(key)
+    
+    # 5 മിനിറ്റ് കഴിഞ്ഞതുകൊണ്ട് ഡാറ്റ ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ ഈ അലേർട്ട് കാണിക്കും
+    if not button_data or not isinstance(button_data, dict):
+        await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
+        return
+
+    # 2. ഡിക്ഷണറിയിൽ നിന്ന് സെർച്ച് ക്വറി മാത്രം വേർതിരിച്ചെടുക്കുന്നു
+    search = button_data.get("query")
     if not search:
         await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
         return
@@ -661,7 +681,8 @@ async def auto_filter(client, msg, spoll=False):
         settings = await get_settings(message.chat.id)
 
     key = f"{message.chat.id}-{message.id}"
-    BUTTONS[key] = search
+    _trim_dict(BUTTONS) # പഴയ മെമ്മറി ഇവിടെ വെച്ച് ക്ലിയർ ചെയ്യുന്നു
+    BUTTONS[key] = {"query": search, "time": time.time()} # സമയവും കൂടി സേവ് ചെയ്യുന്നു
     
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
     
