@@ -11,33 +11,37 @@ from pyrogram.errors import ChatAdminRequired
 import os
 import asyncio
 
-@Client.on_message(filters.command('checkk') & filters.incoming)
+@Client.on_message(filters.command('stats') & filters.incoming)
 async def get_ststs(bot, message):
     rju = await message.reply('Fetching stats..')
-    tot = await Media.count_documents()
-    tota = await Mediaa.count_documents()
-    total = tot + tota
+    
+    # സിനിമ ഫയലുകളുടെ എണ്ണവും യൂസർ/ചാറ്റ് കൗണ്ടുകളും എടുക്കുന്നു
+    total = await Media.count_documents() 
     users = await db.total_users_count()
     chats = await db.total_chat_count()
     
+    # 🗄️ ഡാറ്റാബേസ് 1 (DATABASE_URI - Users & Chats) സൈസ് കണക്കാക്കുന്നു
     stats = await clientDB.command('dbStats')
     used_dbSize = (stats['dataSize']/(1024*1024))+(stats['indexSize']/(1024*1024))        
     free_dbSize = 512-used_dbSize
     
+    # 🗄️ ഡാറ്റാബേസ് 2 (DATABASE_URI2 - Movie Files) സൈസ് കണക്കാക്കുന്നു
     stats2 = await clientDB2.command('dbStats')
     used_dbSize2 = (stats2['dataSize']/(1024*1024))+(stats2['indexSize']/(1024*1024))
     free_dbSize2 = 512-used_dbSize2
     
-    stats3 = await clientDB3.command('dbStats')
-    used_dbSize3 = (stats3['dataSize']/(1024*1024))+(stats3['indexSize']/(1024*1024))
-    free_dbSize3 = 512-used_dbSize3
-    
+    # ഫൈനൽ ടെക്സ്റ്റിൽ രണ്ട് ഡാറ്റാബേസ് വിവരങ്ങളും കൃത്യമായി കാണിക്കുന്നു
     status_text = (
         "📊 **Bot Statistics**\n\n"
-        f"▪️ **Total Files:** {total}\n"
-        f"▪️ **Main DB Files (Media):** {tot}\n"
-        f"▪️ **DB 2 Files (Mediaa):** {tota}\n\n"
-        ...
+        f"▪️ **Total Movie Files:** {total}\n"
+        f"▪️ **Total Saved Users:** {users}\n"
+        f"▪️ **Total Saved Chats:** {chats}\n\n"
+        f"🗄 **Database 1 (Users & Filters):** {round(used_dbSize, 2)} MB / Free: {round(free_dbSize, 2)} MB\n"
+        f"🗄 **Database 2 (Movie Files DB):** {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB"
+    )
+    
+    await rju.edit(status_text)
+
 
 
 
