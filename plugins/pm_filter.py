@@ -211,7 +211,7 @@ async def next_page(bot, query):
     
     # 5 മിനിറ്റ് കഴിഞ്ഞതുകൊണ്ട് ഡാറ്റ ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ ഈ അലേർട്ട് കാണിക്കും
     if not button_data or not isinstance(button_data, dict):
-        await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
+        await query.answer("Expired ,send request again🚫വീണ്ടും ഗ്രൂപ്പിൽ സെർച്ച്‌ ചെയ്യുക✅", show_alert=True)
         return
 
     # 2. ഡിക്ഷണറിയിൽ നിന്ന് സെർച്ച് ക്വറി മാത്രം വേർതിരിച്ചെടുക്കുന്നു
@@ -268,9 +268,9 @@ async def next_page(bot, query):
     except MessageNotModified:
         await query.answer()
     except MessageIdInvalid:
-        await query.answer("ഈ സെർച്ച് മെനു കാലാവധി കഴിഞ്ഞതോ ഡിലീറ്റ് ചെയ്യപ്പെട്ടതോ ആണ്. ദയവായി വീണ്ടും സെർച്ച് ചെയ്യുക!", show_alert=True)
+        await query.answer("Expired 🚫 Search Again കാലാവധി കഴിഞ്ഞു വീണ്ടും സെർച്ച് ചെയ്യുക!", show_alert=True)
     except FloodWait as e:
-        await query.answer(f"വളരെ വേഗത്തിലാണ്! ദയവായി {e.value} സെക്കൻഡ് കാത്തിരിക്കൂ.", show_alert=True)
+        await query.answer(f"Slow Down Over Speed! ദയവായി {e.value} സെക്കൻഡ് കാത്തിരിക്കൂ.", show_alert=True)
 
 
 @Client.on_callback_query()
