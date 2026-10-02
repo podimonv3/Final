@@ -565,13 +565,18 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
     
     elif query.data == "stats":
+        # 🔐 അഡ്മിൻ സുരക്ഷാ ചെക്ക്
+        if query.from_user.id not in ADMINS:
+            return await query.answer("❌ This feature is restricted to Bot Admins only!", show_alert=True)
+            
         buttons = [[
             InlineKeyboardButton('ʙᴀᴄᴋ', callback_data='start')           
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)        
         
-        tot = await Media.count_documents()
-        tota = await Mediaa.count_documents()
+        # ⚡ വേഗതയേറിയ റാം-ഫ്രണ്ട്‌ലി ഫയൽ കൗണ്ടിംഗ്
+        tot = await Media.collection.estimated_document_count()
+        tota = await Mediaa.collection.estimated_document_count()
         total = tot + tota
         users = await db.total_users_count()
         chats = await db.total_chat_count()
@@ -588,7 +593,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         used_dbSize3 = (stats3['dataSize']/(1024*1024))+(stats3['indexSize']/(1024*1024))
         free_dbSize3 = 512-used_dbSize3        
 
-        # 🖥️ Koyeb CPU, RAM & Disk കണക്കുകൾ എടുക്കുന്നു
+        # 🖥️ Koyeb CPU, RAM & Disk കണക്കുകൾ തിരികെ ചേർത്തു
         import psutil
         import shutil
         
@@ -602,7 +607,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         disk_usage = round((used_d / total_d) * 100, 2)
         
         stats_text = (
-            "📊 <b>Bot Statistics</b>\n\n"
+            "📊 <b>Bot Statistics (Admin Only)</b>\n\n"
             f"▪️ Total Files: {total}\n"
             f"▪️ Main DB Files (Media): {tot}\n"
             f"▪️ DB 2 Files (Mediaa): {tota}\n\n"
@@ -617,21 +622,12 @@ async def cb_handler(client: Client, query: CallbackQuery):
             f"💽 Disk Space: {disk_usage}%\n"
         )
         
-        # 🛠️ എറർ ഒഴിവാക്കാനായി വരുത്തിയ മാറ്റം:
         try:
-            # മീഡിയ മെസ്സേജ് ആണെങ്കിൽ അതിന്റെ ക്യാപ്ഷൻ എഡിറ്റ് ചെയ്യുന്നു
-            await query.message.edit_caption(
-                caption=stats_text,
-                reply_markup=reply_markup,
-                parse_mode=enums.ParseMode.HTML
-            )
+            await query.message.edit_caption(caption=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
         except Exception:
-            # അതല്ലെങ്കിൽ സാധാരണ പോലെ ടെക്സ്റ്റ് എഡിറ്റ് ചെയ്യുന്നു
-            await query.message.edit_text(
-                text=stats_text,
-                reply_markup=reply_markup,
-                parse_mode=enums.ParseMode.HTML
-            )
+            await query.message.edit_text(text=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
+
+
 
 
 
