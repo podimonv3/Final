@@ -68,7 +68,6 @@ async def pm_text(bot: Client, message):
         if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
             await asyncio.sleep(0.5)
-            # തെറ്റായ ഫോർമാറ്റ് ആണെങ്കിൽ കാണിക്കുന്ന മെസ്സേജ് (ഇനി ഇത് തനിയെ ഡിലീറ്റ് ആകില്ല)
             await message.reply_text(
                 text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9D%E0%B4%A8%E0%B4%A4-08-19")]])
@@ -85,19 +84,18 @@ async def pm_text(bot: Client, message):
         if files:
             files_found = True
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-            settings = await get_settings(message.chat.id)
-            pre = 'filep' if settings['file_secure'] else 'file'
-            key = f"{message.chat.id}-{message.id}"
-            _trim_dict(BUTTONS) # പഴയ മെമ്മറി ഇവിടെ വെച്ച് ക്ലിയർ ചെയ്യുന്നു
-            BUTTONS[key] = {"query": search_query, "time": time.time()} # സമയവും കൂടി സേവ് ചെയ്യുന്നു
             
-            # get_filter_menu_buttons ഒഴിവാക്കി ലിസ്റ്റ് ബ്ലാങ്ക് (Empty) ആക്കി മാറ്റി
+            # settings ഒഴിവാക്കി ഫിക്സഡ് പ്രീഫിക്സ് നൽകി
+            pre = 'file' 
+            key = f"{message.chat.id}-{message.id}"
+            _trim_dict(BUTTONS) 
+            BUTTONS[key] = {"query": search_query, "time": time.time()} 
+            
             btn = []
 
-            if settings["button"]:
-                for file in files[:10]: btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
-            else:
-                for file in files[:10]: btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
+            # Standard Single Button Format ഫിക്സ് ചെയ്തു (ഡാറ്റാബേസ് കോൾ ഇല്ല)
+            for file in files[:10]: 
+                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
 
             if total_results > 10:
                 btn.append([InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")])
@@ -109,7 +107,6 @@ async def pm_text(bot: Client, message):
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
         await asyncio.sleep(0.5)
 
-        # സിനിമ കിട്ടിയില്ലെങ്കിൽ സബ്മിറ്റ് ആയി എന്ന് കാണിക്കുന്ന മെസ്സേജ് (ഇതും ഇനി തനിയെ ഡിലീറ്റ് ആകില്ല)
         await message.reply_text(
             text="<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",
             reply_markup=InlineKeyboardMarkup([
@@ -119,7 +116,7 @@ async def pm_text(bot: Client, message):
         )
 
         log_reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]])
-        log_text = f"<b>#PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
+        log_text = f"<b>#PM_MSG\n\nNᴀᴍE : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢE :</b> <code>{content}</code>\n\n#id{user_id}"
 
         try:
             if message.photo:
@@ -207,15 +204,11 @@ async def next_page(bot, query):
     except ValueError:
         offset = 0
 
-    # 1. ഗ്ലോബൽ നിഘണ്ടുവിൽ നിന്ന് ഡാറ്റ ഡിക്ഷണറിയായി എടുക്കുന്നു
     button_data = BUTTONS.get(key)
-    
-    # 5 മിനിറ്റ് കഴിഞ്ഞതുകൊണ്ട് ഡാറ്റ ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ ഈ അലേർട്ട് കാണിക്കും
     if not button_data or not isinstance(button_data, dict):
         await query.answer("Expired ,send request again🚫വീണ്ടും ഗ്രൂപ്പിൽ സെർച്ച്‌ ചെയ്യുക✅", show_alert=True)
         return
 
-    # 2. ഡിക്ഷണറിയിൽ നിന്ന് സെർച്ച് ക്വറി മാത്രം വേർതിരിച്ചെടുക്കുന്നു
     search = button_data.get("query")
     if not search:
         await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
@@ -232,9 +225,8 @@ async def next_page(bot, query):
         await query.answer("no files", show_alert=True)
         return
 
-    settings = await get_settings(query.message.chat.id)
     btn = []
-    pre = 'filep' if settings['file_secure'] else 'file'
+    pre = 'file'  # ഫിക്സഡ് പ്രീഫിക്സ്
 
     for file in files:
         btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
@@ -464,6 +456,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             alert = alert.replace("\\n", "\n").replace("\\t", "\t")
             await query.answer(alert, show_alert=True) 
             
+    # cb_handler ഫങ്ക്ഷന്റെ ഉള്ളിലുള്ള ഫയൽ ചെക്കിങ് ഭാഗം മാത്രം:
     if query.data.startswith("file"):
         ident, file_id = query.data.split("#")
         files_ = await get_file_details(file_id)
@@ -474,34 +467,27 @@ async def cb_handler(client: Client, query: CallbackQuery):
         size = get_size(files.file_size)
         f_caption = files.file_name
         
-        # ⬇️ എറർ വരാതിരിക്കാൻ ഈ 2 വരികൾ പകരം ചേർക്കുക ⬇️
-        chat_id = query.message.chat.id if (query.message and query.message.chat) else query.from_user.id
-        settings = await get_settings(chat_id)
         if CUSTOM_FILE_CAPTION:
             try:
                 f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption, mention=query.from_user.mention)
             except Exception as e:
                 logger.exception(e)
-            f_caption = f_caption
         if f_caption is None:
             f_caption = f"{title}"
             
-        # ബട്ടണുകൾ ഉണ്ടായിരുന്ന ഭാഗം ഒഴിവാക്കി നേരിട്ട് PM-ലേക്ക് റീഡയറക്ട് ചെയ്യുന്നു
         try:
-            if settings['botpm']:
-                await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
-                return
-            else:
-                await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
-                return
+            # നേരിട്ട് PM-ലേക്ക് റീഡയറക്ട് ചെയ്യുന്നു (ഡാറ്റാബേസ് കോൾ ഇല്ല)
+            await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
+            return
         except QueryIdInvalid:
             await query.answer("This query is no longer valid.", show_alert=True)
         except UserIsBlocked:
             await query.answer('Unblock the bot mahn !', show_alert=True)
         except PeerIdInvalid:
-            await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
+            await query.answer(url=f"https://t.me{temp.U_NAME}?start={ident}_{file_id}")
         except Exception as e:
-            await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
+            await query.answer(url=f"https://t.me{temp.U_NAME}?start={ident}_{file_id}")
+
             
                     
     elif query.data == "pages":
@@ -579,10 +565,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.edit_text(text=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
 
 
+
+
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
-        settings = await get_settings(message.chat.id)
         if message.text.startswith("/"): return
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
 
@@ -612,8 +599,6 @@ async def auto_filter(client, msg, spoll=False):
                 except Exception:
                     return
         else:
-            chat_id = msg.chat.id if hasattr(msg, "chat") and msg.chat else (msg.message.chat.id if hasattr(msg, "message") and msg.message else msg.from_user.id)
-            settings = await get_settings(chat_id)
             return
     else:
         if hasattr(msg, "message") and msg.message:
@@ -622,81 +607,51 @@ async def auto_filter(client, msg, spoll=False):
             message = msg
             
         search, files, offset, total_results = spoll
-        settings = await get_settings(message.chat.id)
 
     key = f"{message.chat.id}-{message.id}"
-    _trim_dict(BUTTONS) # പഴയ മെമ്മറി ഇവിടെ വെച്ച് ക്ലിയർ ചെയ്യുന്നു
-    BUTTONS[key] = {"query": search, "time": time.time()} # സമയവും കൂടി സേവ് ചെയ്യുന്നു
+    _trim_dict(BUTTONS) 
+    BUTTONS[key] = {"query": search, "time": time.time()} 
     
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
-    
-    combined_file_names = ""
-    print_check_text = ""
-    
-    # ⚡ ബോട്ട് അൾട്രാ സ്പീഡ് ആകാൻ ആദ്യത്തെ 5 ഫയലുകൾ മാത്രം ലൂപ്പ് ചെയ്യുന്നു
-    if files and isinstance(files, list):
-        for index, file in enumerate(files[:5]):
-            if hasattr(file, 'file_name') and file.file_name:
-                combined_file_names += " " + file.file_name.lower()
-                print_check_text += " " + file.file_name.lower()
+    print_check_text = " ".join([file.file_name.lower() for file in files[:5] if hasattr(file, 'file_name') and file.file_name])
 
-    if not year_match and combined_file_names:
-        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', combined_file_names)
+    if not year_match and print_check_text:
+        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', print_check_text)
     
-    detected_year = year_match[0] if year_match else ""
+    detected_year = year_match if year_match else ""
     movie_year = f" ({detected_year})" if detected_year else ""
     
     languages_found = []
     qualities_found = []
 
-    if combined_file_names:
-        full_text_lower = combined_file_names + " " + search.lower()
+    if print_check_text:
+        full_text_lower = print_check_text + " " + search.lower()
         
-        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
-        if re.search(r'\b(malayalam|mal)\b', full_text_lower):
-            languages_found.append("#Malayalam")
-        if re.search(r'\b(tamil|tam)\b', full_text_lower):
-            languages_found.append("#Tamil")
-        if re.search(r'\b(telugu|tel)\b', full_text_lower):
-            languages_found.append("#Telugu")
-        if re.search(r'\b(hindi|hin)\b', full_text_lower):
-            languages_found.append("#Hindi")
-        if re.search(r'\b(english|eng)\b', full_text_lower):
-            languages_found.append("#English")
-        if re.search(r'\b(kannada|kan)\b', full_text_lower):
-            languages_found.append("#Kannada")
-        if re.search(r'\b(marathi|mar)\b', full_text_lower):
-            languages_found.append("#Marathi")
-        if re.search(r'\b(bengali|ben)\b', full_text_lower):
-            languages_found.append("#Bengali")
-        if re.search(r'\b(odia|ori)\b', full_text_lower):
-            languages_found.append("#Odia")
-        if re.search(r'\b(multi|audio|dual)\b', full_text_lower):
-            languages_found.append("#Multi_Audio")
+        lang_map = {
+            'malayalam': '#Malayalam', 'mal': '#Malayalam', 'tamil': '#Tamil', 'tam': '#Tamil',
+            'telugu': '#Telugu', 'tel': '#Telugu', 'hindi': '#Hindi', 'hin': '#Hindi',
+            'english': '#English', 'eng': '#English', 'kannada': '#Kannada', 'kan': '#Kannada',
+            'marathi': '#Marathi', 'mar': '#Marathi', 'bengali': '#Bengali', 'ben': '#Bengali',
+            'odia': '#Odia', 'ori': '#Odia', 'multi': '#Multi_Audio', 'audio': '#Multi_Audio', 'dual': '#Multi_Audio'
+        }
+        for l_key, l_val in lang_map.items():
+            if l_key in full_text_lower and l_val not in languages_found:
+                languages_found.append(l_val)
 
-        # 2. ക്വാളിറ്റികൾ ചെക്ക് ചെയ്യുന്നു
-        if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower):
-            qualities_found.append("#4K_UHD")
-        if re.search(r'\b(1080p|1080)\b', full_text_lower):
-            qualities_found.append("#1080p")
-        if re.search(r'\b(720p|720)\b', full_text_lower):
-            qualities_found.append("#720p")
-        if re.search(r'\b(480p|480)\b', full_text_lower):
-            qualities_found.append("#480p")
-        if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower):
-            qualities_found.append("#BluRay")
-        if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
-            qualities_found.append("#WEB-DL")
+        if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower): qualities_found.append("#4K_UHD")
+        if re.search(r'\b(1080p|1080)\b', full_text_lower): qualities_found.append("#1080p")
+        if re.search(r'\b(720p|720)\b', full_text_lower): qualities_found.append("#720p")
+        if re.search(r'\b(480p|480)\b', full_text_lower): qualities_found.append("#480p")
+        if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower): qualities_found.append("#BluRay")
+        if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower): qualities_found.append("#WEB-DL")
             
         if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not re.search(r'\b(hdtc)\b', full_text_lower):
             if not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
                 qualities_found.append("#HD")
 
-    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു
     detected_print = "#HD_Original" 
-    if print_check_text:
-        if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
-            detected_print = "#Theater_Print_⚠️"
+    if print_check_text and re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
+        detected_print = "#Theater_Print_⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
@@ -713,25 +668,19 @@ async def auto_filter(client, msg, spoll=False):
         f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
     )
     
+    pre = 'file'  # ഫിക്സഡ് പ്രീഫിക്സ്
+    
     if not spoll:
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
         ]])
     else:
         btn = []
-        pre = 'filep' if settings['file_secure'] else 'file'
-        
-        if settings["button"]:
-            for file in files:
-                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
-        else:
-            for file in files:
-                btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
+        for file in files:
+            btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
 
-        if (offset != ""):
-            try: offset = int(offset)
-            except ValueError: offset = 0
-        else: offset = 0
+        try: offset = int(offset) if offset else 0
+        except ValueError: offset = 0
 
         if offset > 0:
             btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
@@ -759,8 +708,8 @@ async def auto_filter(client, msg, spoll=False):
             fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
     except Exception:
         fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
-
-
+        
+                    
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text
