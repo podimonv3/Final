@@ -535,29 +535,28 @@ async def cb_handler(client: Client, query: CallbackQuery):
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)        
         
-        # ⚡ വേഗതയേറിയ റാം-ഫ്രണ്ട്‌ലി ഫയൽ കൗണ്ടിംഗ് (Media കളക്ഷൻ മാത്രം)
         total = await Media.collection.estimated_document_count()
         users = await db.total_users_count()
         chats = await db.total_chat_count()
         
+        # Database 1 Size
         stats = await clientDB.command('dbStats')
         used_dbSize = (stats['dataSize']/(1024*1024))+(stats['indexSize']/(1024*1024))        
         free_dbSize = 512-used_dbSize
         
+        # Database 2 Size
         stats2 = await clientDB2.command('dbStats')
         used_dbSize2 = (stats2['dataSize']/(1024*1024))+(stats2['indexSize']/(1024*1024))
         free_dbSize2 = 512-used_dbSize2
         
-        # 🖥️ Koyeb CPU, RAM & Disk കണക്കുകൾ
+        # Koyeb Server Status
         import psutil
         import shutil
-        
         cpu_usage = psutil.cpu_percent(interval=0.1)
         ram = psutil.virtual_memory()
         ram_usage = ram.percent
         ram_used_mb = round(ram.used / (1024 * 1024), 2)
         ram_total_mb = round(ram.total / (1024 * 1024), 2)
-        
         total_d, used_d, free_d = shutil.disk_usage("/")
         disk_usage = round((used_d / total_d) * 100, 2)
         
@@ -566,8 +565,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
             f"▪️ Total Files: {total}\n"
             f"▪️ Total Users: {users}\n"
             f"▪️ Total Chats: {chats}\n\n"
-            f"🗄 Database 1 Size: {round(used_dbSize, 2)} MB / Free: {round(free_dbSize, 2)} MB\n"
-            f"🗄 Database 2 Size: {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB\n\n"
+            f"🗄 <b>Database 1 (Users DB):</b> {round(used_dbSize, 2)} MB / Free: {round(free_dbSize, 2)} MB\n"
+            f"🗄 <b>Database 2 (Movies DB):</b> {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB\n\n"
             f"🖥 <b>Koyeb Server Status:</b>\n"
             f"⚙️ CPU Usage: {cpu_usage}%\n"
             f"🧠 RAM Usage: {ram_usage}% ({ram_used_mb} MB / {ram_total_mb} MB)\n"
