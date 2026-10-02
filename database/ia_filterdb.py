@@ -251,8 +251,8 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     cursor_mediaa = Mediaa.find(filter_dict).sort([('file_name', 1)])
 
     # Koyeb സെർവർ റാം ക്രാഷ് ആകാതിരിക്കാൻ ലിമിറ്റ് 120 ആയി നിലനിർത്തുന്നു
-    files_media = await cursor_media.to_list(length=150)
-    files_mediaa = await cursor_mediaa.to_list(length=150)
+    files_media = await cursor_media.to_list(length=200)
+    files_mediaa = await cursor_mediaa.to_list(length=200)
 
     interleaved_files = []
     index_media1 = index_media2 = 0
