@@ -92,7 +92,7 @@ TAGS = [
     "@Cinema_Kottaka", "@cinema library", "@CKMovies", "@CK_HEVC", "@CK_Moviez", "@CelluloidCineClub", " @colorkannadi_movies", "@C_V", "@CVM", "@DailyMovieZhunt", "@desimovies", "@DM_LinkZzzz",
     "@DMovies", "@DramaOST", "@Dubbedmovies", " @DVDWOALL", "@DvdWap", "@E4E", "@E4E_Rockers", "@FBM_x265", "@FBM_HW", "@FBM_New", "@FILIMHOUSE",
     "@FilmCage", "@Film_Kottaka", "@FrediesChannel", "@HEVC_Cinemaz",
-    "@HEVC_Moviesz", "@Hk", "@IndianMoviez", "@KBO", "@KD_Deck", "@KGRockers",
+    "@HEVC_Moviesz", "@HOREK_ROKOM", "@Hk", "@IndianMoviez", "@KBO", "@KD_Deck", "@KGRockers",
     "@KW", "@KR", "@KannadaWarriors", "@KeralaBoxOffice", "@KL_ROCKERZ", "@Links2U", "@Linkz_MM", "@ᒪᕈT",
     "@M_Zone", "@mobile_mm", "Malayalam_Full_Movie", "@malayalam movies", "@MAASFILE", "@MC", "@MC_4U", "@MinaKaze", "@MJ_Linkz", "@MJ_Moviez", "@MM", "@MM_Movies", "@MM_Linkz",
     "@MM_NEW", "@MM_ALL", "@MM_TvSeries", "@MOVIEHUNT", "@MOVIEZMOB", "@MPC", "@MalluRockers",
