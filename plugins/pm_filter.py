@@ -675,9 +675,9 @@ async def auto_filter(client, msg, spoll=False):
     )
     
     if not spoll:
-        # ⚡ ഗ്രൂപ്പിൽ സെർച്ച് ചെയ്യുമ്പോൾ ഒരൊറ്റ ഡൗൺലോഡ് ബട്ടൺ മാത്രം നൽകുന്നു (തുടക്കത്തിൽ 'kw_' ചേർത്തു)
+        # ⚡ പഴയതുപോലെ 'key_' എന്ന് തന്നെ നിലനിർത്തി, സ്പീഡ് കൂട്ടാനുള്ള മാറ്റങ്ങൾ വരുത്തി
         reply_markup = InlineKeyboardMarkup([[
-            InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=kw_{key}")
+            InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
         ]])
     else:
         # ⚡ ബോട്ടിന്റെ PM-ൽ എത്തിയ ശേഷം ലിസ്റ്റ് ചെയ്യാനുള്ള ബട്ടണുകൾ
