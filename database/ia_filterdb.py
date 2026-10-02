@@ -8,13 +8,13 @@ from pymongo.errors import DuplicateKeyError
 from umongo import Instance, Document, fields
 from motor.motor_asyncio import AsyncIOMotorClient
 from marshmallow.exceptions import ValidationError
-from info import DATABASE_URI, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, TAGS
+from info import DATABASE_URI2, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, TAGS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# ഒരൊറ്റ മംഗോഡിബി കണക്ഷൻ മാത്രം നിലനിർത്തുന്നു
-client = AsyncIOMotorClient(DATABASE_URI)
+# ഫയലുകൾ സൂക്ഷിക്കാൻ DATABASE_URI2 ഉപയോഗിക്കുന്നു
+client = AsyncIOMotorClient(DATABASE_URI2)
 db = client[DATABASE_NAME]
 instance = Instance.from_db(db)
 
