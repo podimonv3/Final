@@ -17,7 +17,8 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 from pyrogram import Client, filters, enums
 from utils import get_size, is_subscribed, temp, get_settings, save_group_settings, is_requested_one, is_requested_two, get_any_movie_poster, get_poster
 from database.users_chats_db import db
-from database.ia_filterdb import Media, Mediaa, get_bad_files, get_file_details, get_search_results, db as clientDB, db1 as clientDB2, db2 as clientDB3
+# Mediaa, clientDB3 എന്നിവ ഒഴിവാക്കി
+from database.ia_filterdb import Media, get_bad_files, get_file_details, get_search_results, db as clientDB, db1 as clientDB2
 from database.filters_mdb import (
     del_all,
     find_filter,
@@ -502,47 +503,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         except Exception as e:
             await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
             
-    
-
-    elif query.data.startswith("killfilesdq"):
-        ident, keyword = query.data.split("#")
-        await query.message.edit_text(f"<b>Fᴇᴛᴄʜɪɴɢ Fɪʟᴇs ғᴏʀ ʏᴏᴜʀ ᴏ̨ᴜᴇʀʏ {keyword} ᴏɴ DB... Pʟᴇᴀsᴇ ᴡᴀɪᴛ...</b>")
-        files_media1, files_media2, total_media = await get_bad_files(keyword)        
-        await query.message.edit_text(f"<b>Fᴏᴜɴᴅ {total_media} Fɪʟᴇs ғᴏʀ ʏᴏᴜʀ ᴏ̨ᴜᴇʀʏ {keyword} !\n\nFɪʟᴇ ᴅᴇʟᴇᴛɪᴏɴ ᴘʀᴏᴄᴇss ᴡɪʟʟ sᴛᴀʀᴛ ɪɴ 5 sᴇᴄᴏɴᴅs!</b>")
-        await asyncio.sleep(5)
-        deleted = 0
-        async with lock:
-            try:
-                # Delete files from Media collection
-                for file in files_media1:
-                    file_ids = file.file_id
-                    file_name = file.file_name
-                    result = await Media.collection.delete_one({
-                        '_id': file_ids,
-                    })
-                    if result.deleted_count:
-                        logger.info(f'Fɪʟᴇ Fᴏᴜɴᴅ ғᴏʀ ʏᴏᴜʀ ᴏ̨ᴜᴇʀʏ {keyword}! Sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {file_name} ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ.')
-                    deleted += 1
-                    if deleted % 100 == 0:
-                        await query.message.edit_text(f"<b>Pʀᴏᴄᴇss sᴛᴀʀᴛᴇᴅ ғᴏʀ ᴅᴇʟᴇᴛɪɴɢ ғɪʟᴇs ғʀᴏᴍ DB. Sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {str(deleted)} ғɪʟᴇs ғʀᴏᴍ DB ғᴏʀ ʏᴏᴜʀ ᴏ̨ᴜᴇʀʏ {keyword} !\n\nPʟᴇᴀsᴇ ᴡᴀɪᴛ...</b>")
-                # Delete files from Mediaa collection
-                for file in files_media2:
-                    file_ids = file.file_id
-                    file_name = file.file_name
-                    result = await Mediaa.collection.delete_one({
-                        '_id': file_ids,
-                    })
-                    if result.deleted_count:
-                        logger.info(f'Fɪʟᴇ Fᴏᴜɴᴅ ғᴏʀ ʏᴏᴜʀ ᴏ̨ᴜᴇʀʏ {keyword}! Sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {file_name} ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ.')
-                    deleted += 1
-                    if deleted % 100 == 0:
-                        await query.message.edit_text(f"<b>Pʀᴏᴄᴇss sᴛᴀʀᴛᴇᴅ ғᴏʀ ᴅᴇʟᴇᴛɪɴɢ ғɪʟᴇs ғʀᴏᴍ DB. Sᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {str(deleted)} ғɪʟᴇs ғʀᴏᴍ DB ғᴏʀ ʏᴏᴜʀ ᴏ̨ᴜᴇʀʏ {keyword} !\n\nPʟᴇᴀsᴇ ᴡᴀɪᴛ...</b>")
-            except Exception as e:
-                logger.exception
-                await query.message.edit_text(f'Eʀʀᴏʀ: {e}')
-            else:
-                await query.message.edit_text(f"<b>Pʀᴏᴄᴇss Cᴏᴍᴘʟᴇᴛᴇᴅ ғᴏʀ ғɪʟᴇ ᴅᴇʟᴇᴛɪᴏɴ !\n\nSᴜᴄᴄᴇssғᴜʟʟʏ ᴅᴇʟᴇᴛᴇᴅ {str(deleted)} ғɪʟᴇs ғʀᴏᴍ DB ғᴏʀ ʏᴏᴜʀ ᴏ̨ᴜᴇʀʏ {keyword}.</b>")
-            
+                    
     elif query.data == "pages":
         await query.answer()
     
@@ -574,10 +535,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)        
         
-        # ⚡ വേഗതയേറിയ റാം-ഫ്രണ്ട്‌ലി ഫയൽ കൗണ്ടിംഗ്
-        tot = await Media.collection.estimated_document_count()
-        tota = await Mediaa.collection.estimated_document_count()
-        total = tot + tota
+        # ⚡ വേഗതയേറിയ റാം-ഫ്രണ്ട്‌ലി ഫയൽ കൗണ്ടിംഗ് (Media കളക്ഷൻ മാത്രം)
+        total = await Media.collection.estimated_document_count()
         users = await db.total_users_count()
         chats = await db.total_chat_count()
         
@@ -589,11 +548,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         used_dbSize2 = (stats2['dataSize']/(1024*1024))+(stats2['indexSize']/(1024*1024))
         free_dbSize2 = 512-used_dbSize2
         
-        stats3 = await clientDB3.command('dbStats')
-        used_dbSize3 = (stats3['dataSize']/(1024*1024))+(stats3['indexSize']/(1024*1024))
-        free_dbSize3 = 512-used_dbSize3        
-
-        # 🖥️ Koyeb CPU, RAM & Disk കണക്കുകൾ തിരികെ ചേർത്തു
+        # 🖥️ Koyeb CPU, RAM & Disk കണക്കുകൾ
         import psutil
         import shutil
         
@@ -609,13 +564,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
         stats_text = (
             "📊 <b>Bot Statistics (Admin Only)</b>\n\n"
             f"▪️ Total Files: {total}\n"
-            f"▪️ Main DB Files (Media): {tot}\n"
-            f"▪️ DB 2 Files (Mediaa): {tota}\n\n"
             f"▪️ Total Users: {users}\n"
             f"▪️ Total Chats: {chats}\n\n"
             f"🗄 Database 1 Size: {round(used_dbSize, 2)} MB / Free: {round(free_dbSize, 2)} MB\n"
-            f"🗄 Database 2 Size: {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB\n"
-            f"🗄 Database 3 Size: {round(used_dbSize3, 2)} MB / Free: {round(free_dbSize3, 2)} MB\n\n"
+            f"🗄 Database 2 Size: {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB\n\n"
             f"🖥 <b>Koyeb Server Status:</b>\n"
             f"⚙️ CPU Usage: {cpu_usage}%\n"
             f"🧠 RAM Usage: {ram_usage}% ({ram_used_mb} MB / {ram_total_mb} MB)\n"
@@ -626,9 +578,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.message.edit_caption(caption=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
         except Exception:
             await query.message.edit_text(text=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
-
-
-
 
 
 async def auto_filter(client, msg, spoll=False):
