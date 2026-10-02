@@ -897,7 +897,7 @@ async def advantage_spell_chok(client, msg):
     spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n"
     
     # സജഷനുകൾ HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
-    for index, movie_name in enumerate(movielist[:4], start=1):
+    for index, movie_name in enumerate(movielist[:10], start=1):
         spell_list_text += f"<b>{index}. {movie_name}</b>\n"
 
     # 🖼️ ഫോട്ടോ എടുക്കാൻ get_any_movie_poster നിലനിർത്തിയിരിക്കുന്നു
