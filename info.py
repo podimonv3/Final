@@ -41,7 +41,7 @@ API_HASH = environ.get("API_HASH", "c4b3e298cc50fd4cc563ae75ee882948")
 BOT_TOKEN = environ.get("BOT_TOKEN", "7466979295:AAG6UlB81Q7COPbHprOSvGmJ4DxILjW-VW4")
 
 # Bot settings
-CACHE_TIME = int(environ.get('CACHE_TIME', 300))
+CACHE_TIME = int(environ.get('CACHE_TIME', 60))
 USE_CAPTION_FILTER = bool(environ.get('USE_CAPTION_FILTER', False))
 PICS = (environ.get('PICS', 'https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph')).split()
 
@@ -196,7 +196,7 @@ TAGS = [
 ]
 # Others
 LONG_IMDB_DESCRIPTION = is_enabled(environ.get("LONG_IMDB_DESCRIPTION", "False"), False)
-MAX_LIST_ELM = environ.get("MAX_LIST_ELM", None)
+MAX_LIST_ELM = int(environ.get("MAX_LIST_ELM", 5))
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', "-1002332361885"))
 DELETE_CHANNELS = [int(dch) if id_pattern.match(dch) else dch for dch in environ.get('DELETE_CHANNELS', '-1002354592029').split()]
 SUPPORT_CHAT = environ.get('SUPPORT_CHAT', 'mcumovies')
