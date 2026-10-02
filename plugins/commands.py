@@ -11,7 +11,8 @@ from pyrogram.errors import ChatAdminRequired, FloodWait, MessageDeleteForbidden
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from asyncio import sleep
 from pyrogram.enums import ChatType
-from database.ia_filterdb import Media, Mediaa, get_file_details, unpack_new_file_id, delete_files_below_threshold
+# Mediaa, clientDB3 എന്നിവ ഒഴിവാക്കി
+from database.ia_filterdb import Media, db as clientDB, db1 as clientDB2 
 from database.users_chats_db import db
 from info import CHANNELS, ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, LOG_CHANNEL, PICS, BATCH_FILE_CAPTION, CUSTOM_FILE_CAPTION, PROTECT_CONTENT, DATABASE_URI, DATABASE_NAME
 from utils import get_settings, get_size, is_subscribed, is_requested_one, is_requested_two, save_group_settings, temp, check_loop_sub, check_loop_sub1, check_loop_sub2
@@ -595,26 +596,15 @@ async def delete(bot, message):
     
     file_id, file_ref = unpack_new_file_id(media.file_id)
 
-    # Check if the file exists in Media collection
+    # Mediaa സിസ്റ്റം മാറ്റിയത്
     result_media = await Media.collection.find_one({'_id': file_id})
 
-    # Check if the file exists in Mediaa collection
-    result_mediaa = await Mediaa.collection.find_one({'_id': file_id})   
-
-    if result_media and result_mediaa:
-        await Media.collection.delete_one({'_id': file_id})
-        await Mediaa.collection.delete_one({'_id': file_id})
-        
     if result_media:
-        # Delete from Media collection
         await Media.collection.delete_one({'_id': file_id})
-    elif result_mediaa:
-        # Delete from Mediaa collection
-        await Mediaa.collection.delete_one({'_id': file_id})
     else:
-        # File not found in both collections
         await msg.edit('File not found in the database')
         return
+
 
     await msg.edit('File is successfully deleted from the database')
 
@@ -644,9 +634,9 @@ async def delete_all_index(bot, message):
 @Client.on_callback_query(filters.regex(r'^autofilter_delete'))
 async def delete_all_index_confirm(bot, message):
     await Media.collection.drop()
-    await Mediaa.collection.drop()
     await message.answer('Piracy Is Crime')
     await message.message.edit('Succesfully Deleted All The Indexed Files.')
+
 
 
 
@@ -754,101 +744,7 @@ async def get_fsub_chat2(bot: Client, update: Message):
     else:
         await update.reply_text(f"Fsub chat: <code>{chat['chat_id']}</code>", quote=True, parse_mode=enums.ParseMode.HTML)
 
-@Client.on_message(filters.command("deletefiles") & filters.user(ADMINS))
-async def deletemultiplefiles(bot, message):
-    chat_type = message.chat.type
-    if chat_type != enums.ChatType.PRIVATE:
-        return await message.reply_text(f"<b>Hᴇʏ {message.from_user.mention}, Tʜɪs ᴄᴏᴍᴍᴀɴᴅ ᴡᴏɴ'ᴛ ᴡᴏʀᴋ ɪɴ ɢʀᴏᴜᴘs. Iᴛ ᴏɴʟʏ ᴡᴏʀᴋs ᴏɴ ᴍʏ PM!</b>")
-    else:
-        pass
-    try:
-        keyword = message.text.split(" ", 1)[1]
-    except:
-        return await message.reply_text(f"<b>Hᴇʏ {message.from_user.mention}, Gɪᴠᴇ ᴍᴇ ᴀ ᴋᴇʏᴡᴏʀᴅ ᴀʟᴏɴɢ ᴡɪᴛʜ ᴛʜᴇ ᴄᴏᴍᴍᴀɴᴅ ᴛᴏ ᴅᴇʟᴇᴛᴇ ғɪʟᴇs.</b>")
-    btn = [[
-       InlineKeyboardButton("Yᴇs, Cᴏɴᴛɪɴᴜᴇ !", callback_data=f"killfilesdq#{keyword}")
-       ],[
-       InlineKeyboardButton("Nᴏ, Aʙᴏʀᴛ ᴏᴘᴇʀᴀᴛɪᴏɴ !", callback_data="close_data")
-    ]]
-    await message.reply_text(
-        text="<b>Aʀᴇ ʏᴏᴜ sᴜʀᴇ? Dᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ?\n\nNᴏᴛᴇ:- Tʜɪs ᴄᴏᴜʟᴅ ʙᴇ ᴀ ᴅᴇsᴛʀᴜᴄᴛɪᴠᴇ ᴀᴄᴛɪᴏɴ!</b>",
-        reply_markup=InlineKeyboardMarkup(btn),
-        parse_mode=enums.ParseMode.HTML
-    )
     
-@Client.on_message(filters.command("deletesmallfiles") & filters.user(ADMINS))
-async def process_command(client, message):
-    chat_id = message.chat.id
-    processing_message = await message.reply_text("<b>Processing: Deleting files...</b>")
-    
-    total_files_deleted = 0
-    batch_size = 250
-
-    while True:
-        deleted_files = await delete_files_below_threshold(db, threshold_size_mb=50, batch_size=batch_size)
-        
-        if deleted_files == 0:
-            break
-
-        total_files_deleted += deleted_files
-
-        # Update the message to show progress
-        progress_message = f'<b>Processing: Deleted {total_files_deleted} files in {total_files_deleted // batch_size} batches.</b>'
-        await processing_message.edit_text(progress_message)
-        await asyncio.sleep(3)
-
-    print(f'Total files deleted: {total_files_deleted}')
-    await processing_message.edit_text(f'<b>Deletion complete: Deleted {total_files_deleted} files.</b>')
-
-@Client.on_message(filters.command("delete_duplicate") & filters.user(ADMINS))
-async def delete_duplicate_files(client, message):
-    ok = await message.reply("prosessing...")
-    deleted_count = 0
-    batch_size = 0
-    async def remove_duplicates(collection1, unique_files, ok, deleted_count, batch_size):                        
-        async for duplicate_file in collection1.find():
-            file_size = duplicate_file["file_size"]
-            file_id = duplicate_file["file_id"]
-            if file_size in unique_files and unique_files[file_size] != file_id:
-                result_media1 = await collection1.find_one({'_id': file_id})                
-                if result_media1:
-                    await collection1.collection.delete_one({'_id': file_id})               
-                    deleted_count += 1                
-                    if deleted_count % 100 == 0:
-                        batch_size += 1
-                        await ok.edit(f'<b>Processing: Deleted {deleted_count} files in {batch_size} batches.</b>')
-        return deleted_count, batch_size
-    # Get all four collections
-    media1_collection = Media
-    media2_collection = Mediaa
-    
-    # Get all files from each collection
-    all_files_media1 = await media1_collection.find({}, {"file_id": 1, "file_size": 1}).to_list(length=None)
-    all_files_media2 = await media2_collection.find({}, {"file_id": 1, "file_size": 1}).to_list(length=None)
-    
-    # Combine files from all collections
-    all_files = all_files_media1 + all_files_media2
-
-    # Remove duplicate files while keeping one copy
-    unique_files = {}
-    for file_info in all_files:
-        file_id = file_info["file_id"]
-        file_size = file_info["file_size"]
-        if file_size not in unique_files:
-            unique_files[file_size] = file_id
-
-    # Delete duplicate files from each collection
-    deleted_count, batch_size = await remove_duplicates(media1_collection, unique_files, ok, deleted_count, batch_size)
-    deleted_count = deleted_count
-    batch_size = batch_size
-    deleted_count, batch_size = await remove_duplicates(media2_collection, unique_files, ok, deleted_count, batch_size)
-    deleted_count = deleted_count
-    batch_size = batch_size
-    
-    # Send a final message indicating the total number of duplicates deleted
-    await message.reply(f"Deleted {deleted_count} duplicate files. in {batch_size} batches")
-
-
 
 
 @Client.on_message(filters.command("missing") & filters.user(ADMINS))
