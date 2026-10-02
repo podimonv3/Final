@@ -7,12 +7,13 @@ import io  # ലോഗ് ഫയൽ (Text File) ഇൻ-മെമ്മറി ആ
 from database.requests_db import get_all_missing_movies  # നമ്മൾ ഉണ്ടാക്കിയ പുതിയ DB ഫങ്ക്ഷൻ
 from Script import script
 from pyrogram import Client, filters, enums
-from pyrogram.errors import ChatAdminRequired, FloodWait, MessageDeleteForbidden
+from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
+from pyrogram.errors import ChatAdminRequired, FloodWait, MessageDeleteForbidden, UserIsBlocked
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from asyncio import sleep
 from pyrogram.enums import ChatType
 # Mediaa, clientDB3 എന്നിവ ഒഴിവാക്കി
-from database.ia_filterdb import Media, db as clientDB, db1 as clientDB2 
+from database.ia_filterdb import Media, get_file_details, db as clientDB, db1 as clientDB2 
 from database.users_chats_db import db
 from info import CHANNELS, ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, LOG_CHANNEL, PICS, BATCH_FILE_CAPTION, CUSTOM_FILE_CAPTION, PROTECT_CONTENT, DATABASE_URI, DATABASE_NAME
 from utils import get_settings, get_size, is_subscribed, is_requested_one, is_requested_two, save_group_settings, temp, check_loop_sub, check_loop_sub1, check_loop_sub2
