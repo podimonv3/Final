@@ -220,7 +220,46 @@ async def start(client, message):
 
         
 
-    # ================= FORCE SUB CHANNEL 1 =================
+    # ================= ⚡ NEW: PM MULTIPLE BUTTONS RE-DIRECTION ⚡ =================
+    if data.startswith("kw_"):
+        try:
+            req_key = data.replace("kw_", "")
+            from plugins.pm_filter import BUTTONS, auto_filter
+            button_data = BUTTONS.get(req_key)
+            
+            if not button_data:
+                try:
+                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                except Exception:
+                    pass
+                return
+
+            query = button_data.get("query") if isinstance(button_data, dict) else button_data
+
+            if not query:
+                try:
+                    await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
+                except Exception:
+                    pass
+                return
+
+            from database.ia_filterdb import get_search_results
+            files, offset, total_results = await get_search_results(query.lower(), offset=0, filter=True)
+            
+            if files:
+                # ⚡ ബോട്ടിന്റെ PM ചാറ്റിലേക്ക് ഫയൽ ബട്ടണുകളുടെ മുഴുവൻ ലിസ്റ്റും ഓട്ടോമാറ്റിക്കായി അയക്കുന്നു
+                await auto_filter(client, message, spoll=(query, files, offset, total_results))
+            else:
+                try:
+                    await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
+                except Exception:
+                    pass
+            return
+        except Exception as e:
+            logger.exception(e)
+            return
+
+    # ================= FORCE SUB CHANNELS (EXISTING CODE) =================
     if REQ_CHANNEL1 and not await is_requested_one(client, message):
         btn = [[InlineKeyboardButton("📢 Join Channel 1", url=client.req_link1)]]
         join_msg = await message.reply_text(
