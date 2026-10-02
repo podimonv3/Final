@@ -3,14 +3,15 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
 from info import ADMINS, LOG_CHANNEL, SUPPORT_CHAT, MELCOW_NEW_USERS, REQ_CHANNEL1, REQ_CHANNEL2
 from database.users_chats_db import db
-from database.ia_filterdb import Media, Mediaa, db as clientDB, db1 as clientDB2, db2 as clientDB3
+# Mediaa, clientDB3 എന്നിവ ഒഴിവാക്കി
+from database.ia_filterdb import Media, db as clientDB, db1 as clientDB2 
 from utils import get_size, temp, get_settings, run_broadcast_in_background
 from Script import script
 from pyrogram.errors import ChatAdminRequired
 import os
 import asyncio
 
-@Client.on_message(filters.command('stats') & filters.incoming)
+@Client.on_message(filters.command('checkk') & filters.incoming)
 async def get_ststs(bot, message):
     rju = await message.reply('Fetching stats..')
     tot = await Media.count_documents()
@@ -28,23 +29,16 @@ async def get_ststs(bot, message):
     free_dbSize2 = 512-used_dbSize2
     
     stats3 = await clientDB3.command('dbStats')
-    used_dbSize3 = (stats3['dataSize']/(1024*1024))+(stats3['indexSize']/(1024*1024))  # ഇവിടെയുണ്ടായിരുന്ന ചെറിയൊരു സ്പെല്ലിംഗ് മിസ്റ്റേക്ക് തിരുത്തിയിട്ടുണ്ട് (stats2 എന്നത് stats3 ആക്കി)
+    used_dbSize3 = (stats3['dataSize']/(1024*1024))+(stats3['indexSize']/(1024*1024))
     free_dbSize3 = 512-used_dbSize3
     
-    # റിസൾട്ട് ടെക്സ്റ്റ് ഇവിടെ നേരിട്ട് നൽകുന്നു:
     status_text = (
         "📊 **Bot Statistics**\n\n"
         f"▪️ **Total Files:** {total}\n"
         f"▪️ **Main DB Files (Media):** {tot}\n"
         f"▪️ **DB 2 Files (Mediaa):** {tota}\n\n"
-        f"▪️ **Total Users:** {users}\n"
-        f"▪️ **Total Chats:** {chats}\n\n"
-        f"🗄 **Database 1 Size:** {round(used_dbSize, 2)} MB / Free: {round(free_dbSize, 2)} MB\n"
-        f"🗄 **Database 2 Size:** {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB\n"
-        f"🗄 **Database 3 Size:** {round(used_dbSize3, 2)} MB / Free: {round(free_dbSize3, 2)} MB"
-    )
-    
-    await rju.edit(status_text)
+        ...
+
 
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
