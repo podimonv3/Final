@@ -22,6 +22,9 @@ client1 = AsyncIOMotorClient(DATABASE_URI2)
 db1 = client1[DATABASE_NAME] # 👈 ഇതാണ് commands.py-ലേക്ക് ഇമ്പോർട്ട് ചെയ്യുന്നത്
 instance = Instance.from_db(db1)
 
+
+SEARCH_CACHE = {}
+
 @instance.register
 class Media(Document):
     file_id = fields.StrField(attribute='_id')
@@ -142,10 +145,11 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 
+# സെർവർ റാം ലാഭിക്കാൻ ഒരു ചെറിയ ക്യാഷിങ് സിസ്റ്റം (ഒരേ സെർച്ച് വീണ്ടും വന്നാൽ ഡിബിയിൽ പോകില്ല)
 
 
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    """Text Index ഇല്ലാത്ത പ്രശ്നം പൂർണ്ണമായി പരിഹരിച്ച സെർച്ച് ഫങ്ഷൻ"""
+    """Koyeb റാം ഒട്ടും ഉപയോഗിക്കാത്ത, ഡാറ്റാബേസ് ലെവലിൽ സോർട്ടിങ് നടത്തുന്ന ഫങ്ഷൻ"""
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -153,74 +157,44 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     if not query:
         return [], '', 0
 
-    # 💡 മാറ്റം വരുത്തിയത് ഇവിടെയാണ്:
-    # ഡാറ്റാബേസിൽ ടെക്സ്റ്റ് ഇൻഡെക്സ് ഇല്ലെങ്കിൽ അത് നിർബന്ധമായി ഇവിടെ ക്രിയേറ്റ് ചെയ്യിക്കുന്നു
-    try:
-        await Media.collection.create_index([('file_name', 'text')])
-    except Exception as e:
-        logger.info(f"Index check/creation: {e}")
+    cache_key = f"{query}_{file_type}"
+    
+    # 💡 ക്യാഷ് പരിശോധന: ഒരേ വാക്ക് തന്നെയാണ് അടുത്തടുത്തായി തിരയുന്നതെങ്കിൽ ഡാറ്റാബേസ് ലോഡ് പൂർണ്ണമായി ഒഴിവാക്കും
+    if cache_key in SEARCH_CACHE:
+        final_files = SEARCH_CACHE[cache_key]
+    else:
+        # ഡാറ്റാബേസിൽ ടെക്സ്റ്റ് ഇൻഡെക്സ് ഉണ്ടെന്ന് ഉറപ്പാക്കുന്നു
+        try:
+            await Media.collection.create_index([('file_name', 'text')])
+        except:
+            pass
 
-    # മോംഗോഡിബി ടെക്സ്റ്റ് സെർച്ചിനായുള്ള ഫിൽട്ടർ
-    filter_dict = {"$text": {"$search": query}}
+        filter_dict = {"$text": {"$search": query}}
+        if file_type:
+            filter_dict['file_type'] = file_type
 
-    if file_type:
-        filter_dict['file_type'] = file_type
-
-    try:
-        # സ്കോർ അടിസ്ഥാനമാക്കി സോർട്ട് ചെയ്ത് 200 എണ്ണം മാത്രം എടുക്കുന്നു
-        cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
-        final_sorted_files = await cursor_media.to_list(length=200)
-    except Exception as e:
-        logger.error(f"Search Error: {e}")
-        return [], '', 0
-
-    # ഫയലുകൾ എടുത്ത ശേഷമുള്ള പൈത്തൺ കസ്റ്റം സോർട്ടിങ്
-    if final_sorted_files:
-        query_lower = query.lower().strip()
-        
-        def sort_by_exact_match(file_obj):
-            file_name_lower = file_obj.file_name.lower().strip()
-            file_name_lower = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', file_name_lower)
-            file_name_lower = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', file_name_lower)
+        try:
+            # 💡 പ്രധാന മാറ്റം ഇവിടെയാണ്:
+            # പൈത്തൺ സോർട്ടിങ് പൂർണ്ണമായി ഒഴിവാക്കി! മോംഗോഡിബി തന്നെ സ്കോർ നോക്കി ഏറ്റവും അനുയോജ്യമായവ
+            # സോർട്ട് ചെയ്ത് നൽകും. പൈത്തൺ അത് വെറുതെ ലിസ്റ്റ് ആക്കി മാറ്റുക മാത്രം ചെയ്യുന്നു.
+            cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
+            final_files = await cursor_media.to_list(length=200)
             
-            custom_key = []
-            is_series = bool(re.search(r'\b(s\d+|e\d+)\b', file_name_lower))
+            # ക്യാഷിലേക്ക് സൂക്ഷിക്കുന്നു (പരമാവധി 20 സെർച്ച് റിസൾട്ടുകൾ മാത്രം മെമ്മറിയിൽ വെക്കും)
+            if len(SEARCH_CACHE) > 20:
+                SEARCH_CACHE.clear()
+            SEARCH_CACHE[cache_key] = final_files
             
-            for text in re.split(r'(\d+)', file_name_lower):
-                if text.isdigit():
-                    num = int(text)
-                    if len(text) == 4 and not is_series:
-                        custom_key.append(-num)
-                    else:
-                        custom_key.append(num)
-                else:
-                    custom_key.append(text)
+        except Exception as e:
+            logger.error(f"Search Error: {e}")
+            return [], '', 0
 
-            exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
-            if re.search(exact_year_pattern, file_name_lower):
-                return (0, custom_key)
-
-            match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
-            if re.search(match_season_pattern, file_name_lower):
-                return (1, custom_key)
-
-            match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
-            if re.search(match_year_pattern, file_name_lower):
-                return (2, custom_key)
-                
-            if file_name_lower.startswith(query_lower):
-                return (3, custom_key)
-                
-            return (4, custom_key)
-
-        final_sorted_files.sort(key=sort_by_exact_match)
-
-    total_results = len(final_sorted_files)
+    total_results = len(final_files)
 
     if offset < 0:
         offset = 0
 
-    files = final_sorted_files[offset:offset + max_results]
+    files = final_files[offset:offset + max_results]
     next_offset = offset + len(files)
 
     if next_offset < total_results:
@@ -228,9 +202,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     else:
         return files, '', total_results
 
-
-
-       
+      
 async def get_file_details(query):
     filter = {'file_id': query}
     cursor_media = Media.find(filter)
