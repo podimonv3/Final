@@ -456,44 +456,46 @@ async def cb_handler(client: Client, query: CallbackQuery):
             alert = alert.replace("\\n", "\n").replace("\\t", "\t")
             await query.answer(alert, show_alert=True) 
             
-    # cb_handler ഫങ്ക്ഷന്റെ ഉള്ളിലുള്ള "if query.data.startswith("file"):" എന്ന ഭാഗം ഈ രീതിയിലേക്ക് മാറ്റുക:
     if query.data.startswith("file"):
         ident, file_id = query.data.split("#")
         files_ = await get_file_details(file_id)
         if not files_:
-            return await query.answer('No such file exist.', show_alert=True)
-            
+            return await query.answer('No such file exist.')
         files = files_[0]
         title = files.file_name
         size = get_size(files.file_size)
         f_caption = files.file_name
         
+        # ⬇️ എറർ വരാതിരിക്കാൻ ഈ 2 വരികൾ പകരം ചേർക്കുക ⬇️
+        chat_id = query.message.chat.id if (query.message and query.message.chat) else query.from_user.id
+        settings = await get_settings(chat_id)
         if CUSTOM_FILE_CAPTION:
             try:
-                f_caption = CUSTOM_FILE_CAPTION.format(
-                    file_name='' if title is None else title, 
-                    file_size='' if size is None else size, 
-                    file_caption='' if f_caption is None else f_caption, 
-                    mention=query.from_user.mention
-                )
+                f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption, mention=query.from_user.mention)
             except Exception as e:
                 logger.exception(e)
-                
+            f_caption = f_caption
         if f_caption is None:
             f_caption = f"{title}"
             
+        # ബട്ടണുകൾ ഉണ്ടായിരുന്ന ഭാഗം ഒഴിവാക്കി നേരിട്ട് PM-ലേക്ക് റീഡയറക്ട് ചെയ്യുന്നു
         try:
-            # ⚡ ബോട്ടിന്റെ PM-ൽ വെച്ച് ബട്ടൺ ഞെക്കുമ്പോൾ അവിടെത്തന്നെ ഫയൽ ഡോക്യുമെന്റായി സെൻഡ് ചെയ്യുന്നു
-            await client.send_cached_media(
-                chat_id=query.message.chat.id,
-                file_id=files.file_id,
-                caption=f_caption
-            )
-            await query.answer("✅ File Sent inside Bot PM!")
+            if settings['botpm']:
+                await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
+                return
+            else:
+                await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
+                return
+        except QueryIdInvalid:
+            await query.answer("This query is no longer valid.", show_alert=True)
+        except UserIsBlocked:
+            await query.answer('Unblock the bot mahn !', show_alert=True)
+        except PeerIdInvalid:
+            await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
         except Exception as e:
-            logger.exception(e)
-            await query.answer("❌ Failed to send file.", show_alert=True)
-
+            await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
+            
+    
             
                     
     elif query.data == "pages":
