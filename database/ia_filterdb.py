@@ -143,8 +143,9 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 
+
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    """uMongo സ്കോർ എറർ പരിഹരിച്ച ഒപ്റ്റിമൈസ് ചെയ്ത ടെക്സ്റ്റ് സെർച്ച് ഫങ്ഷൻ"""
+    """Text Index ഇല്ലാത്ത പ്രശ്നം പൂർണ്ണമായി പരിഹരിച്ച സെർച്ച് ഫങ്ഷൻ"""
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -152,13 +153,21 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     if not query:
         return [], '', 0
 
+    # 💡 മാറ്റം വരുത്തിയത് ഇവിടെയാണ്:
+    # ഡാറ്റാബേസിൽ ടെക്സ്റ്റ് ഇൻഡെക്സ് ഇല്ലെങ്കിൽ അത് നിർബന്ധമായി ഇവിടെ ക്രിയേറ്റ് ചെയ്യിക്കുന്നു
+    try:
+        await Media.collection.create_index([('file_name', 'text')])
+    except Exception as e:
+        logger.info(f"Index check/creation: {e}")
+
+    # മോംഗോഡിബി ടെക്സ്റ്റ് സെർച്ചിനായുള്ള ഫിൽട്ടർ
     filter_dict = {"$text": {"$search": query}}
 
     if file_type:
         filter_dict['file_type'] = file_type
 
     try:
-        # 💡 uMongo എറർ വരാതിരിക്കാൻ projection നിഷ്കർഷിക്കുന്ന രീതി പുതുക്കി
+        # സ്കോർ അടിസ്ഥാനമാക്കി സോർട്ട് ചെയ്ത് 200 എണ്ണം മാത്രം എടുക്കുന്നു
         cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
         final_sorted_files = await cursor_media.to_list(length=200)
     except Exception as e:
@@ -218,6 +227,8 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
         return files, next_offset, total_results
     else:
         return files, '', total_results
+
+
 
        
 async def get_file_details(query):
