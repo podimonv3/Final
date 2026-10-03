@@ -162,7 +162,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
 
     # താങ്കൾ പറഞ്ഞതുപോലെ ഒരൊറ്റ വലിയ കളക്ഷനിൽ നിന്നും ലിമിറ്റ് 250 ആക്കി ഉയർത്തി
     cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
-    final_sorted_files = await cursor_media.to_list(length=100)
+    final_sorted_files = await cursor_media.to_list(length=200)
 
     if final_sorted_files:
         query_lower = query.lower().strip()
