@@ -144,12 +144,8 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media, [], total_results
 
 
-
-# സെർവർ റാം ലാഭിക്കാൻ ഒരു ചെറിയ ക്യാഷിങ് സിസ്റ്റം (ഒരേ സെർച്ച് വീണ്ടും വന്നാൽ ഡിബിയിൽ പോകില്ല)
-
-
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    """Koyeb റാം ഒട്ടും ഉപയോഗിക്കാത്ത, ഡാറ്റാബേസ് ലെവലിൽ സോർട്ടിങ് നടത്തുന്ന ഫങ്ഷൻ"""
+    """ആദ്യത്തെ രണ്ട് ലെവലുകൾക്ക് മാത്രം മുൻഗണന നൽകുന്ന ലളിതമാക്കിയ ഫങ്ഷൻ"""
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -159,11 +155,9 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
 
     cache_key = f"{query}_{file_type}"
     
-    # 💡 ക്യാഷ് പരിശോധന: ഒരേ വാക്ക് തന്നെയാണ് അടുത്തടുത്തായി തിരയുന്നതെങ്കിൽ ഡാറ്റാബേസ് ലോഡ് പൂർണ്ണമായി ഒഴിവാക്കും
     if cache_key in SEARCH_CACHE:
-        final_files = SEARCH_CACHE[cache_key]
+        final_sorted_files = SEARCH_CACHE[cache_key]
     else:
-        # ഡാറ്റാബേസിൽ ടെക്സ്റ്റ് ഇൻഡെക്സ് ഉണ്ടെന്ന് ഉറപ്പാക്കുന്നു
         try:
             await Media.collection.create_index([('file_name', 'text')])
         except:
@@ -174,27 +168,60 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
             filter_dict['file_type'] = file_type
 
         try:
-            # 💡 പ്രധാന മാറ്റം ഇവിടെയാണ്:
-            # പൈത്തൺ സോർട്ടിങ് പൂർണ്ണമായി ഒഴിവാക്കി! മോംഗോഡിബി തന്നെ സ്കോർ നോക്കി ഏറ്റവും അനുയോജ്യമായവ
-            # സോർട്ട് ചെയ്ത് നൽകും. പൈത്തൺ അത് വെറുതെ ലിസ്റ്റ് ആക്കി മാറ്റുക മാത്രം ചെയ്യുന്നു.
             cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
-            final_files = await cursor_media.to_list(length=200)
-            
-            # ക്യാഷിലേക്ക് സൂക്ഷിക്കുന്നു (പരമാവധി 20 സെർച്ച് റിസൾട്ടുകൾ മാത്രം മെമ്മറിയിൽ വെക്കും)
-            if len(SEARCH_CACHE) > 20:
-                SEARCH_CACHE.clear()
-            SEARCH_CACHE[cache_key] = final_files
-            
+            final_sorted_files = await cursor_media.to_list(length=200)
         except Exception as e:
             logger.error(f"Search Error: {e}")
             return [], '', 0
 
-    total_results = len(final_files)
+        # 💡 താങ്കൾ ആവശ്യപ്പെട്ടതുപോലെ സോർട്ടിങ് ലെവലുകൾ ചുരുക്കി ലളിതമാക്കി:
+        if final_sorted_files:
+            query_lower = query.lower().strip()
+            
+            def sort_by_exact_match(file_obj):
+                file_name_lower = file_obj.file_name.lower().strip()
+                file_name_lower = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', file_name_lower)
+                file_name_lower = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', file_name_lower)
+                
+                custom_key = []
+                is_series = bool(re.search(r'\b(s\d+|e\d+)\b', file_name_lower))
+                
+                # അക്കങ്ങൾ കൃത്യമായ ക്രമത്തിൽ അടുക്കാനുള്ള നാച്ചുറൽ സോർട്ടിങ്
+                for text in re.split(r'(\d+)', file_name_lower):
+                    if text.isdigit():
+                        num = int(text)
+                        if len(text) == 4 and not is_series:
+                            custom_key.append(-num)
+                        else:
+                            custom_key.append(num)
+                    else:
+                        custom_key.append(text)
+
+                # 🥇 ലെവൽ 0: പേരിന്റെ തുടക്കവും കൃത്യമായ വർഷവും (ഉദാ: Star 2024)
+                exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
+                if re.search(exact_year_pattern, file_name_lower):
+                    return (0, custom_key)
+
+                # 🥈 ലെവൽ 1: പേരിന്റെ തുടക്കവും വെബ് സീരീസ് നമ്പറുകളും (ഉദാ: Star S01)
+                match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
+                if re.search(match_season_pattern, file_name_lower):
+                    return (1, custom_key)
+                    
+                # 🥉 ലെവൽ 2: ബാക്കിയുള്ള എല്ലാ ഫയലുകളും ഇതിന് താഴെ തനിയെ വരും
+                return (2, custom_key)
+
+            final_sorted_files.sort(key=sort_by_exact_match)
+            
+            if len(SEARCH_CACHE) > 20:
+                SEARCH_CACHE.clear()
+            SEARCH_CACHE[cache_key] = final_sorted_files
+
+    total_results = len(final_sorted_files)
 
     if offset < 0:
         offset = 0
 
-    files = final_files[offset:offset + max_results]
+    files = final_sorted_files[offset:offset + max_results]
     next_offset = offset + len(files)
 
     if next_offset < total_results:
