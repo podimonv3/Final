@@ -33,11 +33,12 @@ class Media(Document):
     caption = fields.StrField(allow_none=True)
     
     class Meta:
-        # 💡 file_name മാത്രം ടെക്സ്റ്റ് ഇൻഡെക്സ് ആക്കി മാറ്റി
+        # 💡 uMongo-യ്ക്ക് അനുയോജ്യമായ രീതിയിൽ 'fields' മാറ്റി 'key' എന്ന് നൽകി
         indexes = (
-            {'fields': ['file_name'], 'type': 'text'},
+            {'key': [('file_name', 'text')]},
         )
         collection_name = COLLECTION_NAME
+
 
 
 
