@@ -670,7 +670,7 @@ async def auto_filter(client, msg, spoll=False):
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
     cap = (
-        f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n"
+        f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
         f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
         f"🎞️ <b>Pʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
         f"📂 <b>Tᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"      
