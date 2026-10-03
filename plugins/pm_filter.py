@@ -576,6 +576,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
+        settings = await get_settings(message.chat.id)
         if message.text.startswith("/"): return
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
 
@@ -605,6 +606,8 @@ async def auto_filter(client, msg, spoll=False):
                 except Exception:
                     return
         else:
+            chat_id = msg.chat.id if hasattr(msg, "chat") and msg.chat else (msg.message.chat.id if hasattr(msg, "message") and msg.message else msg.from_user.id)
+            settings = await get_settings(chat_id)
             return
     else:
         if hasattr(msg, "message") and msg.message:
@@ -613,51 +616,81 @@ async def auto_filter(client, msg, spoll=False):
             message = msg
             
         search, files, offset, total_results = spoll
+        settings = await get_settings(message.chat.id)
 
     key = f"{message.chat.id}-{message.id}"
-    _trim_dict(BUTTONS) 
-    BUTTONS[key] = {"query": search, "time": time.time()} 
+    _trim_dict(BUTTONS) # പഴയ മെമ്മറി ഇവിടെ വെച്ച് ക്ലിയർ ചെയ്യുന്നു
+    BUTTONS[key] = {"query": search, "time": time.time()} # സമയവും കൂടി സേവ് ചെയ്യുന്നു
     
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
-    print_check_text = " ".join([file.file_name.lower() for file in files[:5] if hasattr(file, 'file_name') and file.file_name])
-
-    if not year_match and print_check_text:
-        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', print_check_text)
     
-    detected_year = year_match if year_match else ""
+    combined_file_names = ""
+    print_check_text = ""
+    
+    # ⚡ ബോട്ട് അൾട്രാ സ്പീഡ് ആകാൻ ആദ്യത്തെ 5 ഫയലുകൾ മാത്രം ലൂപ്പ് ചെയ്യുന്നു
+    if files and isinstance(files, list):
+        for index, file in enumerate(files[:5]):
+            if hasattr(file, 'file_name') and file.file_name:
+                combined_file_names += " " + file.file_name.lower()
+                print_check_text += " " + file.file_name.lower()
+
+    if not year_match and combined_file_names:
+        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', combined_file_names)
+    
+    detected_year = year_match[0] if year_match else ""
     movie_year = f" ({detected_year})" if detected_year else ""
     
     languages_found = []
     qualities_found = []
 
-    if print_check_text:
-        full_text_lower = print_check_text + " " + search.lower()
+    if combined_file_names:
+        full_text_lower = combined_file_names + " " + search.lower()
         
-        lang_map = {
-            'malayalam': '#Malayalam', 'mal': '#Malayalam', 'tamil': '#Tamil', 'tam': '#Tamil',
-            'telugu': '#Telugu', 'tel': '#Telugu', 'hindi': '#Hindi', 'hin': '#Hindi',
-            'english': '#English', 'eng': '#English', 'kannada': '#Kannada', 'kan': '#Kannada',
-            'marathi': '#Marathi', 'mar': '#Marathi', 'bengali': '#Bengali', 'ben': '#Bengali',
-            'odia': '#Odia', 'ori': '#Odia', 'multi': '#Multi_Audio', 'audio': '#Multi_Audio', 'dual': '#Multi_Audio'
-        }
-        for l_key, l_val in lang_map.items():
-            if l_key in full_text_lower and l_val not in languages_found:
-                languages_found.append(l_val)
+        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
+        if re.search(r'\b(malayalam|mal)\b', full_text_lower):
+            languages_found.append("#Malayalam")
+        if re.search(r'\b(tamil|tam)\b', full_text_lower):
+            languages_found.append("#Tamil")
+        if re.search(r'\b(telugu|tel)\b', full_text_lower):
+            languages_found.append("#Telugu")
+        if re.search(r'\b(hindi|hin)\b', full_text_lower):
+            languages_found.append("#Hindi")
+        if re.search(r'\b(english|eng)\b', full_text_lower):
+            languages_found.append("#English")
+        if re.search(r'\b(kannada|kan)\b', full_text_lower):
+            languages_found.append("#Kannada")
+        if re.search(r'\b(marathi|mar)\b', full_text_lower):
+            languages_found.append("#Marathi")
+        if re.search(r'\b(bengali|ben)\b', full_text_lower):
+            languages_found.append("#Bengali")
+        if re.search(r'\b(odia|ori)\b', full_text_lower):
+            languages_found.append("#Odia")
+        if re.search(r'\b(multi|audio|dual)\b', full_text_lower):
+            languages_found.append("#Multi_Audio")
 
-        if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower): qualities_found.append("#4K_UHD")
-        if re.search(r'\b(1080p|1080)\b', full_text_lower): qualities_found.append("#1080p")
-        if re.search(r'\b(720p|720)\b', full_text_lower): qualities_found.append("#720p")
-        if re.search(r'\b(480p|480)\b', full_text_lower): qualities_found.append("#480p")
-        if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower): qualities_found.append("#BluRay")
-        if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower): qualities_found.append("#WEB-DL")
+        # 2. ക്വാളിറ്റികൾ ചെക്ക് ചെയ്യുന്നു
+        if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower):
+            qualities_found.append("#4K_UHD")
+        if re.search(r'\b(1080p|1080)\b', full_text_lower):
+            qualities_found.append("#1080p")
+        if re.search(r'\b(720p|720)\b', full_text_lower):
+            qualities_found.append("#720p")
+        if re.search(r'\b(480p|480)\b', full_text_lower):
+            qualities_found.append("#480p")
+        if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower):
+            qualities_found.append("#BluRay")
+        if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
+            qualities_found.append("#WEB-DL")
             
         if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not re.search(r'\b(hdtc)\b', full_text_lower):
             if not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
                 qualities_found.append("#HD")
 
+    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു
     detected_print = "#HD_Original" 
-    if print_check_text and re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
-        detected_print = "#Theater_Print_⚠️"
+    if print_check_text:
+        if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
+            detected_print = "#Theater_Print_⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
@@ -675,24 +708,30 @@ async def auto_filter(client, msg, spoll=False):
     )
     
     if not spoll:
-        # ⚡ പഴയതുപോലെ 'key_' എന്ന് തന്നെ നിലനിർത്തി, സ്പീഡ് കൂട്ടാനുള്ള മാറ്റങ്ങൾ വരുത്തി
         reply_markup = InlineKeyboardMarkup([[
             InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
         ]])
     else:
-        # ⚡ ബോട്ടിന്റെ PM-ൽ എത്തിയ ശേഷം ലിസ്റ്റ് ചെയ്യാനുള്ള ബട്ടണുകൾ
         btn = []
-        pre = 'file'
-        for file in files:
-            btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+        pre = 'filep' if settings['file_secure'] else 'file'
+        
+        if settings["button"]:
+            for file in files:
+                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+        else:
+            for file in files:
+                btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
 
-        try: offset = int(offset) if offset else 0
-        except ValueError: offset = 0
+        if (offset != ""):
+            try: offset = int(offset)
+            except ValueError: offset = 0
+        else: offset = 0
 
         if offset > 0:
             btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
         
         reply_markup = InlineKeyboardMarkup(btn)
+
     # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു (പരമാവധി 2.0 സെക്കൻഡ് ടൈംഔട്ട് നേരിട്ട് നൽകിയിരിക്കുന്നു)
     poster_url = None
     try:
@@ -714,8 +753,9 @@ async def auto_filter(client, msg, spoll=False):
             fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
     except Exception:
         fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
-        
-                    
+
+
+    
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text
