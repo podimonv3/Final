@@ -597,7 +597,6 @@ async def auto_filter(client, msg, spoll=False):
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
 
             if not files:
-                # ⚡ get_gfilters പൂർണ്ണമായും ഒഴിവാക്കി, നേരിട്ട് സ്പെൽ ചെക്കിലേക്ക് പോകുന്നു
                 try:
                     await advantage_spell_chok(client, msg)
                     return
@@ -628,74 +627,46 @@ async def auto_filter(client, msg, spoll=False):
     if not year_match and combined_file_names:
         year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', combined_file_names)
     
-    detected_year = year_match[0] if year_match else ""
+    detected_year = year_match if year_match else ""
     movie_year = f" ({detected_year})" if detected_year else ""
     
     languages_found = []
-    qualities_found = []
 
     if combined_file_names:
         full_text_lower = combined_file_names + " " + search.lower()
         
-        # 1. ഭാഷകൾ ചെക്ക് ചെയ്യുന്നു
-        if re.search(r'\b(malayalam|mal)\b', full_text_lower):
-            languages_found.append("#Malayalam")
-        if re.search(r'\b(tamil|tam)\b', full_text_lower):
-            languages_found.append("#Tamil")
-        if re.search(r'\b(telugu|tel)\b', full_text_lower):
-            languages_found.append("#Telugu")
-        if re.search(r'\b(hindi|hin)\b', full_text_lower):
-            languages_found.append("#Hindi")
-        if re.search(r'\b(english|eng)\b', full_text_lower):
-            languages_found.append("#English")
-        if re.search(r'\b(kannada|kan)\b', full_text_lower):
-            languages_found.append("#Kannada")
-        if re.search(r'\b(marathi|mar)\b', full_text_lower):
-            languages_found.append("#Marathi")
-        if re.search(r'\b(bengali|ben)\b', full_text_lower):
-            languages_found.append("#Bengali")
-        if re.search(r'\b(odia|ori)\b', full_text_lower):
-            languages_found.append("#Odia")
-        if re.search(r'\b(multi|audio|dual)\b', full_text_lower):
-            languages_found.append("#Multi_Audio")
+        # ഭാഷകൾ മാത്രം വേഗത്തിൽ ചെക്ക് ചെയ്യുന്നു
+        lang_map = {
+            'malayalam': '#Malayalam', 'mal': '#Malayalam', 'tamil': '#Tamil', 'tam': '#Tamil',
+            'telugu': '#Telugu', 'tel': '#Telugu', 'hindi': '#Hindi', 'hin': '#Hindi',
+            'english': '#English', 'eng': '#English', 'kannada': '#Kannada', 'kan': '#Kannada',
+            'marathi': '#Marathi', 'mar': '#Marathi', 'bengali': '#Bengali', 'ben': '#Bengali',
+            'odia': '#Odia', 'ori': '#Odia', 'multi': '#Multi_Audio', 'audio': '#Multi_Audio', 'dual': '#Multi_Audio'
+        }
 
-        # 2. ക്വാളിറ്റികൾ ചെക്ക് ചെയ്യുന്നു
-        if re.search(r'\b(2160p|4k|uhd)\b', full_text_lower):
-            qualities_found.append("#4K_UHD")
-        if re.search(r'\b(1080p|1080)\b', full_text_lower):
-            qualities_found.append("#1080p")
-        if re.search(r'\b(720p|720)\b', full_text_lower):
-            qualities_found.append("#720p")
-        if re.search(r'\b(480p|480)\b', full_text_lower):
-            qualities_found.append("#480p")
-        if re.search(r'\b(bluray|brrip|bdrip)\b', full_text_lower):
-            qualities_found.append("#BluRay")
-        if re.search(r'\b(web-dl|webdl|webrip|web)\b', full_text_lower):
-            qualities_found.append("#WEB-DL")
-            
-        if re.search(r'\b(hdrip|hdtv|hd)\b', full_text_lower) and not re.search(r'\b(hdtc)\b', full_text_lower):
-            if not any(q in ["#1080p", "#720p", "#4K_UHD"] for q in qualities_found):
-                qualities_found.append("#HD")
+        words = set(re.findall(r'\b\w+\b', full_text_lower))
+        for word in words:
+            if word in lang_map and lang_map[word] not in languages_found:
+                languages_found.append(lang_map[word])
 
-    # 🎞️ തീയറ്റർ പ്രിന്റ് ഉണ്ടോ എന്ന് നോക്കുന്നു
+    # 🎞️ തീയറ്റർ പ്രിന്റ് ചെക്ക് ചെയ്യുന്നു
     detected_print = "#HD_Original" 
     if print_check_text:
         if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
             detected_print = "#Theater_Print_⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
-    detected_quality = ", ".join(qualities_found) if qualities_found else "#Unknown_Quality"
-
-    clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
+    
+    # ടോട്ടൽ ഫയൽസ് കൗണ്ട് എടുക്കുന്നു
     files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
+    clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
+    # ക്യാപ്ഷൻ (Tᴏᴛᴀʟ FɪʟEs തിരികെ ചേർത്തു)
     cap = (
         f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
         f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
-        f"💎 <b>QᴜᴀʟɪᴛY:</b> <code>{detected_quality}</code>\n"
         f"🎞️ <b>Pʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
-        f"📂 <b>Tᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"
-        f"<b><i><u>For better result:</u></i></b>\n<i>↪bhramam      ❌\n↪bhramam 2021 ✅</i>"
+        f"📂 <b>Tᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"        
     )
     
     if not spoll:
@@ -703,26 +674,24 @@ async def auto_filter(client, msg, spoll=False):
             InlineKeyboardButton("📥 DOWNLOAD 📥", url=f"https://t.me/{temp.U_NAME}?start=key_{key}")
         ]])
     else:
+        settings = await get_settings(message.chat.id)
         btn = []
-        pre = 'filep' if settings['file_secure'] else 'file'
+        pre = 'filep' if settings.get('file_secure', False) else 'file'
         
-        if settings["button"]:
+        if settings.get("button", False):
             for file in files:
                 btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
         else:
             for file in files:
                 btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
 
-        if (offset != ""):
-            try: offset = int(offset)
-            except ValueError: offset = 0
-        else: offset = 0
+        offset = int(offset) if (offset != "" and str(offset).isdigit()) else 0
 
         if offset > 0:
             btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
         
-        reply_markup = InlineKeyboardMarkup(btn)
-
+        reply_markup = InlineKeyboardMarkup(btn)        
+                            
     # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു (പരമാവധി 2.0 സെക്കൻഡ് ടൈംഔട്ട് നേരിട്ട് നൽകിയിരിക്കുന്നു)
     poster_url = None
     try:
