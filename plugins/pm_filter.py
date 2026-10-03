@@ -619,11 +619,11 @@ async def auto_filter(client, msg, spoll=False):
 
     # ⚡ ഭാഷകൾ വേഗത്തിൽ ചെക്ക് ചെയ്യാനുള്ള മാപ്പ്
     lang_map = {
-        'malayalam': '#Malayalam', 'mal': '#Malayalam', 'tamil': '#Tamil', 'tam': '#Tamil',
-        'telugu': '#Telugu', 'tel': '#Telugu', 'hindi': '#Hindi', 'hin': '#Hindi',
-        'english': '#English', 'eng': '#English', 'kannada': '#Kannada', 'kan': '#Kannada',
-        'marathi': '#Marathi', 'mar': '#Marathi', 'bengali': '#Bengali', 'ben': '#Bengali',
-        'odia': '#Odia', 'ori': '#Odia', 'multi': '#Multi_Audio', 'audio': '#Multi_Audio', 'dual': '#Multi_Audio'
+        'malayalam': 'Malayalam', 'mal': 'Malayalam', 'tamil': 'Tamil', 'tam': 'Tamil',
+        'telugu': 'Telugu', 'tel': 'Telugu', 'hindi': 'Hindi', 'hin': 'Hindi',
+        'english': 'English', 'eng': 'English', 'kannada': 'Kannada', 'kan': 'Kannada',
+        'marathi': 'Marathi', 'mar': 'Marathi', 'bengali': 'Bengali', 'ben': 'Bengali',
+        'odia': 'Odia', 'ori': 'Odia', 'multi': 'Multi_Audio', 'audio': 'Multi_Audio', 'dual': 'Multi_Audio'
     }
     
     if files and isinstance(files, list):
@@ -659,10 +659,10 @@ async def auto_filter(client, msg, spoll=False):
     movie_year = f" ({detected_year})" if detected_year else ""
     
     # 🎞️ പ്രിന്റ് ടൈപ്പ് (ആദ്യത്തെ ഫയൽ വെച്ച് മാത്രം)
-    detected_print = "#HD_Original" 
+    detected_print = "HD_Original" 
     if print_check_text:
         if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
-            detected_print = "#Theater_Print_⚠️"
+            detected_print = "Theater_Print_⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     
@@ -670,10 +670,11 @@ async def auto_filter(client, msg, spoll=False):
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
     cap = (
-        f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
-        f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
-        f"🎞️ <b>Pʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
-        f"📂 <b>Tᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"      
+        f"<blockquote><b>🎬{clean_title}{movie_year}</b></blockquote>\n\n"
+        f"<b>➤ᒪᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
+        f"<b>➤ᑭʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
+        f"<b>➤ᴛᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"
+        f"<b>© ᴛᴇᴀᴍ ഉർവശി തീയേറ്റേഴ്സ്™</b>"
     )
     
     if not spoll:
