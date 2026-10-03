@@ -40,7 +40,7 @@ def _trim_dict(d: dict, max_size: int = 100):
     current_time = time.time()
     
     # 1. ആദ്യം 5 മിനിറ്റിൽ (300 സെക്കൻഡ്) കൂടുതൽ പഴക്കമുള്ള എല്ലാ കീകളും ഡിലീറ്റ് ചെയ്യും
-    expired_keys = [k for k, v in d.items() if (current_time - v.get('time', 0)) > 300]
+    expired_keys = [k for k, v in d.items() if (current_time - v.get('time', 0)) > 240]
     for k in expired_keys:
         d.pop(k, None)
         
