@@ -580,7 +580,7 @@ async def auto_filter(client, msg, spoll=False):
         if not message.text or message.text.startswith("/"): return
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
 
-        if 0 < len(message.text) < 100:
+        if 1 < len(message.text) < 100:
             search = message.text
             search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', search)
             search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
