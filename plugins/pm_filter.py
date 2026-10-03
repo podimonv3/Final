@@ -578,8 +578,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
-        settings = await get_settings(message.chat.id)
-        if message.text.startswith("/"): return
+        if not message.text or message.text.startswith("/"): return
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
 
         if 0 < len(message.text) < 100:
@@ -592,44 +591,34 @@ async def auto_filter(client, msg, spoll=False):
 
             find = search.lower().split(" ")
             removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkamo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
-            search = " ".join(w for w in find if w not in removes)
-            search = re.sub(r"\s+", " ", search).strip()
+            search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
 
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
 
             if not files:
-                keywords = await get_gfilters('gfilters')
-                if any(re.match(r"^" + re.escape(k.strip().lower()) + r"$", search.lower()) for k in keywords): return
-                
+                # ⚡ get_gfilters പൂർണ്ണമായും ഒഴിവാക്കി, നേരിട്ട് സ്പെൽ ചെക്കിലേക്ക് പോകുന്നു
                 try:
                     await advantage_spell_chok(client, msg)
                     return
                 except Exception:
                     return
         else:
-            chat_id = msg.chat.id if hasattr(msg, "chat") and msg.chat else (msg.message.chat.id if hasattr(msg, "message") and msg.message else msg.from_user.id)
-            settings = await get_settings(chat_id)
             return
     else:
-        if hasattr(msg, "message") and msg.message:
-            message = msg.message.reply_to_message
-        else:
-            message = msg
-            
+        message = msg.message.reply_to_message if hasattr(msg, "message") and msg.message else msg
         search, files, offset, total_results = spoll
-        settings = await get_settings(message.chat.id)
 
     key = f"{message.chat.id}-{message.id}"
-    _trim_dict(BUTTONS) # പഴയ മെമ്മറി ഇവിടെ വെച്ച് ക്ലിയർ ചെയ്യുന്നു
-    BUTTONS[key] = {"query": search, "time": time.time()} # സമയവും കൂടി സേവ് ചെയ്യുന്നു
+    _trim_dict(BUTTONS) 
+    BUTTONS[key] = {"query": search, "time": time.time()} 
     
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
     
     combined_file_names = ""
     print_check_text = ""
     
-    # ⚡ ബോട്ട് അൾട്രാ സ്പീഡ് ആകാൻ ആദ്യത്തെ 5 ഫയലുകൾ മാത്രം ലൂപ്പ് ചെയ്യുന്നു
+    # സ്ട്രിംഗ് കൂട്ടിച്ചേർക്കൽ ലൂപ്പ് മാറ്റമില്ലാതെ നിലനിർത്തിയിരിക്കുന്നു
     if files and isinstance(files, list):
         for index, file in enumerate(files[:5]):
             if hasattr(file, 'file_name') and file.file_name:
