@@ -33,8 +33,12 @@ class Media(Document):
     caption = fields.StrField(allow_none=True)
     
     class Meta:
-        indexes = ('$file_name', )
+        # 💡 file_name മാത്രം ടെക്സ്റ്റ് ഇൻഡെക്സ് ആക്കി മാറ്റി
+        indexes = (
+            {'fields': ['file_name'], 'type': 'text'},
+        )
         collection_name = COLLECTION_NAME
+
 
 
 async def check_file(media):
@@ -133,8 +137,9 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media, [], total_results
 
 
+
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    """ഒരൊറ്റ ഡാറ്റാബേസിൽ അൾട്രാ സ്പീഡിൽ പ്രവർത്തിക്കുന്ന ഒപ്റ്റിമൈസ് ചെയ്ത സെർച്ച് ഫങ്ഷൻ"""
+    """ഫ്രീ സെർവറിനായി ഒപ്റ്റിമൈസ് ചെയ്തതും കസ്റ്റം സോർട്ടിങ് ഉള്ളതുമായ ടെക്സ്റ്റ് സെർച്ച് ഫങ്ഷൻ"""
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -142,28 +147,21 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     if not query:
         return [], '', 0
 
-    if ' ' not in query:
-        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
-    else:
-        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_()]')
-
-    try:
-        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-    except:
-        return [], '', 0
-
-    if USE_CAPTION_FILTER:
-        filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]}
-    else:
-        filter_dict = {'file_name': regex}
+    # മോംഗോഡിബി ടെക്സ്റ്റ് സെർച്ച് ഫിൽട്ടർ
+    filter_dict = {"$text": {"$search": query}}
 
     if file_type:
         filter_dict['file_type'] = file_type
 
-    # താങ്കൾ പറഞ്ഞതുപോലെ ഒരൊറ്റ വലിയ കളക്ഷനിൽ നിന്നും ലിമിറ്റ് 250 ആക്കി ഉയർത്തി
-    cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
-    final_sorted_files = await cursor_media.to_list(length=200)
+    try:
+        # ഡാറ്റാബേസിൽ നിന്ന് ഏറ്റവും മാച്ച് ആകുന്ന 200 എണ്ണം മാത്രം റാമിലേക്ക് എടുക്കുന്നു
+        cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
+        final_sorted_files = await cursor_media.to_list(length=200)
+    except Exception as e:
+        logger.error(f"Search Error: {e}")
+        return [], '', 0
 
+    # 💡 ഫയലുകൾ എടുത്ത ശേഷമുള്ള പൈത്തൺ കസ്റ്റം സോർട്ടിങ് ഇവിടെ തിരികെ ചേർത്തു:
     if final_sorted_files:
         query_lower = query.lower().strip()
         
@@ -202,6 +200,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
                 
             return (4, custom_key)
 
+        # 200 ഫയലുകളെ കസ്റ്റം ലോജിക് അനുസരിച്ച് റീ-സോർട്ട് ചെയ്യുന്നു
         final_sorted_files.sort(key=sort_by_exact_match)
 
     total_results = len(final_sorted_files)
