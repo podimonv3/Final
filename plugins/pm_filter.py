@@ -574,7 +574,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 
 
-
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
@@ -616,40 +615,50 @@ async def auto_filter(client, msg, spoll=False):
     
     combined_file_names = ""
     print_check_text = ""
-    
-    # സ്ട്രിംഗ് കൂട്ടിച്ചേർക്കൽ ലൂപ്പ് മാറ്റമില്ലാതെ നിലനിർത്തിയിരിക്കുന്നു
-    if files and isinstance(files, list):
-        for index, file in enumerate(files[:5]):
-            if hasattr(file, 'file_name') and file.file_name:
-                combined_file_names += " " + file.file_name.lower()
-                print_check_text += " " + file.file_name.lower()
-
-    if not year_match and combined_file_names:
-        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', combined_file_names)
-    
-    detected_year = year_match if year_match else ""
-    movie_year = f" ({detected_year})" if detected_year else ""
-    
     languages_found = []
 
-    if combined_file_names:
-        full_text_lower = combined_file_names + " " + search.lower()
-        
-        # ഭാഷകൾ മാത്രം വേഗത്തിൽ ചെക്ക് ചെയ്യുന്നു
-        lang_map = {
-            'malayalam': '#Malayalam', 'mal': '#Malayalam', 'tamil': '#Tamil', 'tam': '#Tamil',
-            'telugu': '#Telugu', 'tel': '#Telugu', 'hindi': '#Hindi', 'hin': '#Hindi',
-            'english': '#English', 'eng': '#English', 'kannada': '#Kannada', 'kan': '#Kannada',
-            'marathi': '#Marathi', 'mar': '#Marathi', 'bengali': '#Bengali', 'ben': '#Bengali',
-            'odia': '#Odia', 'ori': '#Odia', 'multi': '#Multi_Audio', 'audio': '#Multi_Audio', 'dual': '#Multi_Audio'
-        }
+    # ⚡ ഭാഷകൾ വേഗത്തിൽ ചെക്ക് ചെയ്യാനുള്ള മാപ്പ്
+    lang_map = {
+        'malayalam': '#Malayalam', 'mal': '#Malayalam', 'tamil': '#Tamil', 'tam': '#Tamil',
+        'telugu': '#Telugu', 'tel': '#Telugu', 'hindi': '#Hindi', 'hin': '#Hindi',
+        'english': '#English', 'eng': '#English', 'kannada': '#Kannada', 'kan': '#Kannada',
+        'marathi': '#Marathi', 'mar': '#Marathi', 'bengali': '#Bengali', 'ben': '#Bengali',
+        'odia': '#Odia', 'ori': '#Odia', 'multi': '#Multi_Audio', 'audio': '#Multi_Audio', 'dual': '#Multi_Audio'
+    }
+    
+    if files and isinstance(files, list):
+        # ⚡ ആദ്യത്തെ 5 ഫയലുകൾ ഓരോന്നായി (Separate) എടുത്ത് ഭാഷ ചെക്ക് ചെയ്യുന്നു
+        for index, file in enumerate(files[:5]):
+            if hasattr(file, 'file_name') and file.file_name:
+                f_name_lower = file.file_name.lower()
+                combined_file_names += " " + f_name_lower
+                
+                # ഓരോ ഫയലിലെയും വാക്കുകൾ വേർതിരിച്ച് ഭാഷ നോക്കുന്നു
+                file_words = set(re.findall(r'\b\w+\b', f_name_lower))
+                for word in file_words:
+                    if word in lang_map and lang_map[word] not in languages_found:
+                        languages_found.append(lang_map[word])
+                        
+        # ⚡ പ്രിന്റ് ടൈപ്പ് നോക്കാൻ ആദ്യത്തെ ഫയൽ മാത്രം എടുക്കുന്നു
+        if hasattr(files[0], 'file_name') and files[0].file_name:
+            print_check_text = files[0].file_name.lower()
 
-        words = set(re.findall(r'\b\w+\b', full_text_lower))
-        for word in words:
-            if word in lang_map and lang_map[word] not in languages_found:
-                languages_found.append(lang_map[word])
+    # യൂസർ സെർച്ച് ചെയ്ത ടെക്സ്റ്റിലും ഭാഷയുണ്ടോ എന്ന് നോക്കുന്നു
+    search_words = set(re.findall(r'\b\w+\b', search.lower()))
+    for word in search_words:
+        if word in lang_map and lang_map[word] not in languages_found:
+            languages_found.append(lang_map[word])
 
-    # 🎞️ തീയറ്റർ പ്രിന്റ് ചെക്ക് ചെയ്യുന്നു
+    # ⚡ ലിസ്റ്റ് തെറ്റാതെ ആദ്യത്തെ ഫയലിലെ വർഷം മാത്രം കൃത്യമായി എടുക്കുന്നു
+    if not year_match and files and hasattr(files[0], 'file_name') and files[0].file_name:
+        found_years = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
+        if found_years:
+            year_match = [found_years[0]] # ലിസ്റ്റിലെ ആദ്യത്തെ വർഷം മാത്രം സ്ട്രിംഗായി മാറ്റുന്നു
+    
+    detected_year = year_match[0] if year_match else ""
+    movie_year = f" ({detected_year})" if detected_year else ""
+    
+    # 🎞️ പ്രിന്റ് ടൈപ്പ് (ആദ്യത്തെ ഫയൽ വെച്ച് മാത്രം)
     detected_print = "#HD_Original" 
     if print_check_text:
         if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
@@ -657,16 +666,14 @@ async def auto_filter(client, msg, spoll=False):
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
     
-    # ടോട്ടൽ ഫയൽസ് കൗണ്ട് എടുക്കുന്നു
     files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
-    # ക്യാപ്ഷൻ (Tᴏᴛᴀʟ FɪʟEs തിരികെ ചേർത്തു)
     cap = (
-        f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n\n"
+        f"<blockquote><b><i>{clean_title}{movie_year}</i></b></blockquote>\n"
         f"🌐 <b>LᴀɴɢᴜᴀɢE:</b> <code>{detected_lang}</code>\n"
         f"🎞️ <b>Pʀɪɴᴛ TʏᴘE:</b> <code>{detected_print}</code>\n"
-        f"📂 <b>Tᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"        
+        f"📂 <b>Tᴏᴛᴀʟ FɪʟEs:</b> <code>{files_count}</code>\n\n"      
     )
     
     if not spoll:
@@ -690,7 +697,7 @@ async def auto_filter(client, msg, spoll=False):
         if offset > 0:
             btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
         
-        reply_markup = InlineKeyboardMarkup(btn)        
+        reply_markup = InlineKeyboardMarkup(btn)                   
                             
     # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു (പരമാവധി 2.0 സെക്കൻഡ് ടൈംഔട്ട് നേരിട്ട് നൽകിയിരിക്കുന്നു)
     poster_url = None
