@@ -1,6 +1,15 @@
-# https://github.com/odysseusmax/animated-lamp/blob/master/bot/database/database.py
-import motor.motor_asyncio
-from info import DATABASE_NAME, DATABASE_URI, MELCOW_NEW_USERS, P_TTI_SHOW_OFF, SINGLE_BUTTON, SPELL_CHECK_REPLY, PROTECT_CONTENT
+import logging
+from motor.motor_asyncio import AsyncIOMotorClient
+# 🚀 info ഫയലിൽ നമ്മൾ നൽകിയ പുതിയ ഡാറ്റാബേസ് ലിങ്കും പേരും ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+from info import DATABASE_URI, DATABASE_NAME
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
+
+# 🚀 ഒരൊറ്റ പുതിയ DATABASE_URI ലിങ്ക് മാത്രം ഇവിടെയും സെറ്റ് ചെയ്യുന്നു ✨
+client = AsyncIOMotorClient(DATABASE_URI)
+db = client[DATABASE_NAME]
 
 class Database:
     
