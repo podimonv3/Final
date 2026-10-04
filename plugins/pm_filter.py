@@ -563,7 +563,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)        
         
-        # 1. നിങ്ങളുടെ കൃത്യമായ കളക്ഷൻ പേരുകൾ വെച്ച് ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് ഫയൽ കൗണ്ടുകൾ എടുക്കുന്നു ⚡
+        # 1. ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് എല്ലാ ഫയൽ കൗണ്ടുകളും എടുക്കുന്നു ⚡
         total_connections = await clientDB['connections'].count_documents({})
         total_filters = await clientDB['filters'].count_documents({})
         total_gfilters = await clientDB['gfilters'].count_documents({})
@@ -571,12 +571,14 @@ async def cb_handler(client: Client, query: CallbackQuery):
         total_poster = await clientDB['poster'].count_documents({})
         total_moviereq = await clientDB['moviereq'].count_documents({})
         
-        # 🎬 നിങ്ങളുടെ സിനിമാ ഫോൾഡറായ mcu_files ഇവിടെ കൃത്യമായി കണക്കാക്കുന്നു
+        # 🎬 സിനിമകളുടെ എണ്ണവും യൂസർ/ഗ്രൂപ്പ് കൗണ്ടുകളും
         total_media = await clientDB['mcu_files'].count_documents({}) 
-        
-        # 👥 users, group കളക്ഷനുകളുടെ എണ്ണം ഡാറ്റാബേസിൽ നിന്ന് നേരിട്ട് എടുക്കുന്നു
         total_users = await clientDB['users'].count_documents({})
         total_chats = await clientDB['group'].count_documents({})
+        
+        # 📢 🚀 Fsub 1, Fsub 2 ജോയിൻ റിക്വസ്റ്റുകളുടെ ലൈവ് എണ്ണം എടുക്കുന്നു ✨
+        total_req_one = await clientDB['reqone'].count_documents({})
+        total_req_two = await clientDB['reqtwo'].count_documents({})
         
         # 2. മംഗോഡിബിയിൽ നിലവിലുള്ള മുഴുവൻ കളക്ഷൻ ഫോൾഡറുകളുടെ പേരുകൾ എടുക്കുന്നു
         collections = await clientDB.list_collection_names()
@@ -584,7 +586,8 @@ async def cb_handler(client: Client, query: CallbackQuery):
         # 3. ആകെ ഡോക്യുമെന്റുകളുടെ വിവരങ്ങൾ കൂട്ടിയെടുക്കുന്നു
         total_all_documents = (
             total_connections + total_filters + total_gfilters + total_locks + 
-            total_poster + total_moviereq + total_media + total_users + total_chats
+            total_poster + total_moviereq + total_media + total_users + total_chats +
+            total_req_one + total_req_two
         )
         
         # 4. ഡാറ്റാബേസ് യഥാർത്ഥ സ്റ്റോറേജ് സൈസ് (Used & Free) കണക്കാക്കുന്നു
@@ -606,8 +609,13 @@ async def cb_handler(client: Client, query: CallbackQuery):
         stats_text += "📈 <b>Core Bot Growth Status:</b>\n"
         stats_text += f" ├ 🔗 <code>connections</code> → <b>{total_connections}</b> Linked Users\n"
         stats_text += f" ├ 📁 <code>mcu_files</code> → <b>{total_media}</b> Indexed Movies 🎬\n"
-        stats_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users ✨\n"
-        stats_text += f" └ 👥 <code>group</code> → <b>{total_chats}</b> Total Bot Chats ✨\n\n"
+        stats_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users\n"
+        stats_text += f" └ 👥 <code>group</code> → <b>{total_chats}</b> Total Bot Chats\n\n"
+        
+        # 📢 Fsub റിക്വസ്റ്റുകളുടെ കണക്ക് ഇവിടെ മനോഹരമായി കാണിക്കുന്നു ✨
+        stats_text += "📢 <b>Fsub Join Requests:</b>\n"
+        stats_text += f" ├ 🟢 <code>Fsub 1 Req</code> → <b>{total_req_one}</b> Pending Requests\n"
+        stats_text += f" └ 🟢 <code>Fsub 2 Req</code> → <b>{total_req_two}</b> Pending Requests\n\n"
         
         stats_text += "📂 <b>Database Collections List:</b>\n"
         for col_name in sorted(collections):
@@ -621,7 +629,6 @@ async def cb_handler(client: Client, query: CallbackQuery):
         stats_text += f"🗂️ <b>Total Overall Documents in DB:</b> <code>{total_all_documents}</code>\n\n"
         stats_text += f"💡 <i>Note: ✨ എന്ന് അടയാളപ്പെടുത്തിയത് നമ്മൾ ഒപ്റ്റിമൈസ് ചെയ്ത സിംഗിൾ കളക്ഷനുകളാണ്.</i>"
 
-        # 🖼️ ഫോട്ടോ ഉള്ള മെസ്സേജ് ആണെങ്കിൽ കാപ്ഷൻ എഡിറ്റ് ചെയ്യും, ഇല്ലെങ്കിൽ ടെക്സ്റ്റ് എഡിറ്റ് ചെയ്യും
         try:
             await query.message.edit_caption(caption=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
         except Exception:
