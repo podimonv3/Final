@@ -2,47 +2,72 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
 from info import ADMINS, LOG_CHANNEL, SUPPORT_CHAT, MELCOW_NEW_USERS, REQ_CHANNEL1, REQ_CHANNEL2
-from database.users_chats_db import db
-# Mediaa, clientDB3 എന്നിവ ഒഴിവാക്കി
-from database.ia_filterdb import Media, db as clientDB, db1 as clientDB2 
 from utils import get_size, temp, get_settings, run_broadcast_in_background
 from Script import script
 from pyrogram.errors import ChatAdminRequired
 import os
 import asyncio
+# 🚀 ia_filterdb-ൽ നിന്ന് db1 (clientDB2) ഒഴിവാക്കി മെയിൻ db (clientDB) മാത്രം ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+from database.ia_filterdb import Media, db as clientDB
+from database.users_chats_db import db
 
-@Client.on_message(filters.command('stats') & filters.incoming)
-async def get_ststs(bot, message):
-    rju = await message.reply('Fetching stats..')
-    
-    # സിനിമ ഫയലുകളുടെ എണ്ണവും യൂസർ/ചാറ്റ് കൗണ്ടുകളും എടുക്കുന്നു
-    total = await Media.count_documents() 
-    users = await db.total_users_count()
-    chats = await db.total_chat_count()
-    
-    # 🗄️ ഡാറ്റാബേസ് 1 (DATABASE_URI - Users & Chats) സൈസ് കണക്കാക്കുന്നു
-    stats = await clientDB.command('dbStats')
-    used_dbSize = (stats['dataSize']/(1024*1024))+(stats['indexSize']/(1024*1024))        
-    free_dbSize = 512-used_dbSize
-    
-    # 🗄️ ഡാറ്റാബേസ് 2 (DATABASE_URI2 - Movie Files) സൈസ് കണക്കാക്കുന്നു
-    stats2 = await clientDB2.command('dbStats')
-    used_dbSize2 = (stats2['dataSize']/(1024*1024))+(stats2['indexSize']/(1024*1024))
-    free_dbSize2 = 512-used_dbSize2
-    
-    # ഫൈനൽ ടെക്സ്റ്റിൽ രണ്ട് ഡാറ്റാബേസ് വിവരങ്ങളും കൃത്യമായി കാണിക്കുന്നു
-    status_text = (
-        "📊 **Bot Statistics**\n\n"
-        f"▪️ **Total Movie Files:** {total}\n"
-        f"▪️ **Total Saved Users:** {users}\n"
-        f"▪️ **Total Saved Chats:** {chats}\n\n"
-        f"🗄 **Database 1 (Users & Filters):** {round(used_dbSize, 2)} MB / Free: {round(free_dbSize, 2)} MB\n"
-        f"🗄 **Database 2 (Movie Files DB):** {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB"
-    )
-    
-    await rju.edit(status_text)
+# ====================================================================
+# 🚀 ALL-IN-ONE BOT & DATABASE FULL STATS COMMAND ✨
+# ====================================================================
 
-
+@Client.on_message(filters.command("bot_stats") & filters.user(ADMINS))
+async def get_combined_bot_and_db_stats_cmd(client: Client, message: Message):
+    """ബോട്ട് വിവരങ്ങളും ഡാറ്റാബേസ് കളക്ഷനുകളും ഒരൊറ്റ കമാൻഡിൽ കാണിക്കുന്നു 📊"""
+    msg = await message.reply_text("⏳ ഡാറ്റാബേസ് വിവരങ്ങൾ പൂർണ്ണമായി ശേഖരിച്ചുകൊണ്ടിരിക്കുന്നു...")
+    
+    try:
+        # 1. ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് മാത്രം വിവരങ്ങൾ വേഗത്തിൽ എടുക്കുന്നു
+        total_connections = await clientDB['connections'].count_documents({})
+        total_filters = await clientDB['filters'].count_documents({})
+        total_gfilters = await clientDB['gfilters'].count_documents({})
+        total_locks = await clientDB['locks'].count_documents({})
+        total_poster = await clientDB['poster'].count_documents({})
+        total_moviereq = await clientDB['moviereq'].count_documents({})
+        total_media = await clientDB['Media'].count_documents({}) 
+        total_users = await db.total_users_count()
+        total_group = await db.total_chat_count()
+        
+        # 2. മംഗോഡിബിയിൽ നിലവിലുള്ള മുഴുവൻ കളക്ഷൻ ഫോൾഡറുകളുടെ പേരുകൾ എടുക്കുന്നു
+        collections = await clientDB.list_collection_names()
+        
+        # 3. ആകെ വിവരങ്ങൾ കൂട്ടിയെടുക്കുന്നു
+        total_all_docs = (
+            total_connections + total_filters + total_gfilters + total_locks + 
+            total_poster + total_moviereq + total_media + total_users + total_group
+        )
+        
+        # 4. റിസൾട്ട് ഒരൊറ്റ മെസ്സേജിൽ ഫോർമാറ്റ് ചെയ്യുന്നു
+        status_text = f"📊 <b>★ BOT & DATABASE FULL REPORT ★</b>\n"
+        status_text += f"🗄️ <b>DB Name:</b> <code>{DATABASE_NAME}</code>\n\n"
+        
+        status_text += "📈 <b>Core Bot Growth Status:</b>\n"
+        status_text += f" ├ 🔗 <code>connections</code> → <b>{total_connections}</b> Linked Users\n"
+        status_text += f" ├ 📁 <code>Media</code> → <b>{total_media}</b> Indexed Movies\n"
+        status_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users\n"
+        status_text += f" └ 👥 <code>group</code> → <b>{total_group}</b> Total Bot Chats\n\n"
+        
+        status_text += "📂 <b>Database Collections List:</b>\n"
+        for col_name in sorted(collections):
+            col_count = await clientDB[col_name].count_documents({})
+            # നമ്മൾ ഒപ്റ്റിമൈസ് ചെയ്ത സിംഗിൾ കളക്ഷനുകൾക്ക് പ്രത്യേക നക്ഷത്ര ചിഹ്നം നൽകുന്നു
+            if col_name in ["filters", "connections", "locks", "poster", "moviereq"]:
+                status_text += f" ├ <code>{col_name}</code> → <b>{col_count}</b> ✨\n"
+            else:
+                status_text += f" ├ <code>{col_name}</code> → <b>{col_count}</b>\n"
+                
+        status_text += f" └ <b>Total Active Collections:</b> {len(collections)}\n\n"
+        status_text += f"🗂️ <b>Total Overall Documents in DB:</b> <code>{total_all_documents}</code>\n\n"
+        status_text += f"💡 <i>Note: ✨ എന്ന് അടയാളപ്പെടുത്തിയത് നമ്മൾ ഒപ്റ്റിമൈസ് ചെയ്ത സിംഗിൾ കളക്ഷനുകളാണ്.</i>"
+        
+        await msg.edit_text(status_text, parse_mode=enums.ParseMode.HTML)
+        
+    except Exception as e:
+        await msg.edit_text(f"❌ സ്റ്റാറ്റ്സ് വിവരങ്ങൾ ശേഖരിക്കുന്നതിൽ പരാജയപ്പെട്ടു!\nഎറർ: <code>{e}</code>", parse_mode=enums.ParseMode.HTML)
 
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
