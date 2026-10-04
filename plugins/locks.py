@@ -125,12 +125,13 @@ async def lock_unlock_all_command(client: Client, message: Message):
 
     updated_locks = {key: status for key in VALID_LOCKS.keys()}
 
-    # MongoClient-ൽ നിന്ന് Motor അസിങ്കിലേക്ക് മാറിയതുകൊണ്ട് ഇവിടെ await ചേർത്തു
+    # 🚀 Motor അസിങ്ക് ഡ്രൈവറിന് അനുയോജ്യമായ രീതിയിൽ update_one കൃത്യമാക്കുന്നു ✨
     await settings_collection.update_one(
         {'_id': f'locks_{int(chat_id)}'}, 
         {'$set': {'locks': updated_locks}}, 
         upsert=True
     )
+
     
     if status:
         msg_text = f"🚨 <b>{chat_title} - EMERGENCY LOCKDOWN!</b> 🚨\n\n🔒 ഗ്രൂപ്പിലെ മുഴുവൻ മീഡിയകളും ഒന്നിച്ച് <b>ലോക്ക് ചെയ്തിരിക്കുന്നു</b>. ഇനി അഡ്മിൻമാർക്ക് മാത്രമേ മെസ്സേജ് അയക്കാൻ സാധിക്കൂ!"
