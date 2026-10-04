@@ -618,6 +618,35 @@ async def delete_all_index_confirm(bot, message):
 
 
 
+# ====================================================================
+# 🧹 ഡാറ്റാബേസിലെ മുഴുവൻ ലോക്ക് സെറ്റിങ്സുകളും ക്ലിയർ ചെയ്യാനുള്ള അഡ്മിൻ കമാൻഡ് ✨
+# ====================================================================
+
+# ഫങ്ഷൻ കൃത്യമായി വർക്ക് ചെയ്യാൻ ആവശ്യമായ എല്ലാ പ്രധാന ഒബ്ജക്റ്റുകളും ഇവിടെ നേരിട്ട് ഇമ്പോർട്ട് ചെയ്യുന്നു ⚡
+from pyrogram import Client, filters, enums
+from pyrogram.types import Message
+from info import ADMINS
+from database.ia_filterdb import db as clientDB
+
+@Client.on_message(filters.command("clear_locks") & filters.user(ADMINS))
+async def clear_all_locks_cmd(client: Client, message: Message):
+    """ഡാറ്റാബേസിലെ മുഴുവൻ ചാറ്റ് ലോക്ക് വിവരങ്ങളും ഒന്നിച്ച് ഡിലീറ്റ് ചെയ്യാനുള്ള കമാൻഡ് 🧹"""
+    msg = await message.reply_text("⏳ ഡാറ്റാബേസിലെ ലോക്ക് സെറ്റിങ്സുകൾ ക്ലിയർ ചെയ്തുകൊണ്ടിരിക്കുന്നു...")
+    
+    try:
+        # 🚀 'locks' കളക്ഷനിലെ മുഴുവൻ ഡോക്യുമെന്റുകളും ഒന്നിച്ച് ഡിലീറ്റ് ചെയ്യുന്നു ✨
+        result = await clientDB['locks'].delete_many({})
+        
+        await msg.edit_text(
+            f"✅ <b>വിജയകരമായി ഡാറ്റാബേസിലെ എല്ലാ ലോക്ക് സെറ്റിങ്സുകളും പൂർണ്ണമായി ഡിലീറ്റ് ചെയ്തിരിക്കുന്നു!</b>\n\n"
+            f"📊 <b>ആകെ നീക്കം ചെയ്ത ഗ്രൂപ്പുകൾ:</b> <code>{result.deleted_count}</code>\n"
+            f"💡 <i>ഇനി മുതൽ എല്ലാ ഗ്രൂപ്പുകളിലും ഡിഫോൾട്ട് ലോക്ക് സെറ്റിങ്സ് ആയിരിക്കും പ്രവർത്തിക്കുക.</i>",
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception as e:
+        await msg.edit_text(f"❌ ലോക്ക് സെറ്റിങ്സുകൾ ക്ലിയർ ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു!\nഎറർ: <code>{e}</code>", parse_mode=enums.ParseMode.HTML)
+
+
 @Client.on_message(filters.command('restart') & filters.user(ADMINS))
 async def restart(b, m):
     if os.path.exists(".git"):
