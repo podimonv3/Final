@@ -6,8 +6,6 @@ import asyncio  # ഓട്ടോമാറ്റിക് ടാസ്ക് റ
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
 
-# (ശ്രദ്ധിക്കുക: logging.getLogger().setLevel(logging.INFO) എന്ന ലൈൻ ഇവിടെ നിന്ന് പൂർണ്ണമായി ഒഴിവാക്കിയിട്ടുണ്ട്)
-
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
 # asyncio വാർണിങ്ങുകൾ പൂർണ്ണമായി ഒഴിവാക്കാൻ താഴെ പറയുന്ന വരി ചേർക്കുക
 logging.getLogger("asyncio").setLevel(logging.ERROR)
@@ -24,6 +22,9 @@ from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
 # Mediaa ഒഴിവാക്കി മെയിൻ കളക്ഷൻ മാത്രം നിലനിർത്തുന്നു
 from database.ia_filterdb import Media
+
+# 🚀 മൂവി റിക്വസ്റ്റ് ഡാറ്റാബേസ് ഇൻഡെക്സിങ് ഫങ്ഷൻ ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+from database.requests_db import init_db
 
 from database.users_chats_db import db
 from info import *
@@ -42,7 +43,7 @@ load_dotenv("./dynamic.env", override=True, encoding="utf-8")
 
 async def auto_clean_memory():
     while True:
-        await asyncio.sleep(1800)  # 30 മിനിറ്റ്
+        await asyncio.sleep(900)  # 15 മിനിറ്റ്
         try:
             gc.collect()  # റാം ക്ലീൻ ചെയ്യുന്നു
         except Exception as e:
@@ -82,6 +83,10 @@ class Bot(Client):
         await super().start()        
         # ഒരൊറ്റ ഡാറ്റാബേസ് ഇൻഡെക്സ് മാത്രം വെരിഫൈ ചെയ്യുന്നു
         await Media.ensure_indexes()        
+        
+        # 🚀 24 മണിക്കൂർ ഡിലീറ്റ് ഒഴിവാക്കിയുള്ള പുതിയ റിക്വസ്റ്റ് ഇൻഡെക്സ് ഇവിടെ റൺ ചെയ്യുന്നു ✨
+        await init_db()
+        
         me = await self.get_me()
         temp.ME = me.id
         temp.U_NAME = me.username
@@ -146,29 +151,6 @@ class Bot(Client):
         limit: int,
         offset: int = 0,
     ) -> Optional[AsyncGenerator["types.Message", None]]:
-        """Iterate through a chat sequentially.
-        This convenience method does the same as repeatedly calling :meth:`~pyrogram.Client.get_messages` in a loop, thus saving
-        you from the hassle of setting up boilerplate code. It is useful for getting the whole chat messages with a
-        single call.
-        Parameters:
-            chat_id (``int`` | ``str``):
-                Unique identifier (int) or username (str) of the target chat.
-                For your personal cloud (Saved Messages) you can simply use "me" or "self".
-                For a contact that exists in your Telegram address book you can use his phone number (str).
-                
-            limit (``int``):
-                Identifier of the last message to be returned.
-                
-            offset (``int``, *optional*):
-                Identifier of the first message to be returned.
-                Defaults to 0.
-        Returns:
-            ``Generator``: A generator yielding :obj:`~pyrogram.types.Message` objects.
-        Example:
-            .. code-block:: python
-                for message in app.iter_messages("pyrogram", 1, 15000):
-                    print(message.text)
-        """
         current = offset
         while True:
             new_diff = min(200, limit - current)
