@@ -4,7 +4,6 @@ import random
 import sys
 import asyncio
 import io  # ലോഗ് ഫയൽ (Text File) ഇൻ-മെമ്മറി ആയി നിർമ്മിക്കാൻ
-from database.requests_db import get_all_missing_movies  # നമ്മൾ ഉണ്ടാക്കിയ പുതിയ DB ഫങ്ക്ഷൻ
 from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
@@ -779,32 +778,21 @@ async def get_missing_requests(bot: Client, message):
 
 
 
-@Client.on_message(filters.command("clearmissing") & filters.user(ADMINS))
-async def clear_missing_requests(bot: Client, message: Message):
-    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-    
-    status_msg = await message.reply_text("<b>ക്ലിയറിംഗ് പ്രോസസ്സ് ആരംഭിക്കുന്നു... ⏳</b>")
-    
-    try:
-        # ⚡ requests_db ഫയലിൽ നിന്നും യഥാർത്ഥ കളക്ഷൻ നേരിട്ട് ഇമ്പോർട്ട് ചെയ്യുന്നു
-        from database.requests_db import collection as missing_collection
-        
-        # ആകെ എത്ര സിനിമകൾ ലിസ്റ്റിൽ ഉണ്ടെന്ന് നോക്കുന്നു
-        total_docs = await missing_collection.count_documents({})
-        
-        if total_docs == 0:
-            await status_msg.edit_text("<b>❌ മിസ്സിംഗ് ലിസ്റ്റിൽ നിലവിൽ സിനിമകൾ ഒന്നും തന്നെയില്ല!</b>")
-            return
-            
-        # 🗑️ കളക്ഷനിലെ എല്ലാ ഡാറ്റയും ഡിലീറ്റ് ചെയ്യുന്നു (ഡാറ്റാബേസ് ഇൻഡക്സുകൾ നഷ്ടപ്പെടാതിരിക്കാൻ delete_many ഉപയോഗിക്കുന്നു)
-        await missing_collection.delete_many({})
-        
-        await status_msg.edit_text(f"<b>✅ വിജയകരമായി ഡാറ്റാബേസ് ക്ലിയർ ചെയ്തു!\n\n🗑️ ആകെ ഇല്ലാതാക്കിയ റിക്വസ്റ്റുകൾ: <code>{total_docs}</code></b>")
-        
-    except Exception as e:
-        logger.error(f"Error clearing missing movies database: {e}")
-        await status_msg.edit_text(f"<b>❌ ഡാറ്റാബേസ് ക്ലിയർ ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു!\nError: <code>{e}</code></b>")
+# requests_db ഫയലിൽ നിന്ന് നമ്മൾ ഉണ്ടാക്കിയ പുതിയ ഫങ്ഷൻ ഇമ്പോർട്ട് ചെയ്യുന്നു
+from database.requests_db import clear_all_missing_movies 
 
+@Client.on_message(filters.command("clear_missing") & filters.user(ADMINS))
+async def clear_missing_requests_cmd(client: Client, message: Message):
+    """ഡാറ്റാബേസിലെ മുഴുവൻ മൂവി റിക്വസ്റ്റുകളും ഒന്നിച്ച് ഡിലീറ്റ് ചെയ്യാനുള്ള അഡ്മിൻ കമാൻഡ് 🧹"""
+    msg = await message.reply_text("⏳ ഡാറ്റാബേസ് ക്ലിയർ ചെയ്തുകൊണ്ടിരിക്കുന്നു...")
+    
+    # നമ്മൾ requests_db ഫയലിൽ ഉണ്ടാക്കിയ ഫങ്ഷൻ ഇവിടെ വിളിക്കുന്നു
+    success = await clear_all_missing_movies()
+    
+    if success:
+        await msg.edit_text("✅ **വിജയകരമായി ഡാറ്റാബേസിലെ എല്ലാ സിനിമാ റിക്വസ്റ്റുകളും പൂർണ്ണമായി ഡിലീറ്റ് ചെയ്തിരിക്കുന്നു!**")
+    else:
+        await msg.edit_text("❌ ഡാറ്റാബേസ് ക്ലിയർ ചെയ്യുന്നതിൽ ചെറിയൊരു പ്രശ്നം ഉണ്ടായി!")
 
 
 @Client.on_message(filters.command("dbstatus") & filters.private)
