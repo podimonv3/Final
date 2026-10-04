@@ -115,10 +115,16 @@ async def start(client, message):
         except Exception:
             pass
 
+                # 🚀 '📊 Statistics' ബട്ടണിനൊപ്പം നമ്മൾ പുതുതായി ഉണ്ടാക്കിയ '🖥️ Server' പോപ്പ്-അപ്പ് ബട്ടൺ കൂടി ചേർക്കുന്നു ✨
         btn = [
             [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
-            [InlineKeyboardButton("📊 Statistics", callback_data="stats"), InlineKeyboardButton("❌ Close", callback_data="close")]
+            [
+                InlineKeyboardButton("📊 Statistics", callback_data="stats"), 
+                InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats")
+            ],
+            [InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
+
         caption = script.START_TXT.format(message.from_user.mention)
 
         try:
