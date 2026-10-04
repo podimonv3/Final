@@ -12,13 +12,13 @@ from database.ia_filterdb import Media, db as clientDB
 from database.users_chats_db import db
 
 # ====================================================================
-# 🚀 ALL-IN-ONE BOT & DATABASE FULL STATS COMMAND ✨
+# 🚀 ALL-IN-ONE BOT, DATABASE LIST & STORAGE STATS COMMAND ✨
 # ====================================================================
 
 @Client.on_message(filters.command("bot_stats") & filters.user(ADMINS))
 async def get_combined_bot_and_db_stats_cmd(client: Client, message: Message):
-    """ബോട്ട് വിവരങ്ങളും ഡാറ്റാബേസ് കളക്ഷനുകളും ഒരൊറ്റ കമാൻഡിൽ കാണിക്കുന്നു 📊"""
-    msg = await message.reply_text("⏳ ഡാറ്റാബേസ് വിവരങ്ങൾ പൂർണ്ണമായി ശേഖരിച്ചുകൊണ്ടിരിക്കുന്നു...")
+    """ബോട്ട് വിവരങ്ങളും, കളക്ഷൻ ലിസ്റ്റും, ഡാറ്റാബേസ് സ്റ്റോറേജും ഒരൊറ്റ കമാൻഡിൽ കാണിക്കുന്നു 📊"""
+    msg = await message.reply_text("⏳ ഡാറ്റാബേസ് വിവരങ്ങളും സ്റ്റോറേജ് സൈസും ശേഖരിച്ചുകൊണ്ടിരിക്കുന്നു...")
     
     try:
         # 1. ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് മാത്രം വിവരങ്ങൾ വേഗത്തിൽ എടുക്കുന്നു
@@ -35,15 +35,28 @@ async def get_combined_bot_and_db_stats_cmd(client: Client, message: Message):
         # 2. മംഗോഡിബിയിൽ നിലവിലുള്ള മുഴുവൻ കളക്ഷൻ ഫോൾഡറുകളുടെ പേരുകൾ എടുക്കുന്നു
         collections = await clientDB.list_collection_names()
         
-        # 3. ആകെ വിവരങ്ങൾ കൂട്ടിയെടുക്കുന്നു
-        total_all_docs = (
+        # 3. ആകെ ഡോക്യുമെന്റുകളുടെ വിവരങ്ങൾ കൂട്ടിയെടുക്കുന്നു
+        total_all_documents = (
             total_connections + total_filters + total_gfilters + total_locks + 
             total_poster + total_moviereq + total_media + total_users + total_group
         )
         
-        # 4. റിസൾട്ട് ഒരൊറ്റ മെസ്സേജിൽ ഫോർമാറ്റ് ചെയ്യുന്നു
+        # 4. ✨ ഡാറ്റാബേസ് യഥാർത്ഥ സ്റ്റോറേജ് സൈസ് (Used & Free) കണക്കാക്കുന്നു ✨
+        try:
+            stats = await clientDB.command('dbStats')
+            # bytes-ൽ ഉള്ളതിനെ MB-യിലേക്ക് മാറ്റുന്നു
+            used_dbSize = (stats.get('dataSize', 0) / (1024 * 1024)) + (stats.get('indexSize', 0) / (1024 * 1024))        
+            free_dbSize = 512.0 - used_dbSize  # MongoDB Atlas Free Tier 512MB ആണ് നൽകുന്നത്
+            if free_dbSize < 0: 
+                free_dbSize = 0.0
+            storage_text = f"💾 <b>Storage Used:</b> <code>{round(used_dbSize, 2)} MB</code> / <b>Free:</b> <code>{round(free_dbSize, 2)} MB</code>"
+        except Exception:
+            storage_text = "💾 <b>Storage Space:</b> <code>Statistics Unavailable</code>"
+        
+        # 5. റിസൾട്ട് ഒരൊറ്റ മെസ്സേജിൽ ഫോർമാറ്റ് ചെയ്യുന്നു
         status_text = f"📊 <b>★ BOT & DATABASE FULL REPORT ★</b>\n"
-        status_text += f"🗄️ <b>DB Name:</b> <code>{DATABASE_NAME}</code>\n\n"
+        status_text += f"🗄️ <b>DB Name:</b> <code>{DATABASE_NAME}</code>\n"
+        status_text += f"{storage_text}\n\n"
         
         status_text += "📈 <b>Core Bot Growth Status:</b>\n"
         status_text += f" ├ 🔗 <code>connections</code> → <b>{total_connections}</b> Linked Users\n"
@@ -68,7 +81,6 @@ async def get_combined_bot_and_db_stats_cmd(client: Client, message: Message):
         
     except Exception as e:
         await msg.edit_text(f"❌ സ്റ്റാറ്റ്സ് വിവരങ്ങൾ ശേഖരിക്കുന്നതിൽ പരാജയപ്പെട്ടു!\nഎറർ: <code>{e}</code>", parse_mode=enums.ParseMode.HTML)
-
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def main_broadcast(client, message):
