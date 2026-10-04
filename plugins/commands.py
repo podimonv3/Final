@@ -40,11 +40,11 @@ DS_REACT = ["⚡"]
 should_run_check_loop_sub = False
 should_run_check_loop_sub1 = False
 
-inclient = pymongo.MongoClient(DATABASE_URI)
-indb = inclient[DATABASE_NAME]
-incol = indb['auto_del']
-infile = indb['file_reply_text']
-restarti = indb['restart']
+# 🚀 പഴയ പൈമംഗോ കണക്ഷൻ മാറ്റി ഫയലിന്റെ മുകളിൽ നമ്മൾ ഇമ്പോർട്ട് ചെയ്ത clientDB ഇവിടെ കൊടുക്കുന്നു ✨
+incol = clientDB['auto_del']
+infile = clientDB['file_reply_text']
+restarti = clientDB['restart']
+
 
 
 async def admin_check(message: Message) -> bool:
