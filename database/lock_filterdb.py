@@ -1,21 +1,18 @@
 import logging
-from pymongo import MongoClient
-from info import DATABASE_URI
+from motor.motor_asyncio import AsyncIOMotorClient
+from info import DATABASE_URI, DATABASE_NAME
 
 logger = logging.getLogger(__name__)
 
-try:
-    client = MongoClient(DATABASE_URI)
-    db = client['telegram_advanced_bot']
-    settings_collection = db['settings']
-    logger.info("✅ MongoDB-യുമായി വിജയകരമായി കണക്ട് ചെയ്തിരിക്കുന്നു!")
-except Exception as e:
-    logger.error(f"❌ MongoDB കണക്ഷൻ പരാജയപ്പെട്ടു: {e}")
+# ബോട്ടിലെ മറ്റ് ഫയലുകളിലെ പോലെ ഒരൊറ്റ മെയിൻ അസിങ്ക് കണക്ഷൻ മാത്രം ഉപയോഗിക്കുന്നു
+client = AsyncIOMotorClient(DATABASE_URI)
+db = client[DATABASE_NAME]
+settings_collection = db['locks']
 
 
-def get_group_locks(chat_id: int):
+async def get_group_locks(chat_id: int):
     """ഗ്രൂപ്പിലെ നിലവിലെ എല്ലാ ലോക്ക് സെറ്റിങ്സും എടുക്കുന്നു"""
-    config = settings_collection.find_one({'_id': f'locks_{int(chat_id)}'})
+    config = await settings_collection.find_one({'_id': f'locks_{int(chat_id)}'})
     if config:
         return config.get('locks', {})
     
@@ -33,11 +30,11 @@ def get_group_locks(chat_id: int):
     }
 
 
-def set_group_lock(chat_id: int, media_type: str, status: bool):
+async def set_group_lock(chat_id: int, media_type: str, status: bool):
     """ഒരു പ്രത്യേക മീഡിയ ലോക്ക്/അൺലോക്ക് ചെയ്യാൻ"""
-    current_locks = get_group_locks(chat_id)
+    current_locks = await get_group_locks(chat_id)
     current_locks[media_type] = status
-    settings_collection.update_one(
+    await settings_collection.update_one(
         {'_id': f'locks_{int(chat_id)}'}, 
         {'$set': {'locks': current_locks}}, 
         upsert=True
