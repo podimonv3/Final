@@ -5,7 +5,11 @@ from info import POSTER_DB
 # MongoDB കണക്ഷൻ സെറ്റ് ചെയ്യുന്നു
 client = AsyncIOMotorClient(POSTER_DB)
 db = client.MoviePostersDB
-poster_collection = db.cached_posters
+# ഡാറ്റകൾ ഇനി മുതൽ 'poster' എന്ന ഒരൊറ്റ കളക്ഷൻ ഫോൾഡറിലേക്ക് സേവ് ചെയ്യും
+poster_collection = db.poster
+
+# പോസ്റ്റർ വേഗത്തിൽ തപ്പിയെടുക്കാൻ ഇൻഡെക്സ് സെറ്റ് ചെയ്യുന്നു
+poster_collection.create_index("movie_name", unique=True)
 
 async def get_cached_poster(movie_name):
     """ഡാറ്റാബേസിൽ നിന്ന് വളരെ വേഗത്തിൽ പോസ്റ്റർ ലിങ്ക് എടുക്കുന്നു"""
