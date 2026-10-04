@@ -8,19 +8,15 @@ from pymongo.errors import DuplicateKeyError
 from umongo import Instance, Document, fields
 from motor.motor_asyncio import AsyncIOMotorClient
 from marshmallow.exceptions import ValidationError
-from info import DATABASE_URI, DATABASE_URI2, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, TAGS
+from info import DATABASE_URI, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, TAGS
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# മെയിൻ യൂസർ ഡാറ്റാബേസ് കണക്ഷൻ (For commands/stats)
+# 🚀 രണ്ട് കണക്ഷനുകൾ മാറ്റി ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസ് കണക്ഷൻ മാത്രമാക്കുന്നു ✨
 client = AsyncIOMotorClient(DATABASE_URI)
 db = client[DATABASE_NAME]
-
-# സിനിമ ഫയലുകൾ സൂക്ഷിക്കുന്ന പുതിയ ഡാറ്റാബേസ് കണക്ഷൻ
-client1 = AsyncIOMotorClient(DATABASE_URI2)
-db1 = client1[DATABASE_NAME] # 👈 ഇതാണ് commands.py-ലേക്ക് ഇമ്പോർട്ട് ചെയ്യുന്നത്
-instance = Instance.from_db(db1)
+instance = Instance.from_db(db)
 
 
 
@@ -39,17 +35,6 @@ class Media(Document):
         collection_name = COLLECTION_NAME
 
 
-async def check_file(media):
-    """Check if file is present in the database"""
-    file_id, file_ref = unpack_new_file_id(media.file_id)
-    existing_file = await Media.collection.find_one({"_id": file_id})
-    
-    if existing_file:
-        return None
-    else:
-        return "okda"
-
-
 async def clean_file_name(raw_name: str) -> str:
     """ഫയൽ നെയിം ശുദ്ധീകരിക്കാനുള്ള ഹെൽപർ ഫങ്ഷൻ"""
     name_without_ext, _ = os.path.splitext(raw_name)
@@ -63,6 +48,17 @@ async def clean_file_name(raw_name: str) -> str:
     cleaned_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', name_no_apostrophe)
     final_name = re.sub(r'\s+', ' ', cleaned_chars).strip()
     return final_name
+
+
+async def check_file(media):
+    """Check if file is present in the database"""
+    file_id, file_ref = unpack_new_file_id(media.file_id)
+    existing_file = await Media.collection.find_one({"_id": file_id})
+    
+    if existing_file:
+        return None
+    else:
+        return "okda"
 
 
 async def save_file(media):
@@ -90,7 +86,7 @@ async def save_file(media):
         except DuplicateKeyError:      
             return False, 0
 
-# save_filea ഒഴിവാക്കിയതിനാൽ പഴയ ഇൻഡെക്സിങ് ഫയലുകളിൽ എറർ വരാതിരിക്കാൻ ബാക്കപ്പ് നൽകുന്നു
+
 async def save_filea(media):
     return await save_file(media)
 
@@ -103,17 +99,15 @@ async def delete_files_below_threshold(db, threshold_size_mb: int = 50, batch_si
         try:
             await Media.collection.delete_one({"_id": document["file_id"]})
             deleted_count += 1
-            print(f'Deleted file from Media: {document["file_name"]}')
         except Exception as e:
-            print(f'Error deleting file from Media: {document["file_name"]}, {e}')
+            pass
 
     return deleted_count
 
 
-async def get_bad_files(query, file_type=None, filter=False):
-    """For given query return (results, next_offset)"""
-    query = query.strip()
 
+async def get_bad_files(query, file_type=None, filter=False):
+    query = query.strip()
     if not query:
         raw_pattern = '.'
     elif ' ' not in query:
@@ -127,22 +121,16 @@ async def get_bad_files(query, file_type=None, filter=False):
         return []
 
     filter = {'file_name': regex}
-
     if file_type:
         filter['file_type'] = file_type
 
     total_results = await Media.count_documents(filter)
-
-    cursor_media = Media.find(filter)
-    cursor_media.sort('$natural', -1)
+    cursor_media = Media.find(filter).sort('$natural', -1)
     files_media = await cursor_media.to_list(length=total_results)
-
     return files_media, total_results
 
 
-
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    """Koyeb ഫ്രീ സെർവറിനായി ഡാറ്റാബേസ് ലെവലിൽ ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് സെർച്ച്"""
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -169,7 +157,6 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
         filter_dict['file_type'] = file_type
 
     cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
-    # ഒറ്റ കളക്ഷൻ ആയതുകൊണ്ട് മാക്സിമം ലിമിറ്റ് നേരിട്ട് നൽകാം
     files_media = await cursor_media.to_list(length=125)
 
     if files_media:
@@ -194,20 +181,15 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
                     custom_key.append(text)
 
             exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
-            if re.search(exact_year_pattern, file_name_lower):
-                return (0, custom_key)
+            if re.search(exact_year_pattern, file_name_lower): return (0, custom_key)
 
             match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
-            if re.search(match_season_pattern, file_name_lower):
-                return (1, custom_key)
+            if re.search(match_season_pattern, file_name_lower): return (1, custom_key)
 
             match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
-            if re.search(match_year_pattern, file_name_lower):
-                return (2, custom_key)
+            if re.search(match_year_pattern, file_name_lower): return (2, custom_key)
                 
-            if file_name_lower.startswith(query_lower):
-                return (3, custom_key)
-                
+            if file_name_lower.startswith(query_lower): return (3, custom_key)
             return (4, custom_key)
 
         files_media.sort(key=sort_by_exact_match)
@@ -220,9 +202,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
             seen_ids.add(file.file_id)
 
     total_results = len(final_sorted_files)
-
-    if offset < 0:
-        offset = 0
+    if offset < 0: offset = 0
 
     files = final_sorted_files[offset:offset + max_results]
     next_offset = offset + len(files)
@@ -233,7 +213,6 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
         return files, '', total_results
 
 
-      
 async def get_file_details(query):
     filter = {'file_id': query}
     cursor_media = Media.find(filter)
@@ -245,8 +224,7 @@ def encode_file_id(s: bytes) -> str:
     r = b""
     n = 0
     for i in s + bytes([22]) + bytes([4]):
-        if i == 0:
-            n += 1
+        if i == 0: n += 1
         else:
             if n:
                 r += b"\x00" + bytes([n])
