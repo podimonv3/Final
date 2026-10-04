@@ -1,15 +1,17 @@
 import pymongo
-
 from info import DATABASE_URI, DATABASE_NAME
-
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 myclient = pymongo.MongoClient(DATABASE_URI)
 mydb = myclient[DATABASE_NAME]
-mycol = mydb['CONNECTION']   
+# ഡാറ്റകൾ ഇനി മുതൽ 'connections' എന്ന ഒരൊറ്റ കളക്ഷനിലേക്ക് സേവ് ചെയ്യും
+mycol = mydb['connections']   
 
+# തിരച്ചിൽ വേഗത്തിലാക്കാൻ ഇൻഡെക്സ് സെറ്റ് ചെയ്യുന്നു
+mycol.create_index("_id")
 
 async def add_connection(group_id, user_id):
     query = mycol.find_one(
@@ -53,7 +55,6 @@ async def add_connection(group_id, user_id):
 
         
 async def active_connection(user_id):
-
     query = mycol.find_one(
         { "_id": user_id },
         { "_id": 0, "group_details": 0 }
@@ -101,7 +102,6 @@ async def make_inactive(user_id):
 
 
 async def delete_connection(user_id, group_id):
-
     try:
         update = mycol.update_one(
             {"_id": user_id},
@@ -130,4 +130,3 @@ async def delete_connection(user_id, group_id):
     except Exception as e:
         logger.exception(f'Some error occurred! {e}', exc_info=True)
         return False
-
