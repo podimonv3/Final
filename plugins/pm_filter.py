@@ -18,7 +18,8 @@ from pyrogram import Client, filters, enums
 from utils import get_size, is_subscribed, temp, get_settings, save_group_settings, is_requested_one, is_requested_two, get_any_movie_poster, get_poster
 from database.users_chats_db import db
 # Mediaa, clientDB3 എന്നിവ ഒഴിവാക്കി
-from database.ia_filterdb import Media, get_bad_files, get_file_details, get_search_results, db as clientDB, db1 as clientDB2
+# 🚀 ia_filterdb-ൽ നിന്ന് db1 (clientDB2) ഒഴിവാക്കി മെയിൻ db (clientDB) മാത്രം ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+from database.ia_filterdb import Media, get_bad_files, get_file_details, get_search_results, db as clientDB
 from database.filters_mdb import (
     del_all,
     find_filter,
