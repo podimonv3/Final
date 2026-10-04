@@ -105,19 +105,30 @@ async def send_file(client, query, ident, file_id):
         logger.error(f"ഫയൽ അയക്കുന്നതിൽ പരാജയപ്പെട്ടു: {e}")
 
 
-
-@Client.on_message(filters.command("start") & filters.private)
+@Client.on_message(filters.command("start"))
 async def start(client, message):
-    if len(message.command) != 2:
+    # 🚀 പ്രൈവറ്റ് ചാറ്റിലാണോ ഗ്രൂപ്പിലാണോ എന്ന് നോക്കി ഉപയോക്താവിനെ / ചാറ്റിനെ കൃത്യമായി സേവ് ചെയ്യുന്നു ✨
+    chat_type = message.chat.type
+    user_id = message.from_user.id if message.from_user else None
+    
+    if user_id:
         try:
-            if not await db.is_user_exist(message.from_user.id):
-                await db.add_user(message.from_user.id, message.from_user.first_name)
-        except Exception:
-            pass
+            if not await db.is_user_exist(user_id):
+                await db.add_user(id=int(user_id), name=str(message.from_user.first_name or "User"))
+        except Exception as e:
+            logger.error(f"Error saving user to DB: {e}")
 
-                # 🚀 '📊 Statistics' ബട്ടണിനൊപ്പം നമ്മൾ പുതുതായി ഉണ്ടാക്കിയ '🖥️ Server' പോപ്പ്-അപ്പ് ബട്ടൺ കൂടി ചേർക്കുന്നു ✨
+    if chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
+        try:
+            if not await db.is_chat_exist(message.chat.id):
+                await db.add_chat(chat=int(message.chat.id), title=str(message.chat.title))
+        except Exception as e:
+            logger.error(f"Error saving group to DB: {e}")
+
+    # കമാൻഡിനൊപ്പം സിനിമയുടെ ലിങ്ക് അല്ലെങ്കിൽ ഐഡി വന്നിട്ടില്ലെങ്കിൽ (Basic Start Message)
+    if len(message.command) != 2:
         btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+VqyHBSateMcwNjU9")],
             [
                 InlineKeyboardButton("📊 Statistics", callback_data="stats"), 
                 InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats")
@@ -125,10 +136,10 @@ async def start(client, message):
             [InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
 
-        caption = script.START_TXT.format(message.from_user.mention)
+        caption = script.START_TXT.format(message.from_user.mention if message.from_user else "User")
 
         try:
-            await message.reply_photo(photo="https://files.catbox.moe/egu0ip.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
+            await message.reply_photo(photo="https://catbox.moe", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
         except Exception:
             try:
                 await message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
@@ -136,12 +147,7 @@ async def start(client, message):
                 pass
         return
 
-    try:
-        if not await db.is_user_exist(message.from_user.id):
-            await db.add_user(message.from_user.id, message.from_user.first_name)
-    except Exception:
-        pass
-
+    # കമാൻഡിനൊപ്പം ഫയൽ ഐഡിയോ റീഡയറക്ഷൻ കീയോ വന്നിട്ടുണ്ടെങ്കിൽ (Deep Linking)
     data = message.command[1]
     try:
         pre, file_id = data.split("_", 1)
@@ -152,28 +158,21 @@ async def start(client, message):
     if data.startswith("key_"):
         try:
             req_key = data.replace("key_", "")
-            # BUTTONS-ൽ നിന്ന് ആ കീ വെച്ച് ഒറിജിനൽ സിനിമയുടെ പേര് തിരിച്ചെടുക്കുന്നു
             from plugins.pm_filter import BUTTONS, auto_filter
             button_data = BUTTONS.get(req_key)
             
-            # 5 മിനിറ്റ് കഴിഞ്ഞതുകൊണ്ട് മെമ്മറിയിൽ നിന്ന് ഡാറ്റ ഡിലീറ്റ് ആയിട്ടുണ്ടെങ്കിൽ ഈ ചെക്ക് പ്രവർത്തിക്കും
             if not button_data:
-                from pyrogram.errors import UserIsBlocked
                 try:
                     await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
-                except UserIsBlocked:
-                    logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send search expired text.")
                 except Exception:
                     pass
                 return
 
-            # ഡിക്ഷണറി ഫോർമാറ്റിൽ നിന്നോ പഴയ സ്ട്രിങ് ഫോർമാറ്റിൽ നിന്നോ സിനിമയുടെ പേര് മാത്രം വേർതിരിച്ചെടുക്കുന്നു
             if isinstance(button_data, dict):
                 query = button_data.get("query")
             else:
                 query = button_data
 
-            # പേര് കൃത്യമായി ലഭിച്ചില്ലെങ്കിലും എറർ വരാതിരിക്കാൻ
             if not query:
                 try:
                     await message.reply_text("<b>🚫 Expired Please Search Again In Group\n❌ ഈ സെർച്ചിന്റെ കാലാവധി കഴിഞ്ഞു. ദയവായി ഗ്രൂപ്പിൽ വീണ്ടും സെർച്ച് ചെയ്യുക!</b>")
@@ -187,11 +186,8 @@ async def start(client, message):
             if files:
                 await auto_filter(client, message, spoll=(query, files, offset, total_results))
             else:
-                from pyrogram.errors import UserIsBlocked
                 try:
-                    await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
-                except UserIsBlocked:
-                    logger.warning(f"User {message.from_user.id} blocked the bot. Cannot send files not found text.")
+                    await message.reply_text("<b>❌ ꜰɪʟᴇs ɴᴏᴛ ꜰᴏᴜ่นᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ!</b>")
                 except Exception:
                     pass
             return
@@ -199,22 +195,18 @@ async def start(client, message):
             logger.exception(e)
             return
 
-
     # ================= DYNAMIC LINK (GETFILE) REDIRECTION =================
     elif data.startswith("getfile-"):
         try:
             from plugins.pm_filter import auto_filter
-            # getfile- ഒഴിവാക്കി ബാക്കി എല്ലാ ഹൈഫനുകളെയും തിരികെ സ്പെയ്സ് ആക്കുന്നു
             query = data.replace("getfile-", "").replace("-", " ")
             
             from database.ia_filterdb import get_search_results
             files, offset, total_results = await get_search_results(query.lower(), offset=0, filter=True)
             
             if files:
-                # PM-ൽ ഫയലുകൾ ഇൻസ്റ്റന്റ് ആയി ബട്ടണുകളായി ലിസ്റ്റ് ചെയ്യുന്നു
                 await auto_filter(client, message, spoll=(query, files, offset, total_results))
             else:
-                # ഫയലുകൾ ഇല്ലെങ്കിൽ ബോട്ട് മിസ്സിംഗ് ലിസ്റ്റിലേക്ക് സേവ് ചെയ്ത് സ്പെൽചെക്ക് കാണിക്കും
                 message.text = query
                 await auto_filter(client, message)
             return
@@ -222,39 +214,22 @@ async def start(client, message):
             logger.exception(e)
             return
 
-    
-
-    # ================= FORCE SUB CHANNELS (EXISTING CODE) =================
+    # ================= FORCE SUB CHANNELS =================
     if REQ_CHANNEL1 and not await is_requested_one(client, message):
         btn = [[InlineKeyboardButton("📢 Join Channel 1", url=client.req_link1)]]
-        join_msg = await message.reply_text(
-            script.JOIN_TXT,
-            reply_markup=InlineKeyboardMarkup(btn)
-        )
-
+        join_msg = await message.reply_text(script.JOIN_TXT, reply_markup=InlineKeyboardMarkup(btn))
         if await check_loop_sub1(client, message):
-            try:
-                await join_msg.delete()
-            except Exception:
-                pass
-        else:
-            return
+            try: await join_msg.delete()
+            except Exception: pass
+        else: return
 
-    # ================= FORCE SUB CHANNEL 2 =================
     if REQ_CHANNEL2 and not await is_requested_two(client, message):
         btn = [[InlineKeyboardButton("📢 Join Channel 2", url=client.req_link2)]]
-        join_msg = await message.reply_text(
-            script.JOIN_TXT,
-            reply_markup=InlineKeyboardMarkup(btn)
-        )
-
+        join_msg = await message.reply_text(script.JOIN_TXT, reply_markup=InlineKeyboardMarkup(btn))
         if await check_loop_sub2(client, message):
-            try:
-                await join_msg.delete()
-            except Exception:
-                pass
-        else:
-            return
+            try: await join_msg.delete()
+            except Exception: pass
+        else: return
 
     # ================= GETFILE =================
     if data.startswith("getfile"):
@@ -268,19 +243,17 @@ async def start(client, message):
     # ================= SPECIAL COMMANDS =================
     if data in ["subscribe", "error", "okay", "help"]:
         btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me")],
             [InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
         try:
-            await message.reply_text(                
-                text=script.START_TXT.format(message.from_user.mention),
-                reply_markup=InlineKeyboardMarkup(btn)
-            )
+            await message.reply_text(text=script.START_TXT.format(message.from_user.mention if message.from_user else "User"), reply_markup=InlineKeyboardMarkup(btn))
         except Exception as e:
             logger.exception(e)
         return
 
- 
+
+
     # ================= BATCH =================
     if data.split("-", 1)[0] == "BATCH":
         try:
