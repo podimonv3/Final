@@ -51,18 +51,20 @@ async def auto_clean_memory():
 
 
 async def restart_bot(bot):
-    progress_document = restarti.find_one({"_id": "frestart"})
+    # 🚀 Motor അസിങ്ക് ഡ്രൈവർ ആയതുകൊണ്ട് ഇവിടെ await നിർബന്ധമായും ചേർക്കുന്നു ✨
+    progress_document = await restarti.find_one({"_id": "frestart"})
     if progress_document:
         last_restart = progress_document.get("restart")
         if last_restart == "on":
-            restarti.update_one(
+            await restarti.update_one(
                 {"_id": "frestart"},
-                {"\$set": {"restart": "off"}},
+                {"$set": {"restart": "off"}},
                 upsert=True
             )
             os.execl(sys.executable, sys.executable, "bot.py")
         else:
             return 
+
 class Bot(Client):
 
     def __init__(self):
