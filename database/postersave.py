@@ -1,9 +1,9 @@
 import time
 from motor.motor_asyncio import AsyncIOMotorClient
-from info import POSTER_DB
+from info import DATABASE_URI
 
 # MongoDB കണക്ഷൻ സെറ്റ് ചെയ്യുന്നു
-client = AsyncIOMotorClient(POSTER_DB)
+client = AsyncIOMotorClient(DATABASE_URI)
 db = client.MoviePostersDB
 # ഡാറ്റകൾ ഇനി മുതൽ 'poster' എന്ന ഒരൊറ്റ കളക്ഷൻ ഫോൾഡറിലേക്ക് സേവ് ചെയ്യും
 poster_collection = db.poster
