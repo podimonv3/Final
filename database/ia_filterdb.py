@@ -169,7 +169,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
 
         try:
             cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
-            interleaved_files = await cursor_media.to_list(length=200)
+            interleaved_files = await cursor_media.to_list(length=250)
         except Exception as e:
             logger.error(f"Search Error: {e}")
             return [], '', 0
