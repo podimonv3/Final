@@ -1,11 +1,12 @@
 import time
 from motor.motor_asyncio import AsyncIOMotorClient
-from info import DATABASE_URI
+# ഇവിടെ നമ്മൾ മെയിൻ DATABASE_URI-യും DATABASE_NAME-ഉം ഇമ്പോർട്ട് ചെയ്തു
+from info import DATABASE_URI, DATABASE_NAME
 
-# MongoDB കണക്ഷൻ സെറ്റ് ചെയ്യുന്നു
+# നിങ്ങളുടെ പ്രധാന MongoDB കണക്ഷൻ തന്നെ ഇവിടെ ഉപയോഗിക്കുന്നു
 client = AsyncIOMotorClient(DATABASE_URI)
-db = client.MoviePostersDB
-# ഡാറ്റകൾ ഇനി മുതൽ 'poster' എന്ന ഒരൊറ്റ കളക്ഷൻ ഫോൾഡറിലേക്ക് സേവ് ചെയ്യും
+db = client[DATABASE_NAME]
+# ഡാറ്റകൾ ഇനി മുതൽ മെയിൻ ഡാറ്റാബേസിലെ 'poster' എന്ന ഒറ്റ കളക്ഷൻ ഫോൾഡറിലേക്ക് സേവ് ചെയ്യും
 poster_collection = db.poster
 
 # പോസ്റ്റർ വേഗത്തിൽ തപ്പിയെടുക്കാൻ ഇൻഡെക്സ് സെറ്റ് ചെയ്യുന്നു
@@ -36,7 +37,6 @@ async def save_poster_to_cache(movie_name, poster_url):
 async def get_db_stats():
     """ഡാറ്റാബേസിന്റെ സൈസ്, ആകെ ഫയലുകൾ എന്നിവ കണക്കാക്കുന്നു (Koyeb ലോഗ്സ് പൂർണ്ണമായി തടഞ്ഞു)"""
     try:
-        # ആകെ സേവ് ചെയ്തിട്ടുള്ള പോസ്റ്ററുകളുടെ എണ്ണം എടുക്കുന്നു
         total_posters = await poster_collection.count_documents({})
         
         data_size_mb = 0.0
@@ -44,7 +44,6 @@ async def get_db_stats():
         free_space_mb = 512.0 # Default free tier space
         
         try:
-            # ഡാറ്റാബേസ് സ്റ്റാറ്റ്സ് കമാൻഡ് റൺ ചെയ്യുന്നു
             stats = await db.command("dbStats")
             if stats:
                 storage_size_bytes = stats.get("storageSize", 0)
@@ -53,8 +52,6 @@ async def get_db_stats():
                 if free_space_mb < 0: 
                     free_space_mb = 0.0
         except Exception:
-            # ചില മംഗോഡിബി ക്ലസ്റ്ററുകളിൽ dbStats കമാൻഡ് അഡ്മിൻ പെർമിഷൻ കാരണം ബ്ലോക്ക് ആയാൽ
-            # Koyeb ലോഗ്സ് വരാതിരിക്കാൻ എറർ പ്രിന്റ് ചെയ്യാതെ തനിയെ സ്കിപ്പ് (Skip) ചെയ്യുന്നു.
             pass
             
         return {
@@ -63,16 +60,13 @@ async def get_db_stats():
             "free": free_space_mb
         }
     except Exception:
-        # ആകെ എണ്ണം എടുക്കുന്നതിൽ പോലും വല്ല എററും വന്നാൽ പൂർണ്ണമായി സ്കിപ്പ് ചെയ്ത് None നൽകും
         return None
 
 
 async def clear_entire_poster_db():
     """ഡാറ്റാബേസിലെ എല്ലാ പോസ്റ്റർ കാഷെയും പൂർണ്ണമായി ഡിലീറ്റ് ചെയ്യുന്നു (Koyeb ലോഗ്സ് ഉണ്ടാകില്ല)"""
     try:
-        # കളക്ഷനിലുള്ള എല്ലാ ഡോക്യുമെന്റുകളും ഡിലീറ്റ് ചെയ്യുന്നു
         await poster_collection.delete_many({})
         return True
     except Exception:
-        # ഡാറ്റാബേസ് എറർ വന്നാൽ ലോഗ് ചെയ്യാതെ സൈലന്റ് ആയി സ്കിപ്പ് ചെയ്യും
         return False
