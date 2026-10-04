@@ -43,7 +43,7 @@ load_dotenv("./dynamic.env", override=True, encoding="utf-8")
 
 async def auto_clean_memory():
     while True:
-        await asyncio.sleep(900)  # 15 മിനിറ്റ്
+        await asyncio.sleep(1800)  # 30 മിനിറ്റ്
         try:
             gc.collect()  # റാം ക്ലീൻ ചെയ്യുന്നു
         except Exception as e:
