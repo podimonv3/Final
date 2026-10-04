@@ -145,7 +145,7 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    """ആദ്യത്തെ രണ്ട് ലെവലുകൾക്ക് മാത്രം മുൻഗണന നൽകുന്ന ലളിതമാക്കിയ ഫങ്ഷൻ"""
+    """5 ലെവൽ സോർട്ടിങ്ങും ഡ്യൂപ്ലിക്കേറ്റ് ഫിൽട്ടറിങ്ങും അടങ്ങിയ പുതുക്കിയ ഫങ്ഷൻ"""
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -169,13 +169,13 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
 
         try:
             cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
-            final_sorted_files = await cursor_media.to_list(length=200)
+            interleaved_files = await cursor_media.to_list(length=150)
         except Exception as e:
             logger.error(f"Search Error: {e}")
             return [], '', 0
 
-        # 💡 താങ്കൾ ആവശ്യപ്പെട്ടതുപോലെ സോർട്ടിങ് ലെവലുകൾ ചുരുക്കി ലളിതമാക്കി:
-        if final_sorted_files:
+        # 💡 താങ്കൾ തന്ന പുതിയ സോർട്ടിങ് ലോജിക് ഇവിടെ ചേർത്തിരിക്കുന്നു:
+        if interleaved_files:
             query_lower = query.lower().strip()
             
             def sort_by_exact_match(file_obj):
@@ -186,7 +186,6 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
                 custom_key = []
                 is_series = bool(re.search(r'\b(s\d+|e\d+)\b', file_name_lower))
                 
-                # അക്കങ്ങൾ കൃത്യമായ ക്രമത്തിൽ അടുക്കാനുള്ള നാച്ചുറൽ സോർട്ടിങ്
                 for text in re.split(r'(\d+)', file_name_lower):
                     if text.isdigit():
                         num = int(text)
@@ -206,15 +205,32 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
                 match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
                 if re.search(match_season_pattern, file_name_lower):
                     return (1, custom_key)
-                    
-                # 🥉 ലെവൽ 2: ബാക്കിയുള്ള എല്ലാ ഫയലുകളും ഇതിന് താഴെ തനിയെ വരും
-                return (2, custom_key)
 
-            final_sorted_files.sort(key=sort_by_exact_match)
+                # 🥉 ലെവൽ 2: പേരിന്റെ തുടക്കവും ഏതെങ്കിലും ഭാഗത്ത് വർഷവും വരുന്നത്
+                match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
+                if re.search(match_year_pattern, file_name_lower):
+                    return (2, custom_key)
+                    
+                # 🏅 ലെവൽ 3: കുറിയിൽ ഉള്ള വാക്കുകൊണ്ട് മാത്രം തുടങ്ങുന്നത്
+                if file_name_lower.startswith(query_lower):
+                    return (3, custom_key)
+                    
+                # 🎖️ ലെവൽ 4: ബാക്കിയുള്ള ഫയലുകൾ
+                return (4, custom_key)
+
+            interleaved_files.sort(key=sort_by_exact_match)
+
+        # 🆔 ഡ്യൂപ്ലിക്കേറ്റ് ഫയലുകൾ ഫിൽട്ടർ ചെയ്ത് ഒഴിവാക്കുന്നു
+        seen_ids = set()
+        final_sorted_files = []
+        for file in interleaved_files:
+            if file.file_id not in seen_ids:
+                final_sorted_files.append(file)
+                seen_ids.add(file.file_id)
             
-            if len(SEARCH_CACHE) > 20:
-                SEARCH_CACHE.clear()
-            SEARCH_CACHE[cache_key] = final_sorted_files
+        if len(SEARCH_CACHE) > 20:
+            SEARCH_CACHE.clear()
+        SEARCH_CACHE[cache_key] = final_sorted_files
 
     total_results = len(final_sorted_files)
 
@@ -228,6 +244,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
         return files, next_offset, total_results
     else:
         return files, '', total_results
+
 
       
 async def get_file_details(query):
