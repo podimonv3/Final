@@ -116,17 +116,19 @@ class Database:
         await self.grp.update_one({'id': int(id)}, {'$set': {'settings': settings}})
         
     async def get_settings(self, id):
+        # 🚀 SINGLE_BUTTON എറർ എന്നെന്നേക്കുമായി ഒഴിവാക്കാൻ ഡിഫോൾട്ട് സെറ്റിങ്സ് ഫിക്സ് ചെയ്യുന്നു ✨
         default = {
-            'button': SINGLE_BUTTON,
-            'botpm': P_TTI_SHOW_OFF,
-            'file_secure': PROTECT_CONTENT,            
-            'spell_check': SPELL_CHECK_REPLY,
-            'welcome': MELCOW_NEW_USERS            
+            'button': True,                  # SINGLE_BUTTON-ന് പകരം നേരിട്ട് True നൽകുന്നു
+            'botpm': True,                  # P_TTI_SHOW_OFF-ന് പകരം നേരിട്ട് True നൽകുന്നു
+            'file_secure': False,            # PROTECT_CONTENT-ന് പകരം നേരിട്ട് False നൽകുന്നു         
+            'spell_check': True,             # SPELL_CHECK_REPLY-ന് പകരം നേരിട്ട് True നൽകുന്നു
+            'welcome': True                  # MELCOW_NEW_USERS-ന് പകരം നേരിട്ട് True നൽകുന്നു           
         }
         chat = await self.grp.find_one({'id':int(id)})
         if chat:
             return chat.get('settings', default)
         return default
+
     
     async def disable_chat(self, chat, reason="No Reason"):
         chat_status=dict(
