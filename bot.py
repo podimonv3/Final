@@ -96,29 +96,33 @@ class Bot(Client):
         self.username = '@' + me.username
         logging.info(f"{me.first_name} with for Pyrogram v{__version__} (Layer {layer}) started on {me.username}.")
         logging.info(LOG_STR)
+       # 🚀 Fsub ചാനൽ 1-ന്റെ ഐഡി ഡാറ്റാബേസിൽ നിന്ന് അസിങ്ക് ആയി ലോഡ് ചെയ്യുന്നു ✨
         if REQ_CHANNEL1 == None:
             with open("./dynamic.env", "wt+") as f:
-                req = await db.get_fsub_chat()                
+                req = await db.get_fsub_chat()  # await നിർബന്ധമാണ് ⚡             
                 if req is None:
                     req = False
                 else:
                     req = req['chat_id']                   
                 f.write(f"REQ_CHANNEL1={req}\n")
                 
-            logging.info("Loading REQ_CHANNEL from database...") 
+            logging.info("Loading REQ_CHANNEL 1 from database...") 
             os.execl(sys.executable, sys.executable, "bot.py")
             return 
+            
+        # 🚀 Fsub ചാനൽ 2-ന്റെ ഐഡി ഡാറ്റാബേസിൽ നിന്ന് അസിങ്ക് ആയി ലോഡ് ചെയ്യുന്നു ✨
         if REQ_CHANNEL2 == None:
             with open("./dynamic.env", "wt+") as f:
-                req2 = await db.get_fsub_chat2()
+                req2 = await db.get_fsub_chat2()  # await നിർബന്ധമാണ് ⚡
                 if req2 is None:
                     req2 = False
                 else:
                     req2 = req2['chat_id']
                 f.write(f"REQ_CHANNEL2={req2}\n")
-            logging.info("Loading REQ_CHANNEL...") 
+            logging.info("Loading REQ_CHANNEL 2 from database...") 
             os.execl(sys.executable, sys.executable, "bot.py")
             return 
+
         await self.send_message(chat_id=LOG_CHANNEL, text="restarted ❤️‍🩹")
         
         app = web.AppRunner(await web_server(), access_log=None)
