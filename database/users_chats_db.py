@@ -1,6 +1,9 @@
 import logging
+# 🚀 motor പൂർണ്ണമായും അതുപോലെ AsyncIOMotorClient-ഉം ഒന്നിച്ച് ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+import motor
+import motor.motor_asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
-# 🚀 info ഫയലിൽ നമ്മൾ നൽകിയ പുതിയ ഡാറ്റാബേസ് ലിങ്കും പേരും ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+# info ഫയലിൽ നമ്മൾ നൽകിയ പുതിയ ഡാറ്റാബേസ് ലിങ്കും പേരും ഇമ്പോർട്ട് ചെയ്യുന്നു
 from info import DATABASE_URI, DATABASE_NAME
 from datetime import datetime
 
@@ -10,6 +13,7 @@ logger.setLevel(logging.ERROR)
 # 🚀 ഒരൊറ്റ പുതിയ DATABASE_URI ലിങ്ക് മാത്രം ഇവിടെയും സെറ്റ് ചെയ്യുന്നു ✨
 client = AsyncIOMotorClient(DATABASE_URI)
 db = client[DATABASE_NAME]
+
 
 class Database:
     
