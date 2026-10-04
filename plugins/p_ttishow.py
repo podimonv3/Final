@@ -4,7 +4,6 @@ from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInv
 from info import ADMINS, LOG_CHANNEL, SUPPORT_CHAT, MELCOW_NEW_USERS, REQ_CHANNEL1, REQ_CHANNEL2
 from info import ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, AUTH_USERS, CUSTOM_FILE_CAPTION, LOG_CHANNEL, DATABASE_NAME
 # 🚀 കമാൻഡ് ഫങ്ഷനുകൾ കൃത്യമായി വർക്ക് ചെയ്യാൻ 'Message' കൂടി ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
-from pyrogram import Client, filters, enums, Message
 from utils import get_size, temp, get_settings, run_broadcast_in_background
 from Script import script
 from pyrogram.errors import ChatAdminRequired
@@ -13,77 +12,6 @@ import asyncio
 # 🚀 ia_filterdb-ൽ നിന്ന് db1 (clientDB2) ഒഴിവാക്കി മെയിൻ db (clientDB) മാത്രം ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
 from database.ia_filterdb import Media, db as clientDB
 from database.users_chats_db import db
-
-# ====================================================================
-# 🚀 ALL-IN-ONE BOT, DATABASE LIST & STORAGE STATS COMMAND ✨
-# ====================================================================
-
-@Client.on_message(filters.command("bot_stats") & filters.user(ADMINS))
-async def get_combined_bot_and_db_stats_cmd(client: Client, message: Message):
-    """ബോട്ട് വിവരങ്ങളും, കളക്ഷൻ ലിസ്റ്റും, ഡാറ്റാബേസ് സ്റ്റോറേജും ഒരൊറ്റ കമാൻഡിൽ കാണിക്കുന്നു 📊"""
-    msg = await message.reply_text("⏳ ഡാറ്റാബേസ് വിവരങ്ങളും സ്റ്റോറേജ് സൈസും ശേഖരിച്ചുകൊണ്ടിരിക്കുന്നു...")
-    
-    try:
-        # 1. ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് മാത്രം വിവരങ്ങൾ വേഗത്തിൽ എടുക്കുന്നു
-        total_connections = await clientDB['connections'].count_documents({})
-        total_filters = await clientDB['filters'].count_documents({})
-        total_gfilters = await clientDB['gfilters'].count_documents({})
-        total_locks = await clientDB['locks'].count_documents({})
-        total_poster = await clientDB['poster'].count_documents({})
-        total_moviereq = await clientDB['moviereq'].count_documents({})
-        total_media = await clientDB['Media'].count_documents({}) 
-        total_users = await db.total_users_count()
-        total_group = await db.total_chat_count()
-        
-        # 2. മംഗോഡിബിയിൽ നിലവിലുള്ള മുഴുവൻ കളക്ഷൻ ഫോൾഡറുകളുടെ പേരുകൾ എടുക്കുന്നു
-        collections = await clientDB.list_collection_names()
-        
-        # 3. ആകെ ഡോക്യുമെന്റുകളുടെ വിവരങ്ങൾ കൂട്ടിയെടുക്കുന്നു
-        total_all_documents = (
-            total_connections + total_filters + total_gfilters + total_locks + 
-            total_poster + total_moviereq + total_media + total_users + total_group
-        )
-        
-        # 4. ✨ ഡാറ്റാബേസ് യഥാർത്ഥ സ്റ്റോറേജ് സൈസ് (Used & Free) കണക്കാക്കുന്നു ✨
-        try:
-            stats = await clientDB.command('dbStats')
-            # bytes-ൽ ഉള്ളതിനെ MB-യിലേക്ക് മാറ്റുന്നു
-            used_dbSize = (stats.get('dataSize', 0) / (1024 * 1024)) + (stats.get('indexSize', 0) / (1024 * 1024))        
-            free_dbSize = 512.0 - used_dbSize  # MongoDB Atlas Free Tier 512MB ആണ് നൽകുന്നത്
-            if free_dbSize < 0: 
-                free_dbSize = 0.0
-            storage_text = f"💾 <b>Storage Used:</b> <code>{round(used_dbSize, 2)} MB</code> / <b>Free:</b> <code>{round(free_dbSize, 2)} MB</code>"
-        except Exception:
-            storage_text = "💾 <b>Storage Space:</b> <code>Statistics Unavailable</code>"
-        
-        # 5. റിസൾട്ട് ഒരൊറ്റ മെസ്സേജിൽ ഫോർമാറ്റ് ചെയ്യുന്നു
-        status_text = f"📊 <b>★ BOT & DATABASE FULL REPORT ★</b>\n"
-        status_text += f"🗄️ <b>DB Name:</b> <code>{DATABASE_NAME}</code>\n"
-        status_text += f"{storage_text}\n\n"
-        
-        status_text += "📈 <b>Core Bot Growth Status:</b>\n"
-        status_text += f" ├ 🔗 <code>connections</code> → <b>{total_connections}</b> Linked Users\n"
-        status_text += f" ├ 📁 <code>Media</code> → <b>{total_media}</b> Indexed Movies\n"
-        status_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users\n"
-        status_text += f" └ 👥 <code>group</code> → <b>{total_group}</b> Total Bot Chats\n\n"
-        
-        status_text += "📂 <b>Database Collections List:</b>\n"
-        for col_name in sorted(collections):
-            col_count = await clientDB[col_name].count_documents({})
-            # നമ്മൾ ഒപ്റ്റിമൈസ് ചെയ്ത സിംഗിൾ കളക്ഷനുകൾക്ക് പ്രത്യേക നക്ഷത്ര ചിഹ്നം നൽകുന്നു
-            if col_name in ["filters", "connections", "locks", "poster", "moviereq"]:
-                status_text += f" ├ <code>{col_name}</code> → <b>{col_count}</b> ✨\n"
-            else:
-                status_text += f" ├ <code>{col_name}</code> → <b>{col_count}</b>\n"
-                
-        status_text += f" └ <b>Total Active Collections:</b> {len(collections)}\n\n"
-        status_text += f"🗂️ <b>Total Overall Documents in DB:</b> <code>{total_all_documents}</code>\n\n"
-        status_text += f"💡 <i>Note: ✨ എന്ന് അടയാളപ്പെടുത്തിയത് നമ്മൾ ഒപ്റ്റിമൈസ് ചെയ്ത സിംഗിൾ കളക്ഷനുകളാണ്.</i>"
-        
-        await msg.edit_text(status_text, parse_mode=enums.ParseMode.HTML)
-        
-    except Exception as e:
-        await msg.edit_text(f"❌ സ്റ്റാറ്റ്സ് വിവരങ്ങൾ ശേഖരിക്കുന്നതിൽ പരാജയപ്പെട്ടു!\nഎറർ: <code>{e}</code>", parse_mode=enums.ParseMode.HTML)
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def main_broadcast(client, message):
