@@ -554,7 +554,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         return await query.answer(koyeb_popup_text, show_alert=True)
 
     elif query.data == "stats":
-        # 🔐 അഡ്മിൻ സുരക്ഷാ ചെക്ക്
+        # 🔐 അഡ്മിൻ സുരക്ഷാ ചെക്ക് (അഡ്മിന്മാർക്ക് മാത്രമേ കാണാൻ സാധിക്കൂ)
         if query.from_user.id not in ADMINS:
             return await query.answer("❌ This feature is restricted to Bot Admins only!", show_alert=True)
             
@@ -563,16 +563,20 @@ async def cb_handler(client: Client, query: CallbackQuery):
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)        
         
-        # 1. ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് മാത്രം വിവരങ്ങൾ വേഗത്തിൽ എടുക്കുന്നു
+        # 1. നിങ്ങളുടെ കൃത്യമായ കളക്ഷൻ പേരുകൾ വെച്ച് ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് ഫയൽ കൗണ്ടുകൾ എടുക്കുന്നു ⚡
         total_connections = await clientDB['connections'].count_documents({})
         total_filters = await clientDB['filters'].count_documents({})
         total_gfilters = await clientDB['gfilters'].count_documents({})
         total_locks = await clientDB['locks'].count_documents({})
         total_poster = await clientDB['poster'].count_documents({})
         total_moviereq = await clientDB['moviereq'].count_documents({})
-        total_media = await clientDB['Media'].count_documents({}) 
-        total_users = await db.total_users_count()
-        total_chats = await db.total_chat_count()
+        
+        # 🎬 നിങ്ങളുടെ സിനിമാ ഫോൾഡറായ mcu_files ഇവിടെ കൃത്യമായി കണക്കാക്കുന്നു
+        total_media = await clientDB['mcu_files'].count_documents({}) 
+        
+        # 👥 users, group കളക്ഷനുകളുടെ എണ്ണം ഡാറ്റാബേസിൽ നിന്ന് നേരിട്ട് എടുക്കുന്നു
+        total_users = await clientDB['users'].count_documents({})
+        total_chats = await clientDB['group'].count_documents({})
         
         # 2. മംഗോഡിബിയിൽ നിലവിലുള്ള മുഴുവൻ കളക്ഷൻ ഫോൾഡറുകളുടെ പേരുകൾ എടുക്കുന്നു
         collections = await clientDB.list_collection_names()
@@ -583,27 +587,27 @@ async def cb_handler(client: Client, query: CallbackQuery):
             total_poster + total_moviereq + total_media + total_users + total_chats
         )
         
-        # 4. ✨ ഡാറ്റാബേസ് യഥാർത്ഥ സ്റ്റോറേജ് സൈസ് (Used & Free) കണക്കാക്കുന്നു ✨
+        # 4. ഡാറ്റാബേസ് യഥാർത്ഥ സ്റ്റോറേജ് സൈസ് (Used & Free) കണക്കാക്കുന്നു
         try:
             stats = await clientDB.command('dbStats')
             used_dbSize = (stats.get('dataSize', 0) / (1024 * 1024)) + (stats.get('indexSize', 0) / (1024 * 1024))        
-            free_dbSize = 512.0 - used_dbSize  # MongoDB Atlas Free Tier 512MB
+            free_dbSize = 512.0 - used_dbSize
             if free_dbSize < 0: 
                 free_dbSize = 0.0
-            storage_text = f"💾 <b>Storage Used:</b> <code>{round(used_dbSize, 2)} MB</code> / <b>Free:</b> <code>{round(free_dbSize, 2)} MB</code>\n\n"
+            storage_text = f"💾 <b>Storage Used:</b> <code>{round(used_dbSize, 2)} MB</code> / <b>Free:</b> <code>{round(free_dbSize, 2)} MB</code>\n"
         except Exception:
-            storage_text = "💾 <b>Storage Space:</b> <code>Statistics Unavailable</code>\n\n"
+            storage_text = "💾 <b>Storage Space:</b> <code>Statistics Unavailable</code>\n"
         
-        # 5. റിസൾട്ട് ഒരൊറ്റ ടെക്സ്റ്റിൽ ഫോർമാറ്റ് ചെയ്യുന്നു
+        # 5. റിസൾട്ട് ഒരൊറ്റ മെസ്സേജിൽ പുതിയ പേരുകൾ വെച്ച് കൃത്യമായി ഫോർമാറ്റ് ചെയ്യുന്നു ⚡
         stats_text = f"📊 <b>★ BOT & DATABASE FULL REPORT ★</b>\n"
         stats_text += f"🗄️ <b>DB Name:</b> <code>{DATABASE_NAME}</code>\n"
-        stats_text += f"{storage_text}"
+        stats_text += f"{storage_text}\n"
         
         stats_text += "📈 <b>Core Bot Growth Status:</b>\n"
         stats_text += f" ├ 🔗 <code>connections</code> → <b>{total_connections}</b> Linked Users\n"
-        stats_text += f" ├ 📁 <code>Media</code> → <b>{total_media}</b> Indexed Movies\n"
-        stats_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users\n"
-        stats_text += f" └ 👥 <code>group</code> → <b>{total_chats}</b> Total Bot Chats\n\n"
+        stats_text += f" ├ 📁 <code>mcu_files</code> → <b>{total_media}</b> Indexed Movies 🎬\n"
+        stats_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users ✨\n"
+        stats_text += f" └ 👥 <code>group</code> → <b>{total_chats}</b> Total Bot Chats ✨\n\n"
         
         stats_text += "📂 <b>Database Collections List:</b>\n"
         for col_name in sorted(collections):
@@ -617,11 +621,11 @@ async def cb_handler(client: Client, query: CallbackQuery):
         stats_text += f"🗂️ <b>Total Overall Documents in DB:</b> <code>{total_all_documents}</code>\n\n"
         stats_text += f"💡 <i>Note: ✨ എന്ന് അടയാളപ്പെടുത്തിയത് നമ്മൾ ഒപ്റ്റിമൈസ് ചെയ്ത സിംഗിൾ കളക്ഷനുകളാണ്.</i>"
 
+        # 🖼️ ഫോട്ടോ ഉള്ള മെസ്സേജ് ആണെങ്കിൽ കാപ്ഷൻ എഡിറ്റ് ചെയ്യും, ഇല്ലെങ്കിൽ ടെക്സ്റ്റ് എഡിറ്റ് ചെയ്യും
         try:
             await query.message.edit_caption(caption=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
         except Exception:
             await query.message.edit_text(text=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
-
 
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
