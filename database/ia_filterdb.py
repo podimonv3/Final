@@ -168,8 +168,13 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
             filter_dict['file_type'] = file_type
 
         try:
-            cursor_media = Media.find(filter_dict, projection={'score': {'$meta': 'textScore'}}).sort([('score', {'$meta': 'textScore'})])
-            interleaved_files = await cursor_media.to_list(length=250)
+            # 💡 ഇവിടെയാണ് മാറ്റം വരുത്തിയിരിക്കുന്നത് (.allow_disk_use(True) ചേർത്തു)
+            cursor_media = Media.find(
+                filter_dict, 
+                projection={'score': {'$meta': 'textScore'}}
+            ).sort([('score', {'$meta': 'textScore'})]).allow_disk_use(True)
+            
+            interleaved_files = await cursor_media.to_list(length=200)
         except Exception as e:
             logger.error(f"Search Error: {e}")
             return [], '', 0
@@ -244,6 +249,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
         return files, next_offset, total_results
     else:
         return files, '', total_results
+
 
 
       
