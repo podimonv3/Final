@@ -24,10 +24,15 @@ async def add_gfilter(gfilters, text, reply_text, btn, file, alert):
         'alert': str(alert)
     }
     try:
-        mycol.update_one({'gfilters': str(gfilters), 'text': str(text)}, {"\$set": data}, upsert=True)
+        # 🚀 '\$set' മാറ്റി പകരം കൃത്യമായ '$set' നൽകിValueError ഫിക്സ് ചെയ്തു ✨
+        mycol.update_one({'gfilters': str(gfilters), 'text': str(text)}, {"$set": data}, upsert=True)
     except:
         logger.exception('Some error occurred!', exc_info=True)
-             
+
+
+
+
+
 async def find_gfilter(gfilters, name):
     try:
         file = mycol.find_one({"gfilters": str(gfilters), "text": name})
