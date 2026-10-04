@@ -23,7 +23,6 @@ db1 = client1[DATABASE_NAME] # 👈 ഇതാണ് commands.py-ലേക്ക�
 instance = Instance.from_db(db1)
 
 
-SEARCH_CACHE = {}
 
 @instance.register
 class Media(Document):
@@ -35,17 +34,9 @@ class Media(Document):
     mime_type = fields.StrField(allow_none=True)
     caption = fields.StrField(allow_none=True)
     
-    # 💡 uMongo എറർ ഒഴിവാക്കാൻ ഈ ഒരു വരി കൂടി ഏറ്റവും താഴെയായി ചേർക്കുക
-    score = fields.FloatField(load_only=True, dump_only=True)
-    
     class Meta:
-        indexes = (
-            {'key': [('file_name', 'text')]},
-        )
+        indexes = ('$file_name', )
         collection_name = COLLECTION_NAME
-
-
-
 
 
 async def check_file(media):
@@ -120,7 +111,9 @@ async def delete_files_below_threshold(db, threshold_size_mb: int = 50, batch_si
 
 
 async def get_bad_files(query, file_type=None, filter=False):
+    """For given query return (results, next_offset)"""
     query = query.strip()
+
     if not query:
         raw_pattern = '.'
     elif ' ' not in query:
@@ -131,25 +124,25 @@ async def get_bad_files(query, file_type=None, filter=False):
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
-        return [], [], 0
+        return []
 
-    filter_dict = {'file_name': regex}
+    filter = {'file_name': regex}
+
     if file_type:
-        filter_dict['file_type'] = file_type
+        filter['file_type'] = file_type
 
-    total_results = await Media.count_documents(filter_dict)
-    
-    # 💡 ഇവിടെയാണ് മാറ്റം വരുത്തിയിരിക്കുന്നത് (.allow_disk_use(True) ചേർത്തു)
-    cursor_media = Media.find(filter_dict).sort([('$natural', -1)]).allow_disk_use(True)
-    
+    total_results = await Media.count_documents(filter)
+
+    cursor_media = Media.find(filter)
+    cursor_media.sort('$natural', -1)
     files_media = await cursor_media.to_list(length=total_results)
 
-    return files_media, [], total_results
+    return files_media, total_results
 
 
 
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    """5 ലെവൽ സോർട്ടിങ്ങും ഡ്യൂപ്ലിക്കേറ്റ് ഫിൽട്ടറിങ്ങും അടങ്ങിയ പുതുക്കിയ ഫങ്ഷൻ"""
+    """Koyeb ഫ്രീ സെർവറിനായി ഡാറ്റാബേസ് ലെവലിൽ ഒപ്റ്റിമൈസ് ചെയ്ത സ്മാർട്ട് സെർച്ച്"""
     query_no_apostrophe = query.replace("'", "")
     cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
     query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
@@ -157,89 +150,74 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     if not query:
         return [], '', 0
 
-    cache_key = f"{query}_{file_type}"
-    
-    if cache_key in SEARCH_CACHE:
-        final_sorted_files = SEARCH_CACHE[cache_key]
+    if ' ' not in query:
+        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
     else:
-        try:
-            await Media.collection.create_index([('file_name', 'text')])
-        except:
-            pass
+        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_()]')
 
-        filter_dict = {"$text": {"$search": query}}
-        if file_type:
-            filter_dict['file_type'] = file_type
+    try:
+        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
+    except:
+        return [], '', 0
 
-        try:
-            # 💡 ഇവിടെയാണ് മാറ്റം വരുത്തിയിരിക്കുന്നത് (.allow_disk_use(True) ചേർത്തു)
-            cursor_media = Media.find(
-                filter_dict, 
-                projection={'score': {'$meta': 'textScore'}}
-            ).sort([('score', {'$meta': 'textScore'})]).allow_disk_use(True)
+    if USE_CAPTION_FILTER:
+        filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]}
+    else:
+        filter_dict = {'file_name': regex}
+
+    if file_type:
+        filter_dict['file_type'] = file_type
+
+    cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
+    # ഒറ്റ കളക്ഷൻ ആയതുകൊണ്ട് മാക്സിമം ലിമിറ്റ് നേരിട്ട് നൽകാം
+    files_media = await cursor_media.to_list(length=125)
+
+    if files_media:
+        query_lower = query.lower().strip()
+        
+        def sort_by_exact_match(file_obj):
+            file_name_lower = file_obj.file_name.lower().strip()
+            file_name_lower = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', file_name_lower)
+            file_name_lower = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', file_name_lower)
             
-            interleaved_files = await cursor_media.to_list(length=200)
-        except Exception as e:
-            logger.error(f"Search Error: {e}")
-            return [], '', 0
-
-        # 💡 താങ്കൾ തന്ന പുതിയ സോർട്ടിങ് ലോജിക് ഇവിടെ ചേർത്തിരിക്കുന്നു:
-        if interleaved_files:
-            query_lower = query.lower().strip()
+            custom_key = []
+            is_series = bool(re.search(r'\b(s\d+|e\d+)\b', file_name_lower))
             
-            def sort_by_exact_match(file_obj):
-                file_name_lower = file_obj.file_name.lower().strip()
-                file_name_lower = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', file_name_lower)
-                file_name_lower = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', file_name_lower)
-                
-                custom_key = []
-                is_series = bool(re.search(r'\b(s\d+|e\d+)\b', file_name_lower))
-                
-                for text in re.split(r'(\d+)', file_name_lower):
-                    if text.isdigit():
-                        num = int(text)
-                        if len(text) == 4 and not is_series:
-                            custom_key.append(-num)
-                        else:
-                            custom_key.append(num)
+            for text in re.split(r'(\d+)', file_name_lower):
+                if text.isdigit():
+                    num = int(text)
+                    if len(text) == 4 and not is_series:
+                        custom_key.append(-num)
                     else:
-                        custom_key.append(text)
+                        custom_key.append(num)
+                else:
+                    custom_key.append(text)
 
-                # 🥇 ലെവൽ 0: പേരിന്റെ തുടക്കവും കൃത്യമായ വർഷവും (ഉദാ: Star 2024)
-                exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
-                if re.search(exact_year_pattern, file_name_lower):
-                    return (0, custom_key)
+            exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
+            if re.search(exact_year_pattern, file_name_lower):
+                return (0, custom_key)
 
-                # 🥈 ലെവൽ 1: പേരിന്റെ തുടക്കവും വെബ് സീരീസ് നമ്പറുകളും (ഉദാ: Star S01)
-                match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
-                if re.search(match_season_pattern, file_name_lower):
-                    return (1, custom_key)
+            match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
+            if re.search(match_season_pattern, file_name_lower):
+                return (1, custom_key)
 
-                # 🥉 ലെവൽ 2: പേരിന്റെ തുടക്കവും ഏതെങ്കിലും ഭാഗത്ത് വർഷവും വരുന്നത്
-                match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
-                if re.search(match_year_pattern, file_name_lower):
-                    return (2, custom_key)
-                    
-                # 🏅 ലെവൽ 3: കുറിയിൽ ഉള്ള വാക്കുകൊണ്ട് മാത്രം തുടങ്ങുന്നത്
-                if file_name_lower.startswith(query_lower):
-                    return (3, custom_key)
-                    
-                # 🎖️ ലെവൽ 4: ബാക്കിയുള്ള ഫയലുകൾ
-                return (4, custom_key)
+            match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
+            if re.search(match_year_pattern, file_name_lower):
+                return (2, custom_key)
+                
+            if file_name_lower.startswith(query_lower):
+                return (3, custom_key)
+                
+            return (4, custom_key)
 
-            interleaved_files.sort(key=sort_by_exact_match)
+        files_media.sort(key=sort_by_exact_match)
 
-        # 🆔 ഡ്യൂപ്ലിക്കേറ്റ് ഫയലുകൾ ഫിൽട്ടർ ചെയ്ത് ഒഴിവാക്കുന്നു
-        seen_ids = set()
-        final_sorted_files = []
-        for file in interleaved_files:
-            if file.file_id not in seen_ids:
-                final_sorted_files.append(file)
-                seen_ids.add(file.file_id)
-            
-        if len(SEARCH_CACHE) > 20:
-            SEARCH_CACHE.clear()
-        SEARCH_CACHE[cache_key] = final_sorted_files
+    seen_ids = set()
+    final_sorted_files = []
+    for file in files_media:
+        if file.file_id not in seen_ids:
+            final_sorted_files.append(file)
+            seen_ids.add(file.file_id)
 
     total_results = len(final_sorted_files)
 
@@ -253,7 +231,6 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
         return files, next_offset, total_results
     else:
         return files, '', total_results
-
 
 
       
