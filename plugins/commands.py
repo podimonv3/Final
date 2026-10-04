@@ -107,23 +107,25 @@ async def send_file(client, query, ident, file_id):
 
 @Client.on_message(filters.command("start"))
 async def start(client, message):
-    # 🚀 പ്രൈവറ്റ് ചാറ്റിലാണോ ഗ്രൂപ്പിലാണോ എന്ന് നോക്കി ഉപയോക്താവിനെ / ചാറ്റിനെ കൃത്യമായി സേവ് ചെയ്യുന്നു ✨
+    # 🚀 മംഗോഡിബി നോട്ട് കോളബിൾ എറർ പൂർണ്ണമായി ഒഴിവാക്കാൻ ഫങ്ഷൻ കോളുകൾ കൃത്യമാക്കുന്നു ✨
     chat_type = message.chat.type
     user_id = message.from_user.id if message.from_user else None
     
     if user_id:
         try:
-            if not await db.is_user_exist(user_id):
+            # users_chats_db ഫയലിൽ നമ്മൾ ഉണ്ടാക്കിയ പ്രധാന db ക്ലാസ് ഒബ്ജക്റ്റ് വഴി ചെക്ക് ചെയ്യുന്നു ✨
+            if not await db.is_user_exist(int(user_id)):
                 await db.add_user(id=int(user_id), name=str(message.from_user.first_name or "User"))
         except Exception as e:
             logger.error(f"Error saving user to DB: {e}")
 
     if chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         try:
-            if not await db.is_chat_exist(message.chat.id):
+            if not await db.is_chat_exist(int(message.chat.id)):
                 await db.add_chat(chat=int(message.chat.id), title=str(message.chat.title))
         except Exception as e:
             logger.error(f"Error saving group to DB: {e}")
+
 
     # കമാൻഡിനൊപ്പം സിനിമയുടെ ലിങ്ക് അല്ലെങ്കിൽ ഐഡി വന്നിട്ടില്ലെങ്കിൽ (Basic Start Message)
     if len(message.command) != 2:
@@ -139,7 +141,7 @@ async def start(client, message):
         caption = script.START_TXT.format(message.from_user.mention if message.from_user else "User")
 
         try:
-            await message.reply_photo(photo="https://catbox.moe", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
+            await message.reply_photo(photo="https://files.catbox.moe/egu0ip.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
         except Exception:
             try:
                 await message.reply_text(caption, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
@@ -243,7 +245,7 @@ async def start(client, message):
     # ================= SPECIAL COMMANDS =================
     if data in ["subscribe", "error", "okay", "help"]:
         btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me")],
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+VqyHBSateMcwNjU9")],
             [InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
         try:
