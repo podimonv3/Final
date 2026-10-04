@@ -2,6 +2,9 @@ from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
 from info import ADMINS, LOG_CHANNEL, SUPPORT_CHAT, MELCOW_NEW_USERS, REQ_CHANNEL1, REQ_CHANNEL2
+from info import ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, AUTH_USERS, CUSTOM_FILE_CAPTION, LOG_CHANNEL, DATABASE_NAME
+# 🚀 കമാൻഡ് ഫങ്ഷനുകൾ കൃത്യമായി വർക്ക് ചെയ്യാൻ 'Message' കൂടി ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+from pyrogram import Client, filters, enums, Message
 from utils import get_size, temp, get_settings, run_broadcast_in_background
 from Script import script
 from pyrogram.errors import ChatAdminRequired
