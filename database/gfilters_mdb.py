@@ -73,13 +73,19 @@ async def del_allg(message, gfilters):
         await message.edit_text("Couldn't remove all gfilters !")
 
 async def count_gfilters(gfilters):
+    """ഒരു പ്രത്യേക കാറ്റഗറിയിലെ/ഗ്രൂപ്പിലെ ആകെ ഗ്ലോബൽ ഫിൽറ്ററുകളുടെ എണ്ണം എടുക്കുന്നു"""
     count = mycol.count_documents({'gfilters': str(gfilters)})
     return False if count == 0 else count
 
 async def gfilter_stats():
+    """ബോട്ടിലെ ആകെ ഗ്ലോബൽ ഫിൽറ്ററുകളുടെയും അവയുടെ ടോട്ടൽ കൗണ്ടും എടുക്കുന്നു"""
     try:
+        # 'gfilters' എന്ന ഒരൊറ്റ കളക്ഷനിലെ ആകെ ഡോക്യുമെന്റുകളുടെ എണ്ണം എടുക്കുന്നു ⚡
         totalcount = mycol.count_documents({})
+        
+        # ആകെ എത്ര വ്യത്യസ്ത തരം ഗ്ലോബൽ ഫിൽറ്റർ ഐഡികൾ (ഗ്രൂപ്പുകൾ) ഉണ്ടെന്ന് കണ്ടെത്തുന്നു
         totalcollections = len(mycol.distinct("gfilters"))
+        
         return totalcollections, totalcount
     except:
         return 0, 0
