@@ -64,8 +64,9 @@ REQ_CHANNEL2 = int(req_ch2) if (req_ch2 and id_pattern.match(req_ch2)) else Fals
 # ================= MONGO DATABASE SETTINGS =================
 
 # ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസ് ലിങ്കും അതിന്റെ പേരും മാത്രം നിലനിർത്തുന്നു ✨
-DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://...")
-DATABASE_NAME = environ.get('DATABASE_NAME', "MammoottyV1")
+DATABASE_URI = environ.get('DATABASE_URI', "")
+# 🚀 പഴയ പേര് മാറ്റി നിങ്ങളുടെ പുതിയ ഡാറ്റാബേസ് പേര് ഇവിടെ നൽകുക ✨
+DATABASE_NAME = environ.get('DATABASE_NAME', 'UrvashiNewDB')
 COLLECTION_NAME = environ.get('COLLECTION_NAME', 'mcu_files')
 
 # Auto approve
