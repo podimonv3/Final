@@ -18,8 +18,9 @@ VALID_LOCKS = {
     "links": "Links / URLs", "text_styles": "Bold/Italic/Spoiler", "edited": "Edited Messages"
 }
 
-def get_locks_markup(chat_id: int):
-    locks = get_group_locks(chat_id)
+async def get_locks_markup(chat_id: int):
+    # ഇവിടെ നമ്മൾ ഫങ്ഷൻ അസിങ്ക് (async def) ആക്കുകയും ഉള്ളിൽ await ചേർക്കുകയും ചെയ്തു
+    locks = await get_group_locks(chat_id)
     keyboard = []
     row = []
     for key, name in VALID_LOCKS.items():
@@ -69,7 +70,8 @@ async def lock_unlock_command(client: Client, message: Message):
         return
 
     status = True if action == "lock" else False
-    set_group_lock(chat_id, media, status)
+    # ഇവിടെ await ചേർത്തു 
+    await set_group_lock(chat_id, media, status)
     
     status_text = "🔒 **ലോക്ക് ചെയ്തു (Delete Mode)**" if status else "🔓 **അനുവദിച്ചു (Allow Mode)**"
     await message.reply_text(
@@ -92,7 +94,8 @@ async def view_all_lock_types(client: Client, message: Message):
             return
     except: return
 
-    locks = get_group_locks(chat_id)
+    # ഇവിടെ await ചേർത്തു
+    locks = await get_group_locks(chat_id)
     status_text = f"📋 <b>★ {chat_title} - LOCK TYPES STATUS ★</b>\n\n"
     
     for key, name in VALID_LOCKS.items():
@@ -122,7 +125,8 @@ async def lock_unlock_all_command(client: Client, message: Message):
 
     updated_locks = {key: status for key in VALID_LOCKS.keys()}
 
-    settings_collection.update_one(
+    # MongoClient-ൽ നിന്ന് Motor അസിങ്കിലേക്ക് മാറിയതുകൊണ്ട് ഇവിടെ await ചേർത്തു
+    await settings_collection.update_one(
         {'_id': f'locks_{int(chat_id)}'}, 
         {'$set': {'locks': updated_locks}}, 
         upsert=True
@@ -134,9 +138,6 @@ async def lock_unlock_all_command(client: Client, message: Message):
         msg_text = f"🔓 <b>{chat_title} - LOCKDOWN LIFTED!</b> 🔓\n\n✅ ഗ്രൂപ്പിലെ മുഴുവൻ ലോക്കുകളും ഒന്നിച്ച് <b>ഒഴിവാക്കിയിരിക്കുന്നു</b>."
 
     await message.reply_text(msg_text, parse_mode=enums.ParseMode.HTML)
-
-
-
 
 # ⚙️ ഇൻലൈൻ ബട്ടൺ വഴി ഗ്രൂപ്പിൽ തന്നെ സെറ്റിങ്സ് പാനൽ കാണിക്കാൻ
 @Client.on_message(filters.group & filters.command("settings"))
@@ -153,9 +154,10 @@ async def group_settings_panel(client: Client, message: Message):
             return
     except: return
 
+    # get_locks_markup എന്ന ഫങ്ഷന് മുന്നിൽ await ചേർത്തു
     await message.reply_text(
         f"⚙️ <b>★ {chat_title} - SETTINGS ★</b>\n\n✅ = Allow\n🗑️ = Delete",
-        reply_markup=get_locks_markup(chat_id), parse_mode=enums.ParseMode.HTML
+        reply_markup=await get_locks_markup(chat_id), parse_mode=enums.ParseMode.HTML
     )
 
 # ഇൻലൈൻ ബട്ടൺ ക്ലിക്ക് ഹാൻഡ്‌ലർ
@@ -176,22 +178,24 @@ async def locks_callback_handler(client: Client, query):
         await query.message.delete()
         return
 
-    locks = get_group_locks(chat_id)
+    # ഈ രണ്ട് വരികളിൽ await ചേർത്തു
+    locks = await get_group_locks(chat_id)
     new_status = not locks.get(action, False)
-    set_group_lock(chat_id, action, new_status)
+    await set_group_lock(chat_id, action, new_status)
     
     await query.answer(f"{VALID_LOCKS[action]} മാറ്റം വരുത്തി!")
-    try: await query.edit_message_reply_markup(reply_markup=get_locks_markup(chat_id))
+    try: 
+        # ഇവിടെയും await get_locks_markup ചേർത്തു
+        await query.edit_message_reply_markup(reply_markup=await get_locks_markup(chat_id))
     except: pass
-
-
 
 
 # 🛡️ മീഡിയകളും മറ്റ് മെസ്സേജുകളും ചെക്ക് ചെയ്ത് ഡിലീറ്റ് ചെയ്യുന്ന ഭാഗം
 @Client.on_message(filters.group, group=2)
 async def check_group_media_locks(client: Client, message: Message):
     chat_id = int(message.chat.id)
-    locks = get_group_locks(chat_id)
+    # ഇവിടെ await ചേർത്തു
+    locks = await get_group_locks(chat_id)
 
     if getattr(message, "sender_chat", None) and message.sender_chat.type == enums.ChatType.CHANNEL:
         if locks.get("channel") and not getattr(message, "is_automatic_forward", False):
@@ -256,7 +260,8 @@ async def check_group_media_locks(client: Client, message: Message):
 @Client.on_edited_message(filters.group, group=3)
 async def check_edited_messages(client: Client, message: Message):
     chat_id = int(message.chat.id)
-    locks = get_group_locks(chat_id)
+    # ഇവിടെ await ചേർത്തു
+    locks = await get_group_locks(chat_id)
     from_user = getattr(message, "from_user", None)
     if locks.get("edited") and from_user:
         user_id = from_user.id
@@ -265,3 +270,4 @@ async def check_edited_messages(client: Client, message: Message):
             if member.status in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR] or user_id == ADMINS: return
             await message.delete()
         except: pass
+
