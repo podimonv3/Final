@@ -156,7 +156,9 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     if file_type:
         filter_dict['file_type'] = file_type
 
-    cursor_media = Media.find(filter_dict).sort([('file_name', 1)])
+        # 🚀 മെമ്മറി ലിമിറ്റ് എറർ പൂർണ്ണമായി ഒഴിവാക്കാൻ allow_disk_use ചേർക്കുന്നു ✨
+    cursor_media = Media.find(filter_dict).sort([('file_name', 1)]).allow_disk_use(True)
+
     files_media = await cursor_media.to_list(length=125)
 
     if files_media:
