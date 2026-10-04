@@ -3,44 +3,48 @@ import logging
 import random
 import sys
 import asyncio
-import io  # ലോഗ് ഫയൽ (Text File) ഇൻ-മെമ്മറി ആയി നിർമ്മിക്കാൻ
-from Script import script
-from pyrogram import Client, filters, enums
-from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
-from pyrogram.errors import ChatAdminRequired, FloodWait, MessageDeleteForbidden, UserIsBlocked
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
-from asyncio import sleep
-from pyrogram.enums import ChatType
-# Mediaa, clientDB3 എന്നിവ ഒഴിവാക്കി
-# 🚀 ia_filterdb-ൽ നിന്ന് db1 (clientDB2) ഒഴിവാക്കി മെയിൻ db (clientDB) മാത്രം ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
-from database.ia_filterdb import Media, get_file_details, db as clientDB
-from database.users_chats_db import db
-from info import CHANNELS, ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, LOG_CHANNEL, PICS, BATCH_FILE_CAPTION, CUSTOM_FILE_CAPTION, PROTECT_CONTENT, DATABASE_URI, DATABASE_NAME
-from utils import get_settings, get_size, is_subscribed, is_requested_one, is_requested_two, save_group_settings, temp, check_loop_sub, check_loop_sub1, check_loop_sub2
-from database.connections_mdb import active_connection
-from plugins.pm_filter import auto_filter
+import io
 import re
 import json
 import base64
 import pymongo
-from pyrogram import Client, filters
-from info import ADMINS  # info.py-ൽ നിങ്ങളുടെ അഡ്മിൻ ഐഡികളുടെ ലിസ്റ്റ് (ADMINS) ഉണ്ടെന്ന് ഉറപ്പാക്കുക
-from database.postersave import get_db_stats
-from database.postersave import clear_entire_poster_db
+from asyncio import sleep
 
-logger = logging.getLogger(__name__)
+from Script import script
+from pyrogram import Client, filters, enums
+from pyrogram.enums import ChatType
+from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid, MessageDeleteForbidden
+from pyrogram.errors import ChatAdminRequired, FloodWait, UserIsBlocked
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+# 🚀 കൺഫ്യൂഷൻ ഒഴിവാക്കാൻ എല്ലാ ഡാറ്റാബേസ് ഇമ്പോർട്ടുകൾക്കും കൃത്യമായ തനത് പേരുകൾ നൽകുന്നു ✨
+from database.ia_filterdb import Media, get_file_details, db as clientDB
+from database.users_chats_db import db as user_db  # db മാറ്റി user_db ആക്കി ⚡
+from database.connections_mdb import active_connection
+from database.requests_db import get_all_missing_movies, clear_all_missing_movies 
+from database.postersave import get_db_stats, clear_entire_poster_db
+
+# info ഫയലിൽ നിന്നുള്ള ആവശ്യമായ വേരിയബിളുകൾ ഒന്നിച്ച് ഇമ്പോർട്ട് ചെയ്യുന്നു
+from info import (CHANNELS, ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, LOG_CHANNEL, 
+                  PICS, BATCH_FILE_CAPTION, CUSTOM_FILE_CAPTION, PROTECT_CONTENT, 
+                  DATABASE_URI, DATABASE_NAME)
+
+from utils import (get_settings, get_size, is_subscribed, is_requested_one, 
+                   is_requested_two, save_group_settings, temp, check_loop_sub, 
+                   check_loop_sub1, check_loop_sub2)
+from plugins.pm_filter import auto_filter
 from dotenv import load_dotenv
 
 load_dotenv("./dynamic.env", override=True, encoding="utf-8")
 
+logger = logging.getLogger(__name__)
 BATCH_FILES = {}
 DS_REACT = ["⚡"]
 
 should_run_check_loop_sub = False
 should_run_check_loop_sub1 = False
 
-# 🚀 പഴയ പൈമംഗോ കണക്ഷൻ മാറ്റി ഫയലിന്റെ മുകളിൽ നമ്മൾ ഇമ്പോർട്ട് ചെയ്ത clientDB ഇവിടെ കൊടുക്കുന്നു ✨
+# 🚀 ഓട്ടോ ഡിലീറ്റ് സെറ്റിങ്സ് ക്ലയന്റ് ഡ്രൈവർ കൃത്യമാക്കുന്നു ✨
 incol = clientDB['auto_del']
 infile = clientDB['file_reply_text']
 restarti = clientDB['restart']
@@ -625,10 +629,6 @@ async def delete_all_index_confirm(bot, message):
 # ====================================================================
 
 # ഫങ്ഷൻ കൃത്യമായി വർക്ക് ചെയ്യാൻ ആവശ്യമായ എല്ലാ പ്രധാന ഒബ്ജക്റ്റുകളും ഇവിടെ നേരിട്ട് ഇമ്പോർട്ട് ചെയ്യുന്നു ⚡
-from pyrogram import Client, filters, enums
-from pyrogram.types import Message
-from info import ADMINS
-from database.ia_filterdb import db as clientDB
 
 @Client.on_message(filters.command("clear_locks") & filters.user(ADMINS))
 async def clear_all_locks_cmd(client: Client, message: Message):
@@ -757,7 +757,6 @@ async def get_fsub_chat2(bot: Client, update: Message):
 
 
 # 🚀 requests_db ഫയലിൽ നിന്നുള്ള ഫങ്ഷൻ ഇവിടെ ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
-from database.requests_db import get_all_missing_movies, clear_all_missing_movies 
 
 @Client.on_message(filters.command("missing") & filters.user(ADMINS))
 async def get_missing_requests(bot: Client, message):
@@ -794,7 +793,6 @@ async def get_missing_requests(bot: Client, message):
 
 
 # requests_db ഫയലിൽ നിന്ന് നമ്മൾ ഉണ്ടാക്കിയ പുതിയ ഫങ്ഷൻ ഇമ്പോർട്ട് ചെയ്യുന്നു
-from database.requests_db import clear_all_missing_movies 
 
 @Client.on_message(filters.command("clear_missing") & filters.user(ADMINS))
 async def clear_missing_requests_cmd(client: Client, message: Message):
@@ -811,11 +809,6 @@ async def clear_missing_requests_cmd(client: Client, message: Message):
 
 
 
-from pyrogram import Client, filters, enums
-from pyrogram.types import Message
-from info import ADMINS, DATABASE_NAME
-# ia_filterdb ഫയലിൽ നിന്നുള്ള മെയിൻ ഡാറ്റാബേസ് കണക്ഷൻ (db) ഇമ്പോർട്ട് ചെയ്യുന്നു
-from database.ia_filterdb import db 
 
 @Client.on_message(filters.command("bot_stats") & filters.user(ADMINS))
 async def get_full_bot_stats_cmd(client: Client, message: Message):
