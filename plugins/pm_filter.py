@@ -503,22 +503,52 @@ async def cb_handler(client: Client, query: CallbackQuery):
     
     elif query.data == "start":
         buttons = [
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
             [
-                InlineKeyboardButton('👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥', url='https://t.me/+eb__Eg3RS2IyZWQ1')
+                InlineKeyboardButton("📊 Stats", callback_data="stats"), 
+                InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats")
             ],
-            [
-                InlineKeyboardButton('📊 Sᴛᴀᴛs 📊', callback_data='stats'),
-                InlineKeyboardButton('✖️ Cʟᴏsᴇ ✖️', callback_data='close_data')
-            ]
-        ]       
+            [InlineKeyboardButton("✖️ Cʟᴏsᴇ ✖️", callback_data="close_data")]
+        ]
+       
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
             text=script.START_TXT.format(query.from_user.mention, temp.U_NAME, temp.B_NAME),
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
-        )
+        )    
 
-    
+
+    elif query.data == "koyeb_stats":
+        # 🔐 അഡ്മിൻ സുരക്ഷാ ചെക്ക് (അഡ്മിന്മാർക്ക് മാത്രമേ സെർവർ പോപ്പ്-അപ്പ് കാണാൻ സാധിക്കൂ)
+        if query.from_user.id not in ADMINS:
+            return await query.answer("❌ This feature is restricted to Bot Admins only!", show_alert=True)
+            
+        # 🖥️ Koyeb VPS സെർവറിന്റെ തത്സമയ വിവരങ്ങൾ ശേഖരിക്കുന്നു
+        import psutil
+        import shutil
+        
+        cpu_usage = psutil.cpu_percent(interval=0.1)
+        ram = psutil.virtual_memory()
+        ram_usage = ram.percent
+        ram_used_mb = round(ram.used / (1024 * 1024), 2)
+        ram_total_mb = round(ram.total / (1024 * 1024), 2)
+        
+        total_d, used_d, free_d = shutil.disk_usage("/")
+        disk_usage = round((used_d / total_d) * 100, 2)
+        
+        # 💬 പോപ്പ്-അപ്പിൽ കാണിക്കേണ്ട മെസ്സേജ് തയാറാക്കുന്നു (ശ്രദ്ധിക്കുക: പോപ്പ്-അപ്പിൽ HTML ടാഗുകൾ സപ്പോർട്ട് ചെയ്യില്ല)
+        koyeb_popup_text = (
+            "🖥️ KOYEB SERVER HARDWARE STATUS 🖥️\n\n"
+            f"⚙️ CPU Usage: {cpu_usage}%\n"
+            f"🧠 RAM Usage: {ram_usage}% ({ram_used_mb}MB / {ram_total_mb}MB)\n"
+            f"💽 Disk Space: {disk_usage}%\n\n"
+            "⚡ Server performance is stable and running active!"
+        )
+        
+        # 🚀 show_alert=True നൽകി മനോഹരമായ ഒരു Pop-up Alert ആയി വിവരങ്ങൾ കാണിക്കുന്നു ✨
+        return await query.answer(koyeb_popup_text, show_alert=True)
+
     elif query.data == "stats":
         # 🔐 അഡ്മിൻ സുരക്ഷാ ചെക്ക്
         if query.from_user.id not in ADMINS:
@@ -529,49 +559,64 @@ async def cb_handler(client: Client, query: CallbackQuery):
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)        
         
-        total = await Media.collection.estimated_document_count()
-        users = await db.total_users_count()
-        chats = await db.total_chat_count()
+        # 1. ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസിൽ നിന്ന് മാത്രം വിവരങ്ങൾ വേഗത്തിൽ എടുക്കുന്നു
+        total_connections = await clientDB['connections'].count_documents({})
+        total_filters = await clientDB['filters'].count_documents({})
+        total_gfilters = await clientDB['gfilters'].count_documents({})
+        total_locks = await clientDB['locks'].count_documents({})
+        total_poster = await clientDB['poster'].count_documents({})
+        total_moviereq = await clientDB['moviereq'].count_documents({})
+        total_media = await clientDB['Media'].count_documents({}) 
+        total_users = await db.total_users_count()
+        total_chats = await db.total_chat_count()
         
-        # Database 1 Size
-        stats = await clientDB.command('dbStats')
-        used_dbSize = (stats['dataSize']/(1024*1024))+(stats['indexSize']/(1024*1024))        
-        free_dbSize = 512-used_dbSize
+        # 2. മംഗോഡിബിയിൽ നിലവിലുള്ള മുഴുവൻ കളക്ഷൻ ഫോൾഡറുകളുടെ പേരുകൾ എടുക്കുന്നു
+        collections = await clientDB.list_collection_names()
         
-        # Database 2 Size
-        stats2 = await clientDB2.command('dbStats')
-        used_dbSize2 = (stats2['dataSize']/(1024*1024))+(stats2['indexSize']/(1024*1024))
-        free_dbSize2 = 512-used_dbSize2
-        
-        # Koyeb Server Status
-        import psutil
-        import shutil
-        cpu_usage = psutil.cpu_percent(interval=0.1)
-        ram = psutil.virtual_memory()
-        ram_usage = ram.percent
-        ram_used_mb = round(ram.used / (1024 * 1024), 2)
-        ram_total_mb = round(ram.total / (1024 * 1024), 2)
-        total_d, used_d, free_d = shutil.disk_usage("/")
-        disk_usage = round((used_d / total_d) * 100, 2)
-        
-        stats_text = (
-            "📊 <b>Bot Statistics (Admin Only)</b>\n\n"
-            f"▪️ Total Files: {total}\n"
-            f"▪️ Total Users: {users}\n"
-            f"▪️ Total Chats: {chats}\n\n"
-            f"🗄 <b>Database 1 (Users DB):</b> {round(used_dbSize, 2)} MB / Free: {round(free_dbSize, 2)} MB\n"
-            f"🗄 <b>Database 2 (Movies DB):</b> {round(used_dbSize2, 2)} MB / Free: {round(free_dbSize2, 2)} MB\n\n"
-            f"🖥 <b>Koyeb Server Status:</b>\n"
-            f"⚙️ CPU Usage: {cpu_usage}%\n"
-            f"🧠 RAM Usage: {ram_usage}% ({ram_used_mb} MB / {ram_total_mb} MB)\n"
-            f"💽 Disk Space: {disk_usage}%\n"
+        # 3. ആകെ ഡോക്യുമെന്റുകളുടെ വിവരങ്ങൾ കൂട്ടിയെടുക്കുന്നു
+        total_all_documents = (
+            total_connections + total_filters + total_gfilters + total_locks + 
+            total_poster + total_moviereq + total_media + total_users + total_chats
         )
         
+        # 4. ✨ ഡാറ്റാബേസ് യഥാർത്ഥ സ്റ്റോറേജ് സൈസ് (Used & Free) കണക്കാക്കുന്നു ✨
+        try:
+            stats = await clientDB.command('dbStats')
+            used_dbSize = (stats.get('dataSize', 0) / (1024 * 1024)) + (stats.get('indexSize', 0) / (1024 * 1024))        
+            free_dbSize = 512.0 - used_dbSize  # MongoDB Atlas Free Tier 512MB
+            if free_dbSize < 0: 
+                free_dbSize = 0.0
+            storage_text = f"💾 <b>Storage Used:</b> <code>{round(used_dbSize, 2)} MB</code> / <b>Free:</b> <code>{round(free_dbSize, 2)} MB</code>\n\n"
+        except Exception:
+            storage_text = "💾 <b>Storage Space:</b> <code>Statistics Unavailable</code>\n\n"
+        
+        # 5. റിസൾട്ട് ഒരൊറ്റ ടെക്സ്റ്റിൽ ഫോർമാറ്റ് ചെയ്യുന്നു
+        stats_text = f"📊 <b>★ BOT & DATABASE FULL REPORT ★</b>\n"
+        stats_text += f"🗄️ <b>DB Name:</b> <code>{DATABASE_NAME}</code>\n"
+        stats_text += f"{storage_text}"
+        
+        stats_text += "📈 <b>Core Bot Growth Status:</b>\n"
+        stats_text += f" ├ 🔗 <code>connections</code> → <b>{total_connections}</b> Linked Users\n"
+        stats_text += f" ├ 📁 <code>Media</code> → <b>{total_media}</b> Indexed Movies\n"
+        stats_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users\n"
+        stats_text += f" └ 👥 <code>group</code> → <b>{total_chats}</b> Total Bot Chats\n\n"
+        
+        stats_text += "📂 <b>Database Collections List:</b>\n"
+        for col_name in sorted(collections):
+            col_count = await clientDB[col_name].count_documents({})
+            if col_name in ["filters", "connections", "locks", "poster", "moviereq"]:
+                stats_text += f" ├ <code>{col_name}</code> → <b>{col_count}</b> ✨\n"
+            else:
+                stats_text += f" ├ <code>{col_name}</code> → <b>{col_count}</b>\n"
+                
+        stats_text += f" └ <b>Total Active Collections:</b> {len(collections)}\n\n"
+        stats_text += f"🗂️ <b>Total Overall Documents in DB:</b> <code>{total_all_documents}</code>\n\n"
+        stats_text += f"💡 <i>Note: ✨ എന്ന് അടയാളപ്പെടുത്തിയത് നമ്മൾ ഒപ്റ്റിമൈസ് ചെയ്ത സിംഗിൾ കളക്ഷനുകളാണ്.</i>"
+
         try:
             await query.message.edit_caption(caption=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
         except Exception:
             await query.message.edit_text(text=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
-
 
 
 async def auto_filter(client, msg, spoll=False):
