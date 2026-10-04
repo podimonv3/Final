@@ -4,7 +4,9 @@ import motor
 import motor.motor_asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 # info ഫയലിൽ നമ്മൾ നൽകിയ പുതിയ ഡാറ്റാബേസ് ലിങ്കും പേരും ഇമ്പോർട്ട് ചെയ്യുന്നു
-from info import DATABASE_URI, DATABASE_NAME
+# 🚀 ബട്ടൺ സെറ്റിങ്സ് എറർ ഒഴിവാക്കാൻ SINGLE_BUTTON കൂടി ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
+from info import DATABASE_URI, DATABASE_NAME, SINGLE_BUTTON, PROTECT_CONTENT, P_TTI_SHOW_OFF, MELCOW_NEW_USERS,SPELL_CHECK_REPLY
+
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
