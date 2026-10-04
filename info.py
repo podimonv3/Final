@@ -61,15 +61,12 @@ req_ch2 = environ.get("REQ_CHANNEL2")
 REQ_CHANNEL2 = int(req_ch2) if (req_ch2 and id_pattern.match(req_ch2)) else False
 
 # MongoDB information
-# DATABASE_URI3 പൂർണ്ണമായി ഒഴിവാക്കി. നിങ്ങളുടെ മെയിൻ മംഗോഡിബി ലിങ്ക് മാത്രം നിലനിർത്തി.
+# ================= MONGO DATABASE SETTINGS =================
+
+# ഒരൊറ്റ മെയിൻ ഡാറ്റാബേസ് ലിങ്കും അതിന്റെ പേരും മാത്രം നിലനിർത്തുന്നു ✨
 DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://...")
-DATABASE_URI2 = environ.get('DATABASE_URI2', "mongodb+srv://...") 
 DATABASE_NAME = environ.get('DATABASE_NAME', "MammoottyV1")
 COLLECTION_NAME = environ.get('COLLECTION_NAME', 'mcu_files')
-
-
-# Koyeb Config Vars-ൽ നിന്ന് ലിങ്ക് എടുക്കുന്നു, ഇല്ലെങ്കിൽ ബാക്കപ്പ് ആയി രണ്ടാമത്തെ ലിങ്ക് ഉപയോഗിക്കും
-POSTER_DB = os.environ.get("POSTER_DB", "mongodb+srv://sreejithskumar9387_db_user:vi93eYFWbLSIedyV@cluster0.hxzaxzb.mongodb.net/?appName=Cluster0")
 
 # Auto approve
 CHAT_ID = [int(app_chat_id) if id_pattern.match(app_chat_id) else app_chat_id for app_chat_id in environ.get('CHAT_ID', '-1002303772763').split()]
