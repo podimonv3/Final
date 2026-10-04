@@ -138,10 +138,14 @@ async def get_bad_files(query, file_type=None, filter=False):
         filter_dict['file_type'] = file_type
 
     total_results = await Media.count_documents(filter_dict)
-    cursor_media = Media.find(filter_dict).sort([('$natural', -1)])
+    
+    # 💡 ഇവിടെയാണ് മാറ്റം വരുത്തിയിരിക്കുന്നത് (.allow_disk_use(True) ചേർത്തു)
+    cursor_media = Media.find(filter_dict).sort([('$natural', -1)]).allow_disk_use(True)
+    
     files_media = await cursor_media.to_list(length=total_results)
 
     return files_media, [], total_results
+
 
 
 async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
