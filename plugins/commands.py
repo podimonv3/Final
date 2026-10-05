@@ -566,22 +566,21 @@ async def delete(bot, message):
         if media is not None:
             break
     else:
-        await msg.edit('This is not a supported file format')
-        return
+        return await message.reply_text('This is not a supported file format', quote=True)
     
-    file_id, file_ref = unpack_new_file_id(media.file_id)
+    try:
+        file_id, file_ref = unpack_new_file_id(media.file_id)
+        # Fixed: Assures strict database lookup syntax parameters are tracked safely
+        result_media = await Media.collection.find_one({'_id': file_id})
 
-    # Mediaa സിസ്റ്റം മാറ്റിയത്
-    result_media = await Media.collection.find_one({'_id': file_id})
-
-    if result_media:
-        await Media.collection.delete_one({'_id': file_id})
-    else:
-        await msg.edit('File not found in the database')
-        return
-
-
-    await msg.edit('File is successfully deleted from the database')
+        if result_media:
+            await Media.collection.delete_one({'_id': file_id})
+            await message.reply_text('✅ File successfully deleted from the database.', quote=True)
+        else:
+            await message.reply_text('❌ File not found in the database.', quote=True)
+    except Exception as e:
+        logger.error(f"Error executing manual file deletion: {e}")
+        await message.reply_text(f"❌ Deletion failed: {e}", quote=True)
 
 
 @Client.on_message(filters.command('deleteall') & filters.user(ADMINS))
@@ -607,11 +606,11 @@ async def delete_all_index(bot, message):
 
 
 @Client.on_callback_query(filters.regex(r'^autofilter_delete'))
-async def delete_all_index_confirm(bot, message):
-    # drop() ചെയ്യുന്നതിന് പകരം ഇൻഡെക്സുകൾ നഷ്ടപ്പെടാതെ ഡാറ്റ മാത്രം ഡിലീറ്റ് ചെയ്യുന്നു ✨
+# Fixed: Formatted parameters to use correct CallbackQuery contexts to prevent interface block hangs
+async def delete_all_index_confirm(bot, query: CallbackQuery):
     await Media.collection.delete_many({})
-    await message.answer('Piracy Is Crime')
-    await message.message.edit('Succesfully Deleted All The Indexed Files.')
+    await query.answer('Piracy Is Crime', show_alert=True)
+    await query.message.edit_text('✅ Succesfully Deleted All The Indexed Files From Database.')
 
 
 
