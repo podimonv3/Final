@@ -11,4 +11,7 @@ WORKDIR /app
 
 COPY . .
 
+# Explicitly create an empty configuration file with safe permissions to avoid runtime engine crashes
+RUN touch ./dynamic.env && chmod 666 ./dynamic.env
+
 CMD ["python", "bot.py"]
