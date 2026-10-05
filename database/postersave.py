@@ -1,16 +1,21 @@
 import time
+import logging
 from motor.motor_asyncio import AsyncIOMotorClient
-# ഇവിടെ നമ്മൾ മെയിൻ DATABASE_URI-യും DATABASE_NAME-ഉം ഇമ്പോർട്ട് ചെയ്തു
 from info import DATABASE_URI, DATABASE_NAME
 
-# നിങ്ങളുടെ പ്രധാന MongoDB കണക്ഷൻ തന്നെ ഇവിടെ ഉപയോഗിക്കുന്നു
+logger = logging.getLogger(__name__)
+
+# Main MongoDB Connection
 client = AsyncIOMotorClient(DATABASE_URI)
 db = client[DATABASE_NAME]
-# ഡാറ്റകൾ ഇനി മുതൽ മെയിൻ ഡാറ്റാബേസിലെ 'poster' എന്ന ഒറ്റ കളക്ഷൻ ഫോൾഡറിലേക്ക് സേവ് ചെയ്യും
 poster_collection = db.poster
 
-# പോസ്റ്റർ വേഗത്തിൽ തപ്പിയെടുക്കാൻ ഇൻഡെക്സ് സെറ്റ് ചെയ്യുന്നു
-poster_collection.create_index("movie_name", unique=True)
+async def init_poster_db():
+    """సినిమా పోస్టరുകൾ వేగത്തിൽ తപ്പിയെടുക്കാൻ అసిన్క్ ఇండెక్స్ సెట్ చేస్తుంది 🚀"""
+    try:
+        await poster_collection.create_index("movie_name", unique=True)
+    except Exception as e:
+        logger.error(f"Error creating poster database index: {e}")
 
 async def get_cached_poster(movie_name):
     """ഡാറ്റാബേസിൽ നിന്ന് വളരെ വേഗത്തിൽ പോസ്റ്റർ ലിങ്ക് എടുക്കുന്നു"""
@@ -32,7 +37,6 @@ async def save_poster_to_cache(movie_name, poster_url):
         )
     except Exception:
         pass
-
 
 async def get_db_stats():
     """ഡാറ്റാബേസിന്റെ സൈസ്, ആകെ ഫയലുകൾ എന്നിവ കണക്കാക്കുന്നു (Koyeb ലോഗ്സ് പൂർണ്ണമായി തടഞ്ഞു)"""
@@ -61,7 +65,6 @@ async def get_db_stats():
         }
     except Exception:
         return None
-
 
 async def clear_entire_poster_db():
     """ഡാറ്റാബേസിലെ എല്ലാ പോസ്റ്റർ കാഷെയും പൂർണ്ണമായി ഡിലീറ്റ് ചെയ്യുന്നു (Koyeb ലോഗ്സ് ഉണ്ടാകില്ല)"""
