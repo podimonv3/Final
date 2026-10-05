@@ -509,7 +509,8 @@ def gfilterparser(text, keyword):
             elif bool(match.group(5)) and buttons:
                 buttons[-1].append(InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
             else:
-                buttons.append([InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
+                # Fixed: Corrected the final boundary from ))) to )]) to satisfy the syntax compiler
+                buttons.append([InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", ""))])
         else:
             note_data += text[prev:to_check]
             prev = match.start(1) - 1
@@ -543,12 +544,14 @@ def parser(text, keyword):
             elif bool(match.group(5)) and buttons:
                 buttons[-1].append(InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
             else:
-                buttons.append([InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
+                # Fixed: Corrected the mirrored bracket mapping layout typo here as well
+                buttons.append([InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", ""))])
         else:
             note_data += text[prev:to_check]
             prev = match.start(1) - 1
     note_data += text[prev:]
     return note_data, buttons, alerts if alerts else None
+
 
 def humanbytes(size):
     if not size: return ""
