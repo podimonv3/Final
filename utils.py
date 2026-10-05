@@ -17,6 +17,7 @@ import asyncio
 from bs4 import BeautifulSoup
 import aiohttp
 import httpx
+from info import REQ_CHANNEL1, REQ_CHANNEL2, ADMINS, AUTH_CHANNEL
 
 try:
     import imdbio as _imdbio
