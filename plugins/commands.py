@@ -13,9 +13,11 @@ from asyncio import sleep
 from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.enums import ChatType
-from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
 from pyrogram.errors import ChatAdminRequired, FloodWait, UserIsBlocked
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+# Fixed: Moved the 403 error catch to its proper class to prevent compiler crashes
+from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
+from pyrogram.errors.exceptions.forbidden_403 import MessageDeleteForbidden
 
 # 🚀 കൺഫ്യൂഷൻ ഒഴിവാക്കാൻ എല്ലാ ഡാറ്റാബേസ് ഇമ്പോർട്ടുകൾക്കും കൃത്യമായ തനത് പേരുകൾ നൽകുന്നു ✨
 from database.ia_filterdb import Media, get_file_details, db as clientDB
