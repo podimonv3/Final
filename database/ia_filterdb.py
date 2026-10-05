@@ -91,17 +91,15 @@ async def save_filea(media):
     return await save_file(media)
 
 
-async def delete_files_below_threshold(db, threshold_size_mb: int = 50, batch_size: int = 20, chat_id: int = None, message_id: int = None):
-    cursor_media = Media.find({"file_size": {"$lt": threshold_size_mb * 1024 * 1024}}).limit(batch_size)
+async def delete_files_below_threshold(threshold_size_mb=50, batch_size=20, chat_id=None, message_id=None):
+    cursor = Media.find({"file_size": {"$lt": threshold_size_mb * 1024 * 1024}}).limit(batch_size)
     deleted_count = 0
-    
-    async for document in cursor_media:
+    async for document in cursor:
         try:
-            await Media.collection.delete_one({"_id": document["file_id"]})
+            await Media.collection.delete_one({"_id": document["_id"]})
             deleted_count += 1
-        except Exception as e:
+        except Exception:
             pass
-
     return deleted_count
 
 
