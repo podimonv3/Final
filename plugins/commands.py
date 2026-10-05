@@ -127,11 +127,12 @@ async def start(client, message):
 
     if chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         try:
-            # Fixed: Updated the call to use the correct 'get_chat' method on your user_db model object
-            if not await user_db.get_chat(int(message.chat.id)):
-                await user_db.add_chat(chat=int(message.chat.id), title=str(message.chat.title))
+            # Fixed: Changed user_db over to the imported db instance to align with your top imports layout
+            if not await db.get_chat(int(message.chat.id)):
+                await db.add_chat(chat=int(message.chat.id), title=str(message.chat.title))
         except Exception as e:
             logger.error(f"Error saving group to DB: {e}", exc_info=True)
+
 
     if len(message.command) != 2:
         btn = [
