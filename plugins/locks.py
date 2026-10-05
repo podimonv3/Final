@@ -87,12 +87,13 @@ async def view_all_lock_types(client: Client, message: Message):
 
     chat_id = message.chat.id
     chat_title = message.chat.title
-    
     try:
         member = await message.chat.get_member(user_id)
-        if member.status not in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR] and user_id != ADMINS:
+        if member.status not in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR] and user_id not in ADMINS:
             return
-    except: return
+    except Exception: 
+        if user_id not in ADMINS:
+            return
 
     # ഇവിടെ await ചേർത്തു
     locks = await get_group_locks(chat_id)
@@ -240,7 +241,9 @@ async def check_group_media_locks(client: Client, message: Message):
 
         elif (getattr(message, "text", None) or getattr(message, "caption", None)):
             entities = message.entities if message.text else message.caption_entities
-            if entities:
+            if entities is not None:
+                for ent in entities:
+
                 for ent in entities:
                     if ent.type == enums.MessageEntityType.MENTION and locks.get("usernames"): should_delete = True
                     elif ent.type == enums.MessageEntityType.HASHTAG and locks.get("hashtags"): should_delete = True
@@ -268,7 +271,9 @@ async def check_edited_messages(client: Client, message: Message):
         user_id = from_user.id
         try:
             member = await message.chat.get_member(user_id)
-            if member.status in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR] or user_id == ADMINS: return
+            if member.status in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR] or user_id in ADMINS: 
+                return
             await message.delete()
-        except: pass
+        except Exception: 
+            pass
 
