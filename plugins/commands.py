@@ -108,42 +108,32 @@ async def send_file(client, query, ident, file_id):
     except Exception as e:
         logger.error(f"ഫയൽ അയക്കുന്നതിൽ പരാജയപ്പെട്ടു: {e}")
 
-
 @Client.on_message(filters.command("start"))
 async def start(client, message):
-    # 🚀 മംഗോഡിബി നോട്ട് കോളബിൾ എറർ പൂർണ്ണമായി ഒഴിവാക്കാൻ ഫങ്ഷൻ കോളുകൾ കൃത്യമാക്കുന്നു ✨
     chat_type = message.chat.type
     user_id = message.from_user.id if message.from_user else None
-    
+
     if user_id:
         try:
-            # users_chats_db ഫയലിൽ നമ്മൾ ഉണ്ടാക്കിയ പ്രധാന db ക്ലാസ് ഒബ്ജക്റ്റ് വഴി ചെക്ക് ചെയ്യുന്നു ✨
-            if not await db.is_user_exist(int(user_id)):
-                await db.add_user(id=int(user_id), name=str(message.from_user.first_name or "User"))
+            if not await user_db.is_user_exist(int(user_id)):
+                await user_db.add_user(id=int(user_id), name=str(message.from_user.first_name or "User"))
         except Exception as e:
-            logger.error(f"Error saving user to DB: {e}")
+            logger.error(f"Error saving user to DB: {e}", exc_info=True)
 
     if chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         try:
-            if not await db.is_chat_exist(int(message.chat.id)):
-                await db.add_chat(chat=int(message.chat.id), title=str(message.chat.title))
+            if not await user_db.is_chat_exist(int(message.chat.id)):
+                await user_db.add_chat(chat=int(message.chat.id), title=str(message.chat.title))
         except Exception as e:
-            logger.error(f"Error saving group to DB: {e}")
+            logger.error(f"Error saving group to DB: {e}", exc_info=True)
 
-
-    # കമാൻഡിനൊപ്പം സിനിമയുടെ ലിങ്ക് അല്ലെങ്കിൽ ഐഡി വന്നിട്ടില്ലെങ്കിൽ (Basic Start Message)
     if len(message.command) != 2:
         btn = [
             [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+VqyHBSateMcwNjU9")],
-            [
-                InlineKeyboardButton("📊 Statistics", callback_data="stats"), 
-                InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats")
-            ],
+            [InlineKeyboardButton("📊 Statistics", callback_data="stats"), InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats")],
             [InlineKeyboardButton("❌ Close", callback_data="close")]
         ]
-
         caption = script.START_TXT.format(message.from_user.mention if message.from_user else "User")
-
         try:
             await message.reply_photo(photo="https://files.catbox.moe/egu0ip.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
         except Exception:
@@ -152,6 +142,7 @@ async def start(client, message):
             except Exception:
                 pass
         return
+
 
     # കമാൻഡിനൊപ്പം ഫയൽ ഐഡിയോ റീഡയറക്ഷൻ കീയോ വന്നിട്ടുണ്ടെങ്കിൽ (Deep Linking)
     data = message.command[1]
