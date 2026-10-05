@@ -87,9 +87,6 @@ async def save_file(media):
             return False, 0
 
 
-async def save_filea(media):
-    return await save_file(media)
-
 
 async def delete_files_below_threshold(threshold_size_mb=50, batch_size=20, chat_id=None, message_id=None):
     # Fixed: Uses Media.collection.find to accurately step through data items without throwing exceptions
