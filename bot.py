@@ -7,7 +7,9 @@ import sys
 from os import environ  # Fixed: Imported environ cleanly to avoid NameError crashes
 from dotenv import load_dotenv
 # Fixed: Imports directly from the plugins folder package root (__init__.py)
-from plugins import init_web_application
+# Fixed: Imports directly from the newly created web_server.py module file natively
+from plugins.web_server import init_web_application
+
 
 
 from database.postersave import init_poster_db
@@ -127,8 +129,8 @@ class Bot(Client):
             return 
  
 
-        await self.send_message(chat_id=LOG_CHANNEL, text="restarted ❤️‍🩹")
-        
+        await self.send_message(chat_id=LOG_CHANNEL, text="restarted ❤️‍🩹")   
+        # Verify this line inside your bot.py start sequence:
         app = web.AppRunner(await init_web_application(), access_log=None)
         await app.setup()
         bind_address = "0.0.0.0"
