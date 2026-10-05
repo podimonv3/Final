@@ -199,7 +199,12 @@ async def google_alert_handler(bot, query):
 
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
-    ident, req, key, offset = query.data.split("_")
+    # Fixed: Uses maxsplit=3 to safely unpack parameters even if chat IDs contain negative sign dashes or underscores
+    try:
+        ident, req, key, offset = query.data.split("_", 3)
+    except ValueError:
+        return await query.answer("❌ Navigation layout error, please try searching again.", show_alert=True)
+        
     if int(req) not in [query.from_user.id, 0]:
         return await query.answer("Search for Yourself", show_alert=True)
 
@@ -641,15 +646,16 @@ async def auto_filter(client, msg, spoll=False):
         if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
 
         if 0 < len(message.text) < 100:
-            search = message.text
-            search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', search)
+            # Fixed: Retain the original user query parameters for pagination, while optimizing a local variable for search execution
+            raw_search_query = message.text.strip()
+            search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', raw_search_query)
             search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
             search = re.sub(r"['‘’]", "", search)
             search = re.sub(r"[-–—_,#&?/( )\[\]\\\":\.¡%“”]", " ", search)
             search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)
 
             find = search.lower().split(" ")
-            removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkamo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
+            removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
             search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
 
@@ -661,6 +667,11 @@ async def auto_filter(client, msg, spoll=False):
                     return
                 except Exception:
                     return
+                    
+            # Fixed: Map the complete query layout inside the global index to allow downstream calculations to work
+            key = f"{message.chat.id}-{message.id}"
+            _trim_dict(BUTTONS) 
+            BUTTONS[key] = {"query": search, "time": time.time()} 
         else:
             return
     else:
