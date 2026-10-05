@@ -1,24 +1,29 @@
 import logging
-from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
-from info import REQ_CHANNEL1, REQ_CHANNEL2, ADMINS
 import asyncio
-from pyrogram.types import Message, InlineKeyboardButton
-from pyrogram import enums
-from typing import Union
 import re
 import os
 import time
+import random
+import urllib.parse
 from datetime import datetime
-from typing import List
-from database.users_chats_db import db
-from info import TMDB_API_KEYS, OMDB_API_KEYS, DEFAULT_POSTER, LONG_IMDB_DESCRIPTION, MAX_LIST_ELM, OMDB_API_KEY
-import requests
-import asyncio
-from bs4 import BeautifulSoup
+from typing import Union, List
 import aiohttp
 import httpx
-from info import REQ_CHANNEL1, REQ_CHANNEL2, ADMINS, AUTH_CHANNEL
+from bs4 import BeautifulSoup
+from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
+from pyrogram.types import Message, InlineKeyboardButton
+from pyrogram import enums
 
+# Database and Project Configurations
+from database.users_chats_db import db
+from database.postersave import get_cached_poster, save_poster_to_cache
+from info import (
+    REQ_CHANNEL1, REQ_CHANNEL2, ADMINS, 
+    TMDB_API_KEYS, OMDB_API_KEYS, DEFAULT_POSTER, 
+    LONG_IMDB_DESCRIPTION, MAX_LIST_ELM
+)
+
+# Safely import optional third-party modules
 try:
     import imdbio as _imdbio
     from imdbio.exceptions import ImdbioError as _ImdbioError
@@ -26,25 +31,28 @@ try:
 except ImportError:
     IMDBIO_AVAILABLE = False
 
+# Safely handle optional authorization channel config
+try:
+    from info import AUTH_CHANNEL
+except ImportError:
+    AUTH_CHANNEL = None
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-BTN_URL_REGEX = re.compile(
-    r"(\[([^\[]+?)\]\((buttonurl|buttonalert):(?:/{0,2})(.+?)(:same)?\))"
-)
-
+BTN_URL_REGEX = re.compile(r"(\[([^\[]+?)\]\((buttonurl|buttonalert):(?:/{0,2})(.+?)(:same)?\))")
 BANNED = {}
 SMART_OPEN = '“'
 SMART_CLOSE = '”'
 START_CHAR = ('\'', '"', SMART_OPEN)
+BAD_TMDB_KEYS = {}
+BAD_OMDB_KEYS = {}
 
-# temp db for banned 
 class temp(object):
     BANNED_USERS = []
     BANNED_CHATS = []
     ME = None
-    CURRENT=int(os.environ.get("SKIP", 2))
+    CURRENT = int(os.environ.get("SKIP", 2))
     CANCEL = False
     MELCOW = {}
     U_NAME = None
@@ -53,32 +61,22 @@ class temp(object):
 
 
 
+def _parse_api_keys(keys_config):
+    """Cleans and structures API keys from config variables."""
+    if isinstance(keys_config, str):
+        return [k.strip() for k in keys_config.split(",") if k.strip()]
+    return keys_config or []
 
-import asyncio
-import re
-import urllib.parse
-
-import aiohttp
-from bs4 import BeautifulSoup
-import time
-import random
-from info import TMDB_API_KEYS, OMDB_API_KEYS
-# 🆕 പുതിയ ഫയലിന്റെ പേര് വെച്ച് ഇമ്പോർട്ട് മാറ്റിയത് ഇവിടെയാണ്:
-from database.postersave import get_cached_poster, save_poster_to_cache
-
-BAD_TMDB_KEYS = {}
-BAD_OMDB_KEYS = {}
-
-
-# 1. TMDB Async
 async def get_tmdb_poster(movie_name, tmdb_api_key):
     try:
         search_url = f"https://api.themoviedb.org/3/search/movie?api_key={tmdb_api_key}&query={urllib.parse.quote(movie_name)}"
         async with aiohttp.ClientSession() as session:
             async with session.get(search_url, timeout=aiohttp.ClientTimeout(total=4)) as response:
-                if response.status != 200: return None
+                if response.status != 200:
+                    return None
                 data = await response.json()
-            if not data.get("results"): return None
+            if not data.get("results"):
+                return None
             movie = data["results"][0]
             movie_id = movie.get("id")
             if movie_id:
@@ -90,56 +88,38 @@ async def get_tmdb_poster(movie_name, tmdb_api_key):
                         if backdrops:
                             backdrops.sort(key=lambda x: x.get("vote_average", 0), reverse=True)
                             path = backdrops[0].get("file_path")
-                            if path: return f"https://image.tmdb.org/t/p/w1280{path}"
+                            if path:
+                                return f"https://image.tmdb.org/t/p/original{path}"
             poster_path = movie.get("poster_path")
-            if poster_path: return f"https://image.tmdb.org/t/p/w500{poster_path}"
+            if poster_path:
+                return f"https://image.tmdb.org/t/p/original{poster_path}"
     except asyncio.CancelledError:
         raise
     except Exception:
         pass
     return None
 
-
-# 2. OMDb Async
 async def get_omdb_poster(movie_name, omdb_api_key):
     try:
-        url = (
-            f"https://www.omdbapi.com/"
-            f"?apikey={omdb_api_key}"
-            f"&t={urllib.parse.quote(movie_name)}"
-        )
-
+        url = f"https://www.omdbapi.com/?apikey={omdb_api_key}&t={urllib.parse.quote(movie_name)}"
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=5) as response:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as response:
                 data = await response.json()
-
-                if (
-                    data.get("Response") == "True"
-                    and data.get("Poster")
-                    and data["Poster"] != "N/A"
-                ):
+                if data.get("Response") == "True" and data.get("Poster") and data["Poster"] != "N/A":
                     return data["Poster"]
-
     except Exception:
         pass
-
     return None
 
-
-
 async def get_any_movie_poster(movie_name):
-    # 🚀 ഘട്ടം 1: ആദ്യം സ്വന്തം ഡാറ്റാബേസ് പരിശോധിക്കുന്നു (വെറും 0.1 സെക്കൻഡ് മാത്രം എടുക്കും)
     cached_poster = await get_cached_poster(movie_name)
     if cached_poster:
         return cached_poster
 
-    # ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ മാത്രം API പരിശോധിക്കാൻ കീകൾ എടുക്കുന്നു
-    tmdb_keys = [k.strip() for k in TMDB_API_KEYS.split(",") if k.strip()] if isinstance(TMDB_API_KEYS, str) else (TMDB_API_KEYS or [])
-    omdb_keys = [k.strip() for k in OMDB_API_KEYS.split(",") if k.strip()] if isinstance(OMDB_API_KEYS, str) else (OMDB_API_KEYS or [])
-
+    tmdb_keys = _parse_api_keys(TMDB_API_KEYS)
+    omdb_keys = _parse_api_keys(OMDB_API_KEYS)
     current_time = time.time()
 
-    # 2. TMDB പരിശോധിക്കുന്നു (പരമാവധി 3 സെക്കൻഡ്)
     if tmdb_keys:
         valid_tmdb_keys = [k for k in tmdb_keys if k not in BAD_TMDB_KEYS or current_time - BAD_TMDB_KEYS[k] > 300]
         if valid_tmdb_keys:
@@ -147,14 +127,13 @@ async def get_any_movie_poster(movie_name):
             try:
                 poster = await asyncio.wait_for(get_tmdb_poster(movie_name, chosen_key), timeout=3.0)
                 if poster:
-                    # 📥 കിട്ടിയ ലിങ്ക് അടുത്ത തവണത്തേക്ക് വേണ്ടി ഡാറ്റാബേസിലേക്ക് മാറ്റുന്നു
                     await save_poster_to_cache(movie_name, poster)
                     return poster
-            except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+            except asyncio.CancelledError:
+                raise
+            except Exception:
                 BAD_TMDB_KEYS[chosen_key] = current_time
-                pass
 
-    # 3. OMDb ബാക്കപ്പ്
     if omdb_keys:
         valid_omdb_keys = [k for k in omdb_keys if k not in BAD_OMDB_KEYS or current_time - BAD_OMDB_KEYS[k] > 300]
         if valid_omdb_keys:
@@ -164,9 +143,10 @@ async def get_any_movie_poster(movie_name):
                 if poster:
                     await save_poster_to_cache(movie_name, poster)
                     return poster
-            except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+            except asyncio.CancelledError:
+                raise
+            except Exception:
                 BAD_OMDB_KEYS[chosen_key] = current_time
-                pass
 
     return None
 
@@ -200,11 +180,9 @@ async def check_loop_sub2(client, message):
         await asyncio.sleep(1)
     return False
 
-async def is_requested_one(self , message):
+async def is_requested_one(self, message):
     user = await db.get_req_one(int(message.from_user.id))
-    if user:
-        return True
-    if message.from_user.id in ADMINS:
+    if user or message.from_user.id in ADMINS:
         return True
     try:
         user = await self.get_chat_member(int(REQ_CHANNEL1), message.from_user.id)
@@ -212,19 +190,14 @@ async def is_requested_one(self , message):
         pass
     except Exception as e:
         logger.exception(e)
-        pass
     else:
-        if not (user.status == enums.ChatMemberStatus.BANNED):
+        if user.status != enums.ChatMemberStatus.BANNED:
             return True
-        else:
-            pass
     return False
     
 async def is_requested_two(self, message):
     user = await db.get_req_two(int(message.from_user.id))
-    if user:
-        return True
-    if message.from_user.id in ADMINS:
+    if user or message.from_user.id in ADMINS:
         return True
     try:
         user = await self.get_chat_member(int(REQ_CHANNEL2), message.from_user.id)
@@ -232,15 +205,14 @@ async def is_requested_two(self, message):
         pass
     except Exception as e:
         logger.exception(e)
-        pass
     else:
-        if not (user.status == enums.ChatMemberStatus.BANNED):
+        if user.status != enums.ChatMemberStatus.BANNED:
             return True
-        else:
-            pass
     return False
     
 async def is_subscribed(bot, query):
+    if not AUTH_CHANNEL:
+        return True
     try:
         user = await bot.get_chat_member(AUTH_CHANNEL, query.from_user.id)
     except UserNotParticipant:
@@ -248,15 +220,11 @@ async def is_subscribed(bot, query):
     except Exception as e:
         logger.exception(e)
     else:
-        if user.status != 'kicked':
+        if user.status != enums.ChatMemberStatus.BANNED:
             return True
-
     return False
- 
-
 
 class _OmdbFakeMovie:
-    """Wraps an OMDb search-result dict to match Cinemagoer's object interface."""
     def __init__(self, m):
         self._m = m
         self.movieID = f"omdb_{m.get('imdbID')}"
@@ -264,33 +232,32 @@ class _OmdbFakeMovie:
         _map = {'title': 'Title', 'year': 'Year', 'kind': 'Type'}
         return self._m.get(_map.get(k, k), default)
 
-
 class _ImdbioFakeMovie:
-    """Wraps an imdbio MovieBriefInfo search result to match Cinemagoer's object interface."""
     def __init__(self, m):
         self._m = m
         self.movieID = f"imdbio_{m.imdb_id}"
     def get(self, k, default=None):
-        if k == 'title':
-            return self._m.title or default
-        if k == 'year':
-            return self._m.year or default
-        if k == 'kind':
-            return self._m.kind or default
+        if k == 'title': return self._m.title or default
+        if k == 'year': return self._m.year or default
+        if k == 'kind': return self._m.kind or default
         return default
 
+def list_to_str(k, max_elm=None):
+    if not k:
+        return "N/A"
+    limit = int(max_elm or MAX_LIST_ELM or 5)
+    if len(k) > limit:
+        k = k[:limit]
+    return ', '.join(str(elem) for elem in k)
 
 def _names(people):
-    """Turn a list of imdbio Person/CastMember objects into a joined name string."""
     try:
         names = [p.name for p in people if getattr(p, "name", None)]
     except (TypeError, AttributeError):
         return "N/A"
     return list_to_str(names) if names else "N/A"
 
-
 def _cat(m, key):
-    """Safely pull a named category (writer, producer, ...) off an imdbio MovieDetail."""
     try:
         return _names(m.categories.get(key, []))
     except (AttributeError, TypeError):
@@ -309,10 +276,6 @@ async def _imdbio_search(title, year=None, bulk=False):
         return [{"title": t.title, "year": str(t.year) if t.year else "N/A"} for t in result.titles[:6]]
     return await _imdbio_get_details(result.titles[0].imdb_id)
 
-
-
-
-# ⚡ വെറും Title, Year മാത്രം എടുക്കുന്ന optimized IMDBIO function
 async def _imdbio_get_details(imdb_id):
     if not IMDBIO_AVAILABLE:
         return None
@@ -326,25 +289,15 @@ async def _imdbio_get_details(imdb_id):
         return None
     return {"title": m.title or "N/A", "year": str(m.year) if m.year else "N/A"}
 
-
 def _hq_poster(url):
-    """OMDb poster URLs point at Amazon's image CDN with a size-limiting suffix
-    like '._V1_SX300.jpg'. Stripping that suffix returns the original, full-res image."""
     if not url or url == "N/A":
         return None
     return re.sub(r'\._[A-Z0-9,]+_(?=\.\w+$)', '', url)
 
-
 async def fetch_poster_bytes(url):
-    """Download a poster image ourselves and return raw bytes, or None on failure.
-    Telegram's own reply_photo(photo=<url>) sometimes fails (CDN blocks Telegram's
-    fetcher, size/dimension limits) even when the URL is perfectly loadable from a
-    normal browser/HTTP client — downloading it ourselves and uploading the bytes
-    sidesteps that."""
     if not url:
         return None
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                              "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"}
     try:
         async with httpx.AsyncClient(timeout=15, headers=headers, follow_redirects=True) as client:
             resp = await client.get(url)
@@ -354,12 +307,12 @@ async def fetch_poster_bytes(url):
         logger.warning(f"poster download failed: {e}")
         return None
 
-
 async def _omdb_search(title, year=None, bulk=False):
-    if not OMDB_API_KEY:
+    omdb_keys = _parse_api_keys(OMDB_API_KEYS)
+    if not omdb_keys:
         return None
     try:
-        params = {"apikey": OMDB_API_KEY, "s": title}
+        params = {"apikey": omdb_keys[0], "s": title}
         if year:
             params["y"] = year
         async with httpx.AsyncClient(timeout=10) as client:
@@ -377,15 +330,14 @@ async def _omdb_search(title, year=None, bulk=False):
         return [{"title": r.get("Title"), "year": r.get("Year") or "N/A"} for r in results[:6]]
     return await _omdb_get_details(results[0]["imdbID"])
 
-
-# ⚡ വെറും Title, Year മാത്രം എടുക്കുന്ന optimized OMDB function
 async def _omdb_get_details(imdb_id):
-    if not OMDB_API_KEY:
+    omdb_keys = _parse_api_keys(OMDB_API_KEYS)
+    if not omdb_keys:
         return None
     if isinstance(imdb_id, str) and imdb_id.startswith("omdb_"):
         imdb_id = imdb_id[len("omdb_"):]
     try:
-        params = {"apikey": OMDB_API_KEY, "i": imdb_id, "plot": "short"}
+        params = {"apikey": omdb_keys[0], "i": imdb_id, "plot": "short"}
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get("https://omdbapi.com", params=params)
             resp.raise_for_status()
@@ -395,17 +347,13 @@ async def _omdb_get_details(imdb_id):
     if not m or m.get("Response") != "True":
         return None
     return {"title": m.get("Title", "N/A"), "year": m.get("Year", "N/A")}
-
     
 async def get_poster(query, bulk=False, id=False, file=None):
-    # ── Direct ID lookups ────────────────────────────────────────────────────
     if id:
         result = await _imdbio_get_details(query)
-        if result:
-            return result
+        if result: return result
         return await _omdb_get_details(query)
 
-    # ── Parse title + year ───────────────────────────────────────────────────
     query = (query.strip()).lower()
     title = query
     year = re.findall(r'[1-2]\d{3}$', query, re.IGNORECASE)
@@ -420,43 +368,9 @@ async def get_poster(query, bulk=False, id=False, file=None):
         year = None
 
     result = await _imdbio_search(title, year=year, bulk=bulk)
-    if result:
-        return result
+    if result: return result
     return await _omdb_search(title, year=year, bulk=bulk)
 
-
-def list_to_str(k, max_elm=5):  # ഇവിടെ 5 ആണ് DEFAULT വാല്യൂ
-    if not k:
-        return "N/A"
-    
-    # ലിസ്റ്റിന്റെ നീളം ഡിഫോൾട്ട് വാല്യൂവിനേക്കാൾ കൂടുതലാണെങ്കിൽ മാത്രം മുറിക്കുക
-    if len(k) > max_elm:
-        k = k[:max_elm]
-        
-    # എലമെന്റുകൾക്കിടയിൽ കൃത്യമായി കോമ വരാൻ ', '.join() ഉപയോഗിക്കാം
-    return ', '.join(str(elem) for elem in k)
-
-
-async def broadcast_messages(user_id, message):
-    try:
-        await message.copy(chat_id=user_id)
-        return True, "Success"
-    except FloodWait as e:
-        await asyncio.sleep(e.x)
-        return await broadcast_messages(user_id, message)
-    except InputUserDeactivated:
-        await db.delete_user(int(user_id))
-        logging.info(f"{user_id}-Removed from Database, since deleted account.")
-        return False, "Deleted"
-    except UserIsBlocked:
-        logging.info(f"{user_id} -Blocked the bot.")
-        return False, "Blocked"
-    except PeerIdInvalid:
-        await db.delete_user(int(user_id))
-        logging.info(f"{user_id} - PeerIdInvalid")
-        return False, "Error"
-    except Exception as e:
-        return False, "Error"
 
 async def get_settings(group_id):
     settings = temp.SETTINGS.get(group_id)
@@ -472,64 +386,41 @@ async def save_group_settings(group_id, key, value):
     await db.update_settings(group_id, current)
     
 def get_size(size):
-    """Get size in readable integer format with full superscript styling"""
     units = ["Bytes", "ᴷᴮ", "ᴹᴮ", "ᴳᴮ", "ᵀᴮ", "ᴾᴮ", "ᴱᴮ"]
     size = float(size)
     i = 0
     while size >= 1024.0 and i < len(units):
         i += 1
         size /= 1024.0
-        
     raw_size_str = str(int(size))
-    
-    # Mapping table to convert normal numbers to superscript numbers
     superscript_map = {
         '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
         '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
     }
-    
     su_size_str = "".join(superscript_map.get(char, char) for char in raw_size_str)
-    
     return f"{su_size_str}{units[i]}"
 
 def get_file_id(msg: Message):
     if msg.media:
-        for message_type in (
-            "photo",
-            "animation",
-            "audio",
-            "document",
-            "video",
-            "video_note",
-            "voice",
-            "sticker"
-        ):
+        for message_type in ("photo", "animation", "audio", "document", "video", "video_note", "voice", "sticker"):
             obj = getattr(msg, message_type)
             if obj:
                 setattr(obj, "message_type", message_type)
                 return obj
 
 def extract_user(message: Message) -> Union[int, str]:
-    """extracts the user from a message"""
-    # https://github.com/SpEcHiDe/PyroGramBot/blob/f30e2cca12002121bad1982f68cd0ff9814ce027/pyrobot/helper_functions/extract_user.py#L7
     user_id = None
     user_first_name = None
     if message.reply_to_message:
         user_id = message.reply_to_message.from_user.id
         user_first_name = message.reply_to_message.from_user.first_name
-
     elif len(message.command) > 1:
-        if (
-            len(message.entities) > 1 and
-            message.entities[1].type == enums.MessageEntityType.TEXT_MENTION
-        ):
-           
+        if len(message.entities) > 1 and message.entities[1].type == enums.MessageEntityType.TEXT_MENTION:
             required_entity = message.entities[1]
             user_id = required_entity.user.id
             user_first_name = required_entity.user.first_name
         else:
             user_id = message.command[1]
-            # don't want to make a request -_-
             user_first_name = user_id
         try:
             user_id = int(user_id)
@@ -540,174 +431,25 @@ def extract_user(message: Message) -> Union[int, str]:
         user_first_name = message.from_user.first_name
     return (user_id, user_first_name)
 
-def list_to_str(k):
-    if not k:
-        return "N/A"
-    elif len(k) == 1:
-        return str(k[0])
-    elif MAX_LIST_ELM:
-        k = k[:int(MAX_LIST_ELM)]
-        return ' '.join(f'{elem}, ' for elem in k)
-    else:
-        return ' '.join(f'{elem}, ' for elem in k)
-
 def last_online(from_user):
-    time = ""
+    time_str = ""
     if from_user.is_bot:
-        time += "🤖 Bot :("
+        time_str += "🤖 Bot :("
     elif from_user.status == enums.UserStatus.RECENTLY:
-        time += "Recently"
+        time_str += "Recently"
     elif from_user.status == enums.UserStatus.LAST_WEEK:
-        time += "Within the last week"
+        time_str += "Within the last week"
     elif from_user.status == enums.UserStatus.LAST_MONTH:
-        time += "Within the last month"
+        time_str += "Within the last month"
     elif from_user.status == enums.UserStatus.LONG_AGO:
-        time += "A long time ago :("
+        time_str += "A long time ago :("
     elif from_user.status == enums.UserStatus.ONLINE:
-        time += "Currently Online"
+        time_str += "Currently Online"
     elif from_user.status == enums.UserStatus.OFFLINE:
-        time += from_user.last_online_date.strftime("%a, %d %b %Y, %H:%M:%S")
-    return time
+        time_str += from_user.last_online_date.strftime("%a, %d %b %Y, %H:%M:%S")
+    return time_str
 
 
-def split_quotes(text: str) -> List:
-    if not any(text.startswith(char) for char in START_CHAR):
-        return text.split(None, 1)
-    counter = 1  # ignore first char -> is some kind of quote
-    while counter < len(text):
-        if text[counter] == "\\":
-            counter += 1
-        elif text[counter] == text[0] or (text[0] == SMART_OPEN and text[counter] == SMART_CLOSE):
-            break
-        counter += 1
-    else:
-        return text.split(None, 1)
-
-    # 1 to avoid starting quote, and counter is exclusive so avoids ending
-    key = remove_escapes(text[1:counter].strip())
-    # index will be in range, or `else` would have been executed and returned
-    rest = text[counter + 1:].strip()
-    if not key:
-        key = text[0] + text[0]
-    return list(filter(None, [key, rest]))
-
-
-
-def gfilterparser(text, keyword):
-    if "buttonalert" in text:
-        text = (text.replace("\n", "\\n").replace("\t", "\\t"))
-    buttons = []
-    note_data = ""
-    prev = 0
-    i = 0
-    alerts = []
-    for match in BTN_URL_REGEX.finditer(text):
-        # Check if btnurl is escaped
-        n_escapes = 0
-        to_check = match.start(1) - 1
-        while to_check > 0 and text[to_check] == "\\":
-            n_escapes += 1
-            to_check -= 1
-
-        # if even, not escaped -> create button
-        if n_escapes % 2 == 0:
-            note_data += text[prev:match.start(1)]
-            prev = match.end(1)
-            if match.group(3) == "buttonalert":
-                # create a thruple with button label, url, and newline status
-                if bool(match.group(5)) and buttons:
-                    buttons[-1].append(InlineKeyboardButton(
-                        text=match.group(2),
-                        callback_data=f"gfilteralert:{i}:{keyword}"
-                    ))
-                else:
-                    buttons.append([InlineKeyboardButton(
-                        text=match.group(2),
-                        callback_data=f"gfilteralert:{i}:{keyword}"
-                    )])
-                i += 1
-                alerts.append(match.group(4))
-            elif bool(match.group(5)) and buttons:
-                buttons[-1].append(InlineKeyboardButton(
-                    text=match.group(2),
-                    url=match.group(4).replace(" ", "")
-                ))
-            else:
-                buttons.append([InlineKeyboardButton(
-                    text=match.group(2),
-                    url=match.group(4).replace(" ", "")
-                )])
-
-        else:
-            note_data += text[prev:to_check]
-            prev = match.start(1) - 1
-    else:
-        note_data += text[prev:]
-
-    try:
-        return note_data, buttons, alerts
-    except:
-        return note_data, buttons, None
-
-
-
-
-
-def parser(text, keyword):
-    if "buttonalert" in text:
-        text = (text.replace("\n", "\\n").replace("\t", "\\t"))
-    buttons = []
-    note_data = ""
-    prev = 0
-    i = 0
-    alerts = []
-    for match in BTN_URL_REGEX.finditer(text):
-        # Check if btnurl is escaped
-        n_escapes = 0
-        to_check = match.start(1) - 1
-        while to_check > 0 and text[to_check] == "\\":
-            n_escapes += 1
-            to_check -= 1
-
-        # if even, not escaped -> create button
-        if n_escapes % 2 == 0:
-            note_data += text[prev:match.start(1)]
-            prev = match.end(1)
-            if match.group(3) == "buttonalert":
-                # create a thruple with button label, url, and newline status
-                if bool(match.group(5)) and buttons:
-                    buttons[-1].append(InlineKeyboardButton(
-                        text=match.group(2),
-                        callback_data=f"alertmessage:{i}:{keyword}"
-                    ))
-                else:
-                    buttons.append([InlineKeyboardButton(
-                        text=match.group(2),
-                        callback_data=f"alertmessage:{i}:{keyword}"
-                    )])
-                i += 1
-                alerts.append(match.group(4))
-            elif bool(match.group(5)) and buttons:
-                buttons[-1].append(InlineKeyboardButton(
-                    text=match.group(2),
-                    url=match.group(4).replace(" ", "")
-                ))
-            else:
-                buttons.append([InlineKeyboardButton(
-                    text=match.group(2),
-                    url=match.group(4).replace(" ", "")
-                )])
-
-        else:
-            note_data += text[prev:to_check]
-            prev = match.start(1) - 1
-    else:
-        note_data += text[prev:]
-
-    try:
-        return note_data, buttons, alerts
-    except:
-        return note_data, buttons, None
 
 def remove_escapes(text: str) -> str:
     res = ""
@@ -722,10 +464,94 @@ def remove_escapes(text: str) -> str:
             res += text[counter]
     return res
 
+def split_quotes(text: str) -> List:
+    if not any(text.startswith(char) for char in START_CHAR):
+        return text.split(None, 1)
+    counter = 1
+    while counter < len(text):
+        if text[counter] == "\\":
+            counter += 1
+        elif text[counter] == text[0] or (text[0] == SMART_OPEN and text[counter] == SMART_CLOSE):
+            break
+        counter += 1
+    else:
+        return text.split(None, 1)
+    key = remove_escapes(text[1:counter].strip())
+    rest = text[counter + 1:].strip()
+    if not key:
+        key = text[0] + text[0]
+    return list(filter(None, [key, rest]))
+
+def gfilterparser(text, keyword):
+    if "buttonalert" in text:
+        text = (text.replace("\n", "\\n").replace("\t", "\\t"))
+    buttons = []
+    note_data = ""
+    prev = 0
+    i = 0
+    alerts = []
+    for match in BTN_URL_REGEX.finditer(text):
+        n_escapes = 0
+        to_check = match.start(1) - 1
+        while to_check > 0 and text[to_check] == "\\":
+            n_escapes += 1
+            to_check -= 1
+        if n_escapes % 2 == 0:
+            note_data += text[prev:match.start(1)]
+            prev = match.end(1)
+            if match.group(3) == "buttonalert":
+                if bool(match.group(5)) and buttons:
+                    buttons[-1].append(InlineKeyboardButton(text=match.group(2), callback_data=f"gfilteralert:{i}:{keyword}"))
+                else:
+                    buttons.append([InlineKeyboardButton(text=match.group(2), callback_data=f"gfilteralert:{i}:{keyword}")])
+                i += 1
+                alerts.append(match.group(4))
+            elif bool(match.group(5)) and buttons:
+                buttons[-1].append(InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
+            else:
+                buttons.append([InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
+        else:
+            note_data += text[prev:to_check]
+            prev = match.start(1) - 1
+    note_data += text[prev:]
+    return note_data, buttons, alerts if alerts else None
+
+def parser(text, keyword):
+    if "buttonalert" in text:
+        text = (text.replace("\n", "\\n").replace("\t", "\\t"))
+    buttons = []
+    note_data = ""
+    prev = 0
+    i = 0
+    alerts = []
+    for match in BTN_URL_REGEX.finditer(text):
+        n_escapes = 0
+        to_check = match.start(1) - 1
+        while to_check > 0 and text[to_check] == "\\":
+            n_escapes += 1
+            to_check -= 1
+        if n_escapes % 2 == 0:
+            note_data += text[prev:match.start(1)]
+            prev = match.end(1)
+            if match.group(3) == "buttonalert":
+                if bool(match.group(5)) and buttons:
+                    buttons[-1].append(InlineKeyboardButton(text=match.group(2), callback_data=f"alertmessage:{i}:{keyword}"))
+                else:
+                    buttons.append([InlineKeyboardButton(text=match.group(2), callback_data=f"alertmessage:{i}:{keyword}")])
+                i += 1
+                alerts.append(match.group(4))
+            elif bool(match.group(5)) and buttons:
+                buttons[-1].append(InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
+            else:
+                buttons.append([InlineKeyboardButton(text=match.group(2), url=match.group(4).replace(" ", "")))
+        else:
+            note_data += text[prev:to_check]
+            prev = match.start(1) - 1
+    note_data += text[prev:]
+    return note_data, buttons, alerts if alerts else None
 
 def humanbytes(size):
-    if not size:
-        return ""
+    if not size: return ""
     power = 2**10
     n = 0
     Dic_powerN = {0: ' ', 1: 'Ki', 2: 'Mi', 3: 'Gi', 4: 'Ti'}
@@ -734,12 +560,9 @@ def humanbytes(size):
         n += 1
     return str(round(size, 2)) + " " + Dic_powerN[n] + 'B'
 
-
-
 def get_progress_bar(completed, total, length=10):
     progress = completed / total
     block = int(round(length * progress))
-    # 🟩 ചിഹ്നവും ⬜ ചിഹ്നവും ഉപയോഗിച്ച് ബാർ ഉണ്ടാക്കുന്നു
     text = "🟩" * block + "⬜" * (length - block)
     percentage = round(progress * 100, 1)
     return f"[{text}] {percentage}%"
@@ -753,24 +576,24 @@ async def broadcast_messages(user_id, message):
         return await broadcast_messages(user_id, message)
     except InputUserDeactivated:
         await db.delete_user(int(user_id))
+        logging.info(f"{user_id}-Removed from Database (deleted account).")
         return False, "Deleted"
     except UserIsBlocked:
+        logging.info(f"{user_id}-Blocked the bot.")
         return False, "Blocked"
     except PeerIdInvalid:
         await db.delete_user(int(user_id))
+        logging.info(f"{user_id}-PeerIdInvalid error.")
         return False, "Error"
     except Exception:
         return False, "Error"
 
 async def run_broadcast_in_background(client, message, status_msg):
     start_time = time.time()
-    success = 0
-    blocked = 0
-    deleted = 0
-    failed = 0
+    success, blocked, deleted, failed = 0, 0, 0, 0
 
     all_users_cursor = await db.get_all_users()
-    total_users = await db.total_users_count() # ആകെ യൂസർമാരുടെ എണ്ണം
+    total_users = await db.total_users_count()
     
     if total_users == 0:
         await status_msg.edit("❌ ഡാറ്റാബേസിൽ യൂസർമാർ ആരും തന്നെയില്ല!")
@@ -784,18 +607,13 @@ async def run_broadcast_in_background(client, message, status_msg):
             
         is_sent, result = await broadcast_messages(int(user_id), message)
         
-        if is_sent:
-            success += 1
-        elif result == "Blocked":
-            blocked += 1
-        elif result == "Deleted":
-            deleted += 1
-        else:
-            failed += 1
+        if is_sent: success += 1
+        elif result == "Blocked": blocked += 1
+        elif result == "Deleted": deleted += 1
+        else: failed += 1
             
         processed += 1
         
-        # ഓരോ 10 യൂസർമാർ കഴിയുമ്പോഴും ടെലിഗ്രാമിലെ മെസ്സേജ് ലൈവ് ആയി പ്രോഗ്രസ് ബാർ സഹിതം അപ്‌ഡേറ്റ് ചെയ്യും
         if processed % 10 == 0 or processed == total_users:
             bar = get_progress_bar(processed, total_users)
             progress_text = (
@@ -810,13 +628,10 @@ async def run_broadcast_in_background(client, message, status_msg):
                 await status_msg.edit(progress_text)
             except Exception:
                 pass
-                
         await asyncio.sleep(0.5)
 
-    # ബ്രോഡ്കാസ്റ്റ് പൂർണ്ണമായി കഴിഞ്ഞാൽ വരാനുള്ള FINAL TEXT
     end_time = time.time()
     time_taken = round(end_time - start_time, 2)
-
     final_text = (
         f"✅ **ബ്രോഡ്കാസ്റ്റ് വിജയകരമായി പൂർത്തിയായി!**\n\n"
         f"⏱️ എടുത്ത സമയം: {time_taken} സെക്കന്റ്\n"
