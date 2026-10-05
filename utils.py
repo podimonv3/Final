@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 from typing import List
 from database.users_chats_db import db
-from info import TMDB_API_KEYS, OMDB_API_KEYS, DEFAULT_POSTER, LONG_IMDB_DESCRIPTION, MAX_LIST_ELM
+from info import TMDB_API_KEYS, OMDB_API_KEYS, DEFAULT_POSTER, LONG_IMDB_DESCRIPTION, MAX_LIST_ELM, OMDB_API_KEY
 import requests
 import asyncio
 from bs4 import BeautifulSoup
