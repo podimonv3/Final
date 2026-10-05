@@ -21,7 +21,7 @@ from pyrogram.errors.exceptions.forbidden_403 import MessageDeleteForbidden
 
 # 🚀 കൺഫ്യൂഷൻ ഒഴിവാക്കാൻ എല്ലാ ഡാറ്റാബേസ് ഇമ്പോർട്ടുകൾക്കും കൃത്യമായ തനത് പേരുകൾ നൽകുന്നു ✨
 from database.ia_filterdb import Media, get_file_details, db as clientDB
-from database.users_chats_db import db as user_db  # db മാറ്റി user_db ആക്കി ⚡
+from database.users_chats_db import db # db മാറ്റി user_db ആക്കി ⚡
 from database.connections_mdb import active_connection
 from database.requests_db import get_all_missing_movies, clear_all_missing_movies 
 from database.postersave import get_db_stats, clear_entire_poster_db
