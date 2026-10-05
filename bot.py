@@ -7,6 +7,7 @@ import sys
 from os import environ  # Fixed: Imported environ cleanly to avoid NameError crashes
 from dotenv import load_dotenv
 from plugins.web_server import init_web_application
+from database.postersave import init_poster_db
 
 # Run environment updates FIRST before any project parameters are initialized
 load_dotenv("./dynamic.env", override=True, encoding="utf-8")
@@ -80,9 +81,10 @@ class Bot(Client):
         # ഒരൊറ്റ ഡാറ്റാബേസ് ഇൻഡെക്സ് മാത്രം വെരിഫൈ ചെയ്യുന്നു
         await Media.ensure_indexes()        
         
-        # 🚀 24 മണിക്കൂർ ഡിലീറ്റ് ഒഴിവാക്കിയുള്ള പുതിയ റിക്വസ്റ്റ് ഇൻഡെക്സ് ഇവിടെ റൺ ചെയ്യുന്നു ✨
+        # Initialize the missing movie request index blocks
         await init_db()
-        
+        await init_poster_db()
+    # Inject this line to safely stand up the movie poster cache collection index:      
         me = await self.get_me()
         temp.ME = me.id
         temp.U_NAME = me.username
