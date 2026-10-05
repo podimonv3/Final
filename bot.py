@@ -6,8 +6,9 @@ import os
 import sys
 from os import environ  # Fixed: Imported environ cleanly to avoid NameError crashes
 from dotenv import load_dotenv
-# Alternative fallback import syntax for bot.py
-import plugins.web_server as web_server
+# Fixed: Imports directly from the plugins folder package root (__init__.py)
+from plugins import init_web_application
+
 
 from database.postersave import init_poster_db
 
