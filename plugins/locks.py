@@ -62,12 +62,16 @@ async def lock_unlock_command(client: Client, message: Message):
         )
         return
 
-    action = message.command[0].lower()
-    media = message.command[1].lower()
+    # Fixed: Safely extracts string parameters from the command list array cleanly
+    action = message.command[0].lower().strip()
+    media = message.command[1].lower().strip()
 
     if media not in VALID_LOCKS:
-        await message.reply_text(f"❌ തെറ്റായ മീഡിയ ടൈപ്പ്! പരിശോധിക്കാൻ വെറുതെ <code>/{action}</code> എന്ന് ടൈപ്പ് ചെയ്യുക.", parse_mode=enums.ParseMode.HTML)
-        return
+        return await message.reply_text(
+            f"❌ തെറ്റായ മീഡിയ ടൈപ്പ്! പരിശോധിക്കാൻ വെറുതെ <code>/{action}</code> എന്ന് ടൈപ്പ് ചെയ്യുക.", 
+            parse_mode=enums.ParseMode.HTML
+        )
+
 
     status = True if action == "lock" else False
     # ഇവിടെ await ചേർത്തു 
