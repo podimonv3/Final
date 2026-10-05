@@ -200,18 +200,20 @@ async def locks_callback_handler(client: Client, query):
 @Client.on_message(filters.group, group=2)
 async def check_group_media_locks(client: Client, message: Message):
     chat_id = int(message.chat.id)
-    # ഇവിടെ await ചേർത്തു
     locks = await get_group_locks(chat_id)
 
     if getattr(message, "sender_chat", None) and message.sender_chat.type == enums.ChatType.CHANNEL:
         if locks.get("channel") and not getattr(message, "is_automatic_forward", False):
-            try: await message.delete(); return
-            except: pass
+            try: 
+                return await message.delete()
+            except Exception: 
+                pass
 
     should_delete = False
 
     if getattr(message, "forward_from_chat", None) and message.forward_from_chat.type == enums.ChatType.CHANNEL:
-        if locks.get("fwd_channel"): should_delete = True
+        if locks.get("fwd_channel"): 
+            should_delete = True
 
     if getattr(message, "new_chat_members", None) and locks.get("new_members"): should_delete = True
     elif getattr(message, "left_chat_member", None) and locks.get("left_members"): should_delete = True
@@ -224,9 +226,11 @@ async def check_group_media_locks(client: Client, message: Message):
         user_id = message.from_user.id
         try:
             member = await message.chat.get_member(user_id)
-            if member.status in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR] or user_id == ADMINS:
+            if member.status in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR] or user_id in ADMINS:
                 return
-        except: return
+        except Exception: 
+            if user_id in ADMINS:
+                return
 
         if getattr(message, "photo", None) and locks.get("photos"): should_delete = True
         elif getattr(message, "video", None) and locks.get("videos"): should_delete = True
@@ -245,9 +249,8 @@ async def check_group_media_locks(client: Client, message: Message):
 
         elif (getattr(message, "text", None) or getattr(message, "caption", None)):
             entities = message.entities if message.text else message.caption_entities
+            # Fixed: Safely wrapped the inner code block inside 4 extra spaces of indentation ⚙️
             if entities is not None:
-                for ent in entities:
-
                 for ent in entities:
                     if ent.type == enums.MessageEntityType.MENTION and locks.get("usernames"): should_delete = True
                     elif ent.type == enums.MessageEntityType.HASHTAG and locks.get("hashtags"): should_delete = True
@@ -260,9 +263,11 @@ async def check_group_media_locks(client: Client, message: Message):
                         break
                         
     if should_delete:
-        try: await message.delete()
-        except: pass  
-    
+        try: 
+            await message.delete()
+        except Exception: 
+            pass
+
 
 # എഡിറ്റ് ചെയ്യുന്ന മെസ്സേജുകൾ ഡിലീറ്റ് ചെയ്യാൻ
 @Client.on_edited_message(filters.group, group=3)
