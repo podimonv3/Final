@@ -10,6 +10,8 @@ async def init_db():
     """സിനിമയുടെ പേര് ഡ്യൂപ്ലിക്കേറ്റ് വരാതിരിക്കാനുള്ള ഇൻഡക്സ് മാത്രം സെറ്റ് ചെയ്യുന്നു (24hr ഡിലീറ്റ് ഒഴിവാക്കി)"""
     await collection.create_index("movie_name", unique=True)
 
+from datetime import datetime, timezone  # Fixed: Added standard timezone library import
+
 async def save_missing_movie(movie_name):
     """സിനിമ പുതിയതാണെങ്കിൽ സേവ് ചെയ്യും, ഉള്ളതാണെങ്കിൽ കൗണ്ട് 1 വർദ്ധിപ്പിക്കും"""
     movie_clean = movie_name.strip().lower()
@@ -18,7 +20,8 @@ async def save_missing_movie(movie_name):
         {"movie_name": movie_clean},
         {
             "$inc": {"search_count": 1},
-            "$set": {"lastSearchedAt": datetime.utcnow()}
+            # Fixed: Replaced deprecated datetime.utcnow() with modern timezone-aware utcnow values
+            "$set": {"lastSearchedAt": datetime.now(timezone.utc)}
         },
         upsert=True
     )
