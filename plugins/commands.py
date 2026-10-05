@@ -801,52 +801,6 @@ async def clear_missing_requests_cmd(client: Client, message: Message):
 
 
 
-@Client.on_message(filters.command("bot_stats") & filters.user(ADMINS))
-async def get_full_bot_stats_cmd(client: Client, message: Message):
-    """എല്ലാ കളക്ഷൻ ഫോൾഡറുകളിലെയും ആകെ ഫയലുകളുടെ എണ്ണം കൃത്യമായി കാണിക്കാനുള്ള അഡ്മിൻ കമാൻഡ് 📊"""
-    msg = await message.reply_text("⏳ ഡാറ്റാബേസ് സ്റ്റാറ്റ്സ് വിവരങ്ങൾ ശേഖരിച്ചുകൊണ്ടിരിക്കുന്നു...")
-    
-    try:
-        # 1. ഓരോ കളക്ഷൻ ഫോൾഡറിലെയും ആകെ ഡോക്യുമെന്റുകളുടെ എണ്ണം എടുക്കുന്നു
-        total_connections = await db['connections'].count_documents({})
-        total_filters = await db['filters'].count_documents({})
-        total_gfilters = await db['gfilters'].count_documents({})
-        total_locks = await db['locks'].count_documents({})
-        total_poster = await db['poster'].count_documents({})
-        total_moviereq = await db['moviereq'].count_documents({})
-        total_media = await db['Media'].count_documents({})  # info-ൽ നിന്നുള്ള COLLECTION_NAME അനുസരിച്ച് മാറ്റാം
-        total_users = await db['users'].count_documents({})
-        total_group = await db['group'].count_documents({})
-        
-        # 2. പ്രധാന ഫോൾഡറുകളിലെല്ലാം ഉള്ള ആകെ വിവരങ്ങൾ കൂട്ടിയെടുക്കുന്നു
-        total_all_docs = (
-            total_connections + total_filters + total_gfilters + total_locks + 
-            total_poster + total_moviereq + total_media + total_users + total_group
-        )
-        
-        # 3. റിസൾട്ട് മനോഹരമായി ഫോർമാറ്റ് ചെയ്ത് മെസ്സേജ് തയാറാക്കുന്നു
-        status_text = f"📊 <b>★ BOT DATABASE STATS PANEL ★</b>\n\n"
-        status_text += f"🗄️ <b>Database Name:</b> <code>{DATABASE_NAME}</code>\n\n"
-        
-        status_text += "📂 <b>Core Folders & Data Counts:</b>\n"
-        status_text += f" ├ 🔗 <code>connections</code> → <b>{total_connections}</b> Users Linked\n"
-        status_text += f" ├ 💬 <code>filters</code> → <b>{total_filters}</b> Group Filters\n"
-        status_text += f" ├ 🌐 <code>gfilters</code> → <b>{total_gfilters}</b> Global Filters\n"
-        status_text += f" ├ 🔒 <code>locks</code> → <b>{total_locks}</b> Chat Lock Settings\n"
-        status_text += f" ├ 🖼️ <code>poster</code> → <b>{total_poster}</b> Cached Posters\n"
-        status_text += f" ├ 🎬 <code>moviereq</code> → <b>{total_moviereq}</b> Active Requests\n"
-        status_text += f" ├ 📁 <code>Media</code> → <b>{total_media}</b> Indexed Movies\n"
-        status_text += f" ├ 👥 <code>users</code> → <b>{total_users}</b> Total Bot Users\n"
-        status_text += f" └ 👥 <code>group</code> → <b>{total_group}</b> Total Bot Chats\n\n"
-        
-        status_text += f"📈 <b>Total Overall Documents:</b> <code>{total_all_docs}</code>\n\n"
-        status_text += f"💡 <i>Note: സിംഗിൾ കളക്ഷൻ ഒപ്റ്റിമൈസേഷൻ ഉള്ളതുകൊണ്ട് ഈ സ്റ്റാറ്റ്സ് കാണാൻ ബോട്ടിന് ഒട്ടും ലാഗ് ഉണ്ടാകില്ല.</i>"
-        
-        await msg.edit_text(status_text, parse_mode=enums.ParseMode.HTML)
-        
-    except Exception as e:
-        await msg.edit_text(f"❌ സ്റ്റാറ്റ്സ് വിവരങ്ങൾ ശേഖരിക്കുന്നതിൽ പരാജയപ്പെട്ടു!\nഎറർ: <code>{e}</code>", parse_mode=enums.ParseMode.HTML)
-
 
 @Client.on_message(filters.command("dbstatus") & filters.private)
 async def show_database_status(client, message):
