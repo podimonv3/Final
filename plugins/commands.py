@@ -114,10 +114,12 @@ async def send_file(client, query, ident, file_id):
 async def start(client, message):
     chat_type = message.chat.type
     user_id = message.from_user.id if message.from_user else None
+    # Fixed: Extracted the first_name parameter cleanly to provide a fallback value for user_name
+    user_name = message.from_user.first_name if message.from_user else "User"
 
     if user_id:
         try:
-          # Use the non-blocking async method we verified inside database/users_chats_db.py
+            # Use the non-blocking async method we verified inside database/users_chats_db.py
             if not await db.is_user_exist(user_id):
                 await db.add_user(user_id, user_name)                    
         except Exception as e:
@@ -125,7 +127,8 @@ async def start(client, message):
 
     if chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         try:
-            if not await user_db.is_chat_exist(int(message.chat.id)):
+            # Fixed: Updated the call to use the correct 'get_chat' method on your user_db model object
+            if not await user_db.get_chat(int(message.chat.id)):
                 await user_db.add_chat(chat=int(message.chat.id), title=str(message.chat.title))
         except Exception as e:
             logger.error(f"Error saving group to DB: {e}", exc_info=True)
