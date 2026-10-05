@@ -13,7 +13,7 @@ from asyncio import sleep
 from Script import script
 from pyrogram import Client, filters, enums
 from pyrogram.enums import ChatType
-from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid, MessageDeleteForbidden
+from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
 from pyrogram.errors import ChatAdminRequired, FloodWait, UserIsBlocked
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
