@@ -194,19 +194,26 @@ async def index_files_to_db(lst_msg_id, chat, msg, bot):
                 media.caption = message.caption
                 
                 try:
-                    file_status = await check_file(media)
-                    if file_status == "okda":
+                    # Fixed: Query the database collection directly by unique ID to check if it's already indexed
+                    from database.ia_filterdb import Media, unpack_new_file_id
+                    
+                    file_id, file_ref = unpack_new_file_id(media.file_id)
+                    exists = await Media.collection.find_one({'_id': file_id})
+                    
+                    if not exists:
+                        # Save the file using the clean async database mapping format
+                        from database.ia_filterdb import save_file
                         aynav, vnay = await save_file(media) 
                         if aynav:
                             total_files += 1
-                        elif vnay == 0:
+                        else:
                             duplicate += 1
-                        elif vnay == 2:
-                            errors += 1
                     else:
                         duplicate += 1
-                except Exception:
+                except Exception as index_err:
+                    logger.error(f"Indexing item exception: {index_err}")
                     errors += 1
+
                     
         except Exception as outer_err:
             logger.exception(outer_err)
