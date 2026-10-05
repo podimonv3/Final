@@ -6,13 +6,19 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
-myclient = pymongo.MongoClient(DATABASE_URI)
+from motor.motor_asyncio import AsyncIOMotorClient
+
+# Fixed: Configured the global filter repository to use the project's core async motor connection driver
+myclient = AsyncIOMotorClient(DATABASE_URI)
 mydb = myclient[DATABASE_NAME]
-# ഗ്ലോബൽ ഫിൽറ്ററുകൾക്കായുള്ള ഒറ്റ കളക്ഷൻ ഫോൾഡർ
 mycol = mydb['gfilters'] 
 
-# ഒരേ വാക്ക് വീണ്ടും വരാതിരിക്കാനും ഡാറ്റ വേഗത്തിൽ തിരയാനും ഇൻഡെക്സ് സെറ്റ് ചെയ്യുന്നു
-mycol.create_index([("gfilters", 1), ("text", 1)], unique=True)
+async def init_gfilters_db():
+    """സിനിമ ഗ്ലോബൽ ഫിൽറ്ററുകൾ വേഗത്തിൽ തപ്പിയെടുക്കാൻ അസിങ്ക് ഇൻഡക്സ് സെറ്റ് ചെയ്യുന്നു 🚀"""
+    try:
+        await mycol.create_index([("gfilters", 1), ("text", 1)], unique=True)
+    except Exception as e:
+        logger.error(f"Error creating gfilters database index: {e}")
 
 async def add_gfilter(gfilters, text, reply_text, btn, file, alert):
     data = {
