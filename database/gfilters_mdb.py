@@ -31,7 +31,7 @@ async def add_gfilter(gfilters, text, reply_text, btn, file, alert):
     }
     try:
         # 🚀 '\$set' മാറ്റി പകരം കൃത്യമായ '$set' നൽകിValueError ഫിക്സ് ചെയ്തു ✨
-        mycol.update_one({'gfilters': str(gfilters), 'text': str(text)}, {"$set": data}, upsert=True)
+        await mycol.update_one({'gfilters': str(gfilters), 'text': str(text)}, {"$set": data}, upsert=True)
     except:
         logger.exception('Some error occurred!', exc_info=True)
 
@@ -41,7 +41,7 @@ async def add_gfilter(gfilters, text, reply_text, btn, file, alert):
 
 async def find_gfilter(gfilters, name):
     try:
-        file = mycol.find_one({"gfilters": str(gfilters), "text": name})
+        file = await mycol.find_one({"gfilters": str(gfilters), "text": name})
         if file:
             return file['reply'], file['btn'], file.get('alert', None), file['file']
     except:
@@ -51,37 +51,36 @@ async def find_gfilter(gfilters, name):
 async def get_gfilters(gfilters):
     texts = []
     try:
-        query = mycol.find({"gfilters": str(gfilters)})
-        for file in query:
+        # Fixed: Changed from sync cursor iteration to a smooth, modern async Motor stream loop
+        cursor = mycol.find({"gfilters": str(gfilters)})
+        async for file in cursor:
             texts.append(file['text'])
-    except:
+    except Exception:
         pass
     return texts
 
-async def delete_gfilter(message, text, gfilters):
-    myquery = {'gfilters': str(gfilters), 'text': text}
-    count = mycol.count_documents(myquery)
+async def delete_gfilter(gfilters, text):
+    """Removes a specific global filter keyword match row from the repository."""
+    # Fixed: Standardized positional parameters to cleanly align with file 14's function call execution
+    myquery = {'gfilters': str(gfilters), 'text': str(text).lower().strip()}
+    count = await mycol.count_documents(myquery)
     if count > 0:
-        mycol.delete_many(myquery)
-        await message.reply_text(
-            f"'`{text}`' deleted. I'll not respond to that gfilter anymore.",
-            quote=True,
-            parse_mode=enums.ParseMode.MARKDOWN
-        )
-    else:
-        await message.reply_text("Couldn't find that gfilter!", quote=True)
+        await mycol.delete_one(myquery)
+        return True
+    return False
 
-async def del_allg(message, gfilters):
+async def del_allg(gfilters):
+    """Clears all global filter keywords mapped within the given room block."""
     myquery = {'gfilters': str(gfilters)}
-    count = mycol.count_documents(myquery)
+    count = await mycol.count_documents(myquery)
     if count == 0:
-        await message.edit_text("Nothing to remove !")
-        return
+        return False
     try:
-        mycol.delete_many(myquery)
-        await message.edit_text("All gfilters have been removed !")
-    except:
-        await message.edit_text("Couldn't remove all gfilters !")
+        await mycol.delete_many(myquery)
+        return True
+    except Exception:
+        return False
+
 
 async def count_gfilters(gfilters):
     """ഒരു പ്രത്യേക കാറ്റഗറിയിലെ/ഗ്രൂപ്പിലെ ആകെ ഗ്ലോബൽ ഫിൽറ്ററുകളുടെ എണ്ണം എടുക്കുന്നു"""
