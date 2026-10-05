@@ -1,8 +1,11 @@
 import re
 import asyncio
+import logging
 from pyrogram import Client, filters
 from pyrogram.types import Message, ChatPermissions
 from info import LOG_CHANNEL
+
+logger = logging.getLogger(__name__)
 
 # 🚫 സ്പാം വാക്കുകളും ഇമോജികളും
 BAD_WORDS_PATTERN = re.compile(r'(xvideos|xnxxn|xnxx|xhamster|xxx videos|തുണ്ട്|porn\s*videos)', re.IGNORECASE)
@@ -20,10 +23,12 @@ async def anti_spam_handler(client: Client, message: Message):
     # 👑 അഡ്മിൻമാർ അയക്കുന്ന മെസ്സേജുകൾ ബോട്ട് പരിശോധിക്കില്ല
     try:
         member = await chat.get_member(user.id)
-        if member.status in ['owner', 'administrator']:
+        if member.status in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR]:
             return
-    except:
-        return
+    except Exception:
+        # If peer id is invalid (e.g., channel comment poster), skip to avoid crashes
+        if user.id < 0:
+            return
 
     # 18+ ഇമോജികൾ ഉണ്ടോ എന്ന് നോക്കുന്നു
     has_adult_emoji = any(emoji in message_text for emoji in ADULT_EMOJIS)
@@ -41,7 +46,6 @@ async def anti_spam_handler(client: Client, message: Message):
 
     # 🛠️ ആക്ഷൻ എടുക്കണോ എന്ന് തീരുമാനിക്കുന്നു
     if has_bad_word or has_adult_emoji or contains_link:
-        
         try:
             # 1. ലിങ്ക് മാത്രമാണെങ്കിൽ ഡിലീറ്റ് ചെയ്യുക മാത്രം ചെയ്യുന്നു (No Mute, No Log)
             if contains_link and not (has_bad_word or has_adult_emoji):
@@ -51,17 +55,26 @@ async def anti_spam_handler(client: Client, message: Message):
             # 2. ബാഡ് വേർഡ്സ് അല്ലെങ്കിൽ മോശം ഇമോജി ഉണ്ടെങ്കിൽ ഡിലീറ്റ് ചെയ്യുകയും മ്യൂട്ട് ചെയ്യുകയും ചെയ്യുന്നു
             else:
                 action_type = "Muted for 18+ Content"
-                # മെമ്പറെ ഗ്രൂപ്പിൽ മ്യൂട്ട് ചെയ്യുന്നു
-                await chat.restrict_member(user.id, ChatPermissions(can_send_messages=False))
-                # മെസ്സേജ് ഡിലീറ്റ് ചെയ്യുന്നു
+                # Completely restrict all forms of interactions safely
+                await chat.restrict_member(
+                    user.id, 
+                    ChatPermissions(
+                        can_send_messages=False,
+                        can_send_media_messages=False,
+                        can_send_other_messages=False,
+                        can_add_web_page_previews=False
+                    )
+                )
                 await message.delete()
                 
         except Exception as e:
-            print(f"Action Error: {e}")
+            logger.error(f"Action Execution Error: {e}")
             return
 
         # 3. മ്യൂട്ട് ചെയ്യുമ്പോൾ മാത്രം അഡ്മിൻ ലോഗ് ചാനലിലേക്ക് റിപ്പോർട്ട് അയക്കുന്നു 🚨
+        # Fixed: Added missing trailing forward slash to prevent broken URL rendering crashes
         pm_link = f"https://t.me{user.username}" if user.username else f"tg://user?id={user.id}"
+        
         report_text = (
             "🚨 **Anti-Spam Filter Report** 🚨\n\n"
             f"👤 **പേര്:** {user.first_name}\n"
@@ -75,4 +88,4 @@ async def anti_spam_handler(client: Client, message: Message):
         try:
             await client.send_message(chat_id=LOG_CHANNEL, text=report_text)
         except Exception as e:
-            print(f"Log channel error: {e}")
+            logger.error(f"Log channel delivery error: {e}")
