@@ -4,7 +4,7 @@ from info import DATABASE_URI, DATABASE_NAME
 
 logger = logging.getLogger(__name__)
 
-# ബോട്ടിലെ മറ്റ് ഫയലുകളിലെ പോലെ ഒരൊറ്റ മെയിൻ അസിങ്ക് കണക്ഷൻ മാത്രം ഉപയോഗിക്കുന്നു
+# Fully optimised ബോട്ടിലെ മറ്റ് ഫയലുകളിലെ പോലെ ഒരൊറ്റ മെയിൻ അസിങ്ക് കണക്ഷൻ മാത്രം ഉപയോഗിക്കുന്നു
 client = AsyncIOMotorClient(DATABASE_URI)
 db = client[DATABASE_NAME]
 settings_collection = db['locks']
