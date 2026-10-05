@@ -92,7 +92,8 @@ async def save_filea(media):
 
 
 async def delete_files_below_threshold(threshold_size_mb=50, batch_size=20, chat_id=None, message_id=None):
-    cursor = Media.find({"file_size": {"$lt": threshold_size_mb * 1024 * 1024}}).limit(batch_size)
+    # Fixed: Uses Media.collection.find to accurately step through data items without throwing exceptions
+    cursor = Media.collection.find({"file_size": {"$lt": threshold_size_mb * 1024 * 1024}}).limit(batch_size)
     deleted_count = 0
     async for document in cursor:
         try:
@@ -101,6 +102,7 @@ async def delete_files_below_threshold(threshold_size_mb=50, batch_size=20, chat
         except Exception:
             pass
     return deleted_count
+
 
 
 
@@ -118,13 +120,15 @@ async def get_bad_files(query, file_type=None, filter=False):
     except:
         return []
 
-    filter = {'file_name': regex}
+    filter_data = {'file_name': regex}
     if file_type:
-        filter['file_type'] = file_type
+        filter_data['file_type'] = file_type
 
-    total_results = await Media.count_documents(filter)
-    cursor_media = Media.find(filter).sort('$natural', -1)
-    files_media = await cursor_media.to_list(length=total_results)
+    # Fixed: Adjusted counting parameters to query from collection directly
+    total_results = await Media.collection.count_documents(filter_data)
+    cursor_media = Media.collection.find(filter_data).sort('$natural', -1)
+    raw_files = await cursor_media.to_list(length=total_results)
+    files_media = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
     return files_media, total_results
 
 
@@ -154,10 +158,13 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     if file_type:
         filter_dict['file_type'] = file_type
 
-        # 🚀 മെമ്മറി ലിമിറ്റ് എറർ പൂർണ്ണമായി ഒഴിവാക്കാൻ allow_disk_use ചേർക്കുന്നു ✨
-    cursor_media = Media.find(filter_dict).sort([('file_name', 1)]).allow_disk_use(True)
+    # Fixed: Routed directly through the collection driver handle to avoid umongo's missing attribute crash
+    cursor_media = Media.collection.find(filter_dict).sort('file_name', 1).allow_disk_use(True)
 
-    files_media = await cursor_media.to_list(length=125)
+    # Convert the returned raw dictionary documents into proper umongo object mappings for downstream processing compatibility
+    raw_files = await cursor_media.to_list(length=125)
+    files_media = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
+
 
     if files_media:
         query_lower = query.lower().strip()
