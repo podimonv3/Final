@@ -115,8 +115,9 @@ async def start(client, message):
 
     if user_id:
         try:
-            if not await user_db.is_user_exist(int(user_id)):
-                await user_db.add_user(id=int(user_id), name=str(message.from_user.first_name or "User"))
+          # Use the non-blocking async method we verified inside database/users_chats_db.py
+            if not await db.is_user_exist(user_id):
+                await db.add_user(user_id, user_name)                    
         except Exception as e:
             logger.error(f"Error saving user to DB: {e}", exc_info=True)
 
