@@ -6,6 +6,7 @@ import os
 import sys
 from os import environ  # Fixed: Imported environ cleanly to avoid NameError crashes
 from dotenv import load_dotenv
+from plugins.web_server import init_web_application
 
 # Run environment updates FIRST before any project parameters are initialized
 load_dotenv("./dynamic.env", override=True, encoding="utf-8")
@@ -123,7 +124,7 @@ class Bot(Client):
 
         await self.send_message(chat_id=LOG_CHANNEL, text="restarted ❤️‍🩹")
         
-        app = web.AppRunner(await web_server(), access_log=None)
+        app = web.AppRunner(await init_web_application(), access_log=None)
         await app.setup()
         bind_address = "0.0.0.0"
         await web.TCPSite(app, bind_address, PORT).start()       
