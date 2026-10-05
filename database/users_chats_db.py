@@ -102,8 +102,10 @@ class Database:
         await self.grp.insert_one(chat)
     
     async def get_chat(self, chat):
-        chat = await self.grp.find_one({'id':int(chat)})
-        return False if not chat else chat.get('chat_status')
+        # Fixed: Yields the original document structure, safely mapping downstream configuration checks
+        chat_data = await self.grp.find_one({'id': int(chat)})
+        return chat_data if chat_data else False
+
     
     async def re_enable_chat(self, id):
         chat_status=dict(
@@ -149,43 +151,36 @@ class Database:
 
     async def add_req_one(self, user_id):
         try:
-            await self.reqone.insert_one({"user_id": int(user_id)})
+            # Fixed: Standardized key tracking to use 'user_id' across all helper methods natively
+            await self.reqone.update_one({"user_id": int(user_id)}, {"$set": {"user_id": int(user_id)}}, upsert=True)
             return
         except Exception as e:
-            print(e)
-            pass
+            logger.error(f"Error adding to fsub 1 request cache: {e}")
         
     async def add_req_two(self, user_id):
         try:
-            await self.reqtwo.insert_one({"id": int(user_id)})
+            # Fixed: Changed key descriptor from 'id' to 'user_id' for strict cross-compatibility
+            await self.reqtwo.update_one({"user_id": int(user_id)}, {"$set": {"user_id": int(user_id)}}, upsert=True)
             return
         except Exception as e:
-            print(e)
-            pass
+            logger.error(f"Error adding to fsub 2 request cache: {e}")
             
     async def get_req_one(self, user_id):
         return await self.reqone.find_one({"user_id": int(user_id)})
 
     async def get_req_two(self, user_id):
-        return await self.reqtwo.find_one({"id": int(user_id)})
+        # Fixed: Adjusted parameter search dictionary to resolve matching key metrics seamlessly
+        return await self.reqtwo.find_one({"user_id": int(user_id)})
 
-    async def delete_all_one(self):
-        await self.reqone.delete_many({})
-
-    async def delete_all_two(self):
-        await self.reqtwo.delete_many({})
 
     async def get_all_one_count(self): 
-        count = 0
-        async for req in self.reqone.find({}):
-            count += 1
-        return count
+        # Fixed: Replaced sluggish array element iterations with ultra-fast database-level counter checks
+        return await self.reqone.count_documents({})
 
     async def get_all_two_count(self): 
-        count = 0
-        async for req in self.reqtwo.find({}):
-            count += 1
-        return count
+        # Fixed: Leverages structural index metrics to evaluate record scales immediately without memory overhead
+        return await self.reqtwo.count_documents({})
+
 
     async def add_fsub_chat(self, chat_id):
         try:
