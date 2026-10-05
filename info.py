@@ -45,13 +45,16 @@ CACHE_TIME = int(environ.get('CACHE_TIME', 60))
 USE_CAPTION_FILTER = bool(environ.get('USE_CAPTION_FILTER', False))
 PICS = (environ.get('PICS', 'https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph https://telegra.ph')).split()
 
-# Admins, Channels & Users
+# Admins, Channels & Users Setup
 ADMINS = [int(admin) if id_pattern.match(admin) else admin for admin in environ.get('ADMINS', '7425490417 5032034594').split()]
 CHANNELS = [int(ch) if id_pattern.match(ch) else ch for ch in environ.get('CHANNELS', '-1002252582164 -1002397004421').split()]
 auth_users = [int(user) if id_pattern.match(user) else user for user in environ.get('AUTH_USERS', '').split()]
 AUTH_USERS = (auth_users + ADMINS) if auth_users else []
+
+# Fixed safely to avoid ValueError exceptions
 auth_grp = environ.get('AUTH_GROUP')
-AUTH_GROUPS = [int(ch) for ch in auth_grp.split()] if auth_grp else None
+AUTH_GROUPS = [int(ch) if id_pattern.match(ch) else ch for ch in auth_grp.split()] if auth_grp else []
+
 
 # REQ_CHANNEL കോഡ് ലളിതമാക്കിയത് (Fixed & Cleaned)
 req_ch1 = environ.get("REQ_CHANNEL1")
@@ -200,8 +203,17 @@ DELETE_CHANNELS = [int(dch) if id_pattern.match(dch) else dch for dch in environ
 SUPPORT_CHAT = environ.get('SUPPORT_CHAT', 'mcumovies')
 P_TTI_SHOW_OFF = is_enabled((environ.get('P_TTI_SHOW_OFF', "False")), False)
 SINGLE_BUTTON = is_enabled((environ.get('SINGLE_BUTTON', "True")), True)
-CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", f"{script.CUSTOM_FILE_CAPTION}")
+# Fixed circular dependency by providing a fallback string first
+CUSTOM_FILE_CAPTION = environ.get("CUSTOM_FILE_CAPTION", None)
+if not CUSTOM_FILE_CAPTION:
+    try:
+        from Script import script
+        CUSTOM_FILE_CAPTION = script.CUSTOM_FILE_CAPTION
+    except ImportError:
+        CUSTOM_FILE_CAPTION = "⚡ **File Name:** `{file_name}`\n\n⚖️ **Size:** `{file_size}`"
+
 BATCH_FILE_CAPTION = environ.get("BATCH_FILE_CAPTION", CUSTOM_FILE_CAPTION)
+
 SPELL_CHECK_REPLY = is_enabled(environ.get("SPELL_CHECK_REPLY", "True"), True)
 INDEX_REQ_CHANNEL = int(environ.get('INDEX_REQ_CHANNEL', LOG_CHANNEL))
 FILE_STORE_CHANNEL = [int(ch) for ch in (environ.get('FILE_STORE_CHANNEL', '-1003737995666')).split()]
