@@ -1,12 +1,12 @@
 anyio
 tgcrypto
 aiohttp
+dnspython
 pymongo[srv]==4.3.3
 marshmallow==3.19.0
 motor==3.1.1
 umongo==3.1.0
 requests
-datetime
 psutil
 python-dotenv
 pyrofork==2.3.43
@@ -17,3 +17,4 @@ cinemagoer
 imdbio
 httpx
 aiofiles
+
