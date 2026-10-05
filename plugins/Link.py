@@ -19,7 +19,11 @@ async def generate_link(client, message):
     # Extract string, remove dangerous characters and replace spaces cleanly
     target_movie = str(command_text[1]).strip()
     target_movie = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', target_movie)
-    movie_name = target_movie.replace(" ", "-")
+    
+    # Clean up non-alphanumeric punctuation to keep the start argument legal for Telegram
+    target_movie = re.sub(r'[^\w\s-]', '', target_movie)
+    movie_name = re.sub(r'[-\s]+', '-', target_movie).strip('-')
+
     
     # Extract bot username safely from temp parameters or directly from get_me profile setup
     bot_username = temp.U_NAME
