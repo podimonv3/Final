@@ -1,45 +1,38 @@
 import logging
 import logging.config
-import gc  # മെമ്മറി ക്ലീൻ ചെയ്യാനായി ചേർത്തത്
-import asyncio  # ഓട്ടോമാറ്റിക് ടാസ്ക് റൺ ചെയ്യാനായി ചേർത്തത്
+import gc  
+import asyncio  
+import os 
+import sys
+from os import environ  # Fixed: Imported environ cleanly to avoid NameError crashes
+from dotenv import load_dotenv
+
+# Run environment updates FIRST before any project parameters are initialized
+load_dotenv("./dynamic.env", override=True, encoding="utf-8")
 
 # Get logging configurations
 logging.config.fileConfig('logging.conf')
-
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
-# asyncio വാർണിങ്ങുകൾ പൂർണ്ണമായി ഒഴിവാക്കാൻ താഴെ പറയുന്ന വരി ചേർക്കുക
 logging.getLogger("asyncio").setLevel(logging.ERROR)
-
-# imdbio ലോഗുകൾ പൂർണ്ണമായി ഒഴിവാക്കാൻ CRITICAL ലെവൽ നൽകുക
 logging.getLogger("imdbio").setLevel(logging.CRITICAL)
 logging.getLogger("imdbio.services").setLevel(logging.CRITICAL)
 logging.getLogger("imdbio.parsers").setLevel(logging.CRITICAL)
 logging.getLogger("httpx").setLevel(logging.CRITICAL)
 
-
-
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
-# Mediaa ഒഴിവാക്കി മെയിൻ കളക്ഷൻ മാത്രം നിലനിർത്തുന്നു
 from database.ia_filterdb import Media
-
-# 🚀 മൂവി റിക്വസ്റ്റ് ഡാറ്റാബേസ് ഇൻഡെക്സിങ് ഫങ്ഷൻ ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
 from database.requests_db import init_db
-
 from database.users_chats_db import db
-from info import *
+from info import *  # This will now safely read variables initialized by load_dotenv!
 from utils import temp
 from typing import Union, Optional, AsyncGenerator
 from pyrogram import types
 from plugins.commands import restarti
-import os 
-import sys
-from dotenv import load_dotenv
 from aiohttp import web
 from plugins import web_server
-PORT = environ.get("PORT", "8050")
 
-load_dotenv("./dynamic.env", override=True, encoding="utf-8")
+PORT = environ.get("PORT", "8050")
 
 async def auto_clean_memory():
     while True:
@@ -96,32 +89,37 @@ class Bot(Client):
         self.username = '@' + me.username
         logging.info(f"{me.first_name} with for Pyrogram v{__version__} (Layer {layer}) started on {me.username}.")
         logging.info(LOG_STR)
-       # 🚀 Fsub ചാനൽ 1-ന്റെ ഐഡി ഡാറ്റാബേസിൽ നിന്ന് അസിങ്ക് ആയി ലോഡ് ചെയ്യുന്നു ✨
-        if REQ_CHANNEL1 == None:
+        # 🚀 Fsub ചാനൽ 1-ന്റെ ഐഡി ഡാറ്റാബേസിൽ നിന്ന് അസിങ്ക് ആയി ലോഡ് ചെയ്യുന്നു ✨
+        if REQ_CHANNEL1 is None:
             with open("./dynamic.env", "wt+") as f:
-                req = await db.get_fsub_chat()  # await നിർബന്ധമാണ് ⚡             
+                req = await db.get_fsub_chat()             
                 if req is None:
-                    req = False
+                    req = "False"
                 else:
-                    req = req['chat_id']                   
+                    req = str(req['chat_id'])                   
                 f.write(f"REQ_CHANNEL1={req}\n")
                 
-            logging.info("Loading REQ_CHANNEL 1 from database...") 
+            logging.info("Loading REQ_CHANNEL 1 from database and rebooting...") 
+            # Force environmental runtime parameter updates before restarting execution
+            os.environ["REQ_CHANNEL1"] = req
             os.execl(sys.executable, sys.executable, "bot.py")
             return 
             
         # 🚀 Fsub ചാനൽ 2-ന്റെ ഐഡി ഡാറ്റാബേസിൽ നിന്ന് അസിങ്ക് ആയി ലോഡ് ചെയ്യുന്നു ✨
-        if REQ_CHANNEL2 == None:
+        if REQ_CHANNEL2 is None:
             with open("./dynamic.env", "wt+") as f:
-                req2 = await db.get_fsub_chat2()  # await നിർബന്ധമാണ് ⚡
+                req2 = await db.get_fsub_chat2()  
                 if req2 is None:
-                    req2 = False
+                    req2 = "False"
                 else:
-                    req2 = req2['chat_id']
+                    req2 = str(req2['chat_id'])
                 f.write(f"REQ_CHANNEL2={req2}\n")
-            logging.info("Loading REQ_CHANNEL 2 from database...") 
+            logging.info("Loading REQ_CHANNEL 2 from database and rebooting...") 
+            # Force environmental runtime parameter updates before restarting execution
+            os.environ["REQ_CHANNEL2"] = req2
             os.execl(sys.executable, sys.executable, "bot.py")
             return 
+ 
 
         await self.send_message(chat_id=LOG_CHANNEL, text="restarted ❤️‍🩹")
         
