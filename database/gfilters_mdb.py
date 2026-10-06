@@ -83,9 +83,14 @@ async def del_allg(gfilters):
 
 
 async def count_gfilters(gfilters):
-    """ഒരു പ്രത്യേക കാറ്റഗറിയിലെ/ഗ്രൂപ്പിലെ ആകെ ഗ്ലോബൽ ഫിൽറ്ററുകളുടെ എണ്ണം എടുക്കുന്നു"""
-    count = mycol.count_documents({'gfilters': str(gfilters)})
-    return False if count == 0 else count
+    """Fetches the total active number of global filters saved inside MongoDB 🚀"""
+    try:
+        # Fixed: Added the necessary missing await parameter before mycol
+        count = await mycol.count_documents({'gfilters': str(gfilters)})
+        return count
+    except Exception as e:
+        logger.error(f"Error counting gfilters in database: {e}")
+        return 0
 
 async def gfilter_stats():
     """ബോട്ടിലെ ആകെ ഗ്ലോബൽ ഫിൽറ്ററുകളുടെയും അവയുടെ ടോട്ടൽ കൗണ്ടും എടുക്കുന്നു"""
