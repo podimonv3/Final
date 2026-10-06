@@ -56,7 +56,8 @@ def _trim_dict(d: dict, max_size: int = 100):
 BUTTONS = {}
 
 
-@Client.on_message(filters.text & filters.incoming)
+# ഗ്രൂപ്പുകളിൽ ബോട്ട് അഡ്മിൻ അല്ലെങ്കിലും വരുന്ന ടെക്സ്റ്റ് മെസ്സേജുകൾ എടുക്കാൻ filters.group കൂടി ചേർക്കുന്നു
+@Client.on_message(filters.group & filters.text & filters.incoming)
 async def give_filters(client, message):
     k = await global_filters(client, message)    
     if k == False:
