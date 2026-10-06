@@ -75,6 +75,156 @@ async def google_alert_handler(bot, query):
     await query.answer("OTT ഇറങ്ങുന്നേ വരെ ക്ഷമിക്ക് അളിയാ", show_alert=True)
 
 
+
+@Client.on_message(filters.private & (filters.text | filters.photo | filters.video | filters.sticker) & filters.incoming)
+async def pm_text(bot: Client, message):
+    user_id = message.from_user.id
+    user = message.from_user.first_name or "User"
+
+    if message.text and (message.text.startswith("/") or message.text.startswith("#")): return
+    if user_id in ADMINS: return
+
+    # 1. യൂസർ ഡാറ്റാബേസിൽ മ്യൂട്ട് ചെയ്യപ്പെട്ട ആളാണോ എന്ന് പരിശോധിക്കുന്നു
+    is_muted = await db.is_user_muted(user_id) if hasattr(db, "is_user_muted") else False
+
+    # 2. ഫയൽ ഉണ്ടോ എന്ന് ആദ്യം പരിശോധിക്കുന്നു
+    files_found = False
+    files = []
+    
+    if message.text:
+        search_query = message.text.strip()
+        files, offset, total_results = await get_search_results(search_query.lower(), offset=0, filter=True)
+
+    # 3. ഫയൽ കണ്ടെത്തിയാൽ മ്യൂട്ട് നോക്കാതെ ഫയൽ ബട്ടൺ നൽകും
+    if files:
+        files_found = True
+        await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+        
+        pre = 'file' 
+        key = f"{message.chat.id}-{message.id}"
+        _trim_dict(BUTTONS) 
+        BUTTONS[key] = {"query": search_query, "time": time.time()} 
+        
+        btn = []
+        for file in files[:10]: 
+            btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+
+        if total_results > 10:
+            btn.append([InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")])
+
+        cap = "<b><i><u>© can_Urvashi Theaters™️</u></i></b>"
+        await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn))
+        return
+
+    # 4. ഫയൽ ഇല്ലെങ്കിൽ ഫോർമാറ്റ് ചെക്ക് ചെയ്യുന്നു
+    if message.text:
+        text_to_check = message.text.strip()
+        if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
+            # അഡ്മിൻ മ്യൂട്ട് ചെയ്ത യൂസർ ആണെങ്കിൽ ബോട്ട് റിപ്ലൈ നൽകില്ല
+            if is_muted:
+                return
+                
+            await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+            await asyncio.sleep(0.5)
+            await message.reply_text(
+                text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph")]])
+            )
+            return
+
+    # 5. ഫോർമാറ്റ് കറക്റ്റാണ് പക്ഷെ ഫയൽ ഇല്ലെങ്കിൽ (റിക്വസ്റ്റ് സബ്മിറ്റ് ചെയ്യുമ്പോൾ)
+    if not files_found:
+        # അഡ്മിൻ മ്യൂട്ട് ചെയ്ത യൂസർ ആണെങ്കിൽ റിക്വസ്റ്റ് സബ്മിറ്റഡ് മെസ്സേജും ലോഗും പൂർണ്ണമായി ഒഴിവാക്കും
+        if is_muted:
+            return
+            
+        await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+        await asyncio.sleep(0.5)
+
+        await message.reply_text(
+            text="<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me")],
+                [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph")]
+            ])
+        )
+
+        content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
+        
+        # 🔔 ലോഗ് ചാനലിൽ മ്യൂട്ട് ബട്ടൺ കൂടി ഉൾപ്പെടുത്തുന്നു
+        log_reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")],
+            [InlineKeyboardButton("🔇 MUTE USER", callback_data=f"dbmute_{user_id}")]
+        ])
+        log_text = f"<b>#PM_MSG\n\nNᴀᴍE : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢE :</b> <code>{content}</code>\n\n#id{user_id}"
+
+        try:
+            if message.photo:
+                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
+                await bot.send_photo(chat_id=LOG_CHANNEL, photo=message.photo.file_id, caption=log_text, reply_markup=log_reply_markup)
+            elif message.video:
+                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_VIDEO)
+                await bot.send_video(chat_id=LOG_CHANNEL, video=message.video.file_id, caption=log_text, reply_markup=log_reply_markup)
+            elif message.sticker:
+                await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
+                await bot.send_sticker(chat_id=LOG_CHANNEL, sticker=message.sticker.file_id)
+            else:
+                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.TYPING)
+                await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
+        except Exception as e:
+            logger.error(f"Error sending log to LOG_CHANNEL: {e}")
+
+
+@Client.on_callback_query(filters.regex(r"^dbmute_") | filters.regex(r"^dbunmute_"))
+async def db_mute_unmute_handler(bot, query):
+    if query.from_user.id not in ADMINS:
+        return await query.answer("❌ അഡ്മിന്മാർക്ക് മാത്രമേ ഈ ബട്ടൺ ഉപയോഗിക്കാൻ കഴിയൂ!", show_alert=True)
+        
+    action, user_id_str = query.data.split("_", 1)
+    target_user_id = int(user_id_str)
+    
+    current_markup = query.message.reply_markup
+    new_buttons = []
+    
+    if action == "dbmute":
+        # ഡാറ്റാബേസിൽ മ്യൂട്ട് സ്റ്റാറ്റസ് ട്രൂ (True) ആക്കി അപ്ഡേറ്റ് ചെയ്യുന്നു
+        if hasattr(db, "col"):
+            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': True}})
+        
+        await query.answer("🔇 യൂസറെ ഡാറ്റാബേസിൽ മ്യൂട്ട് ചെയ്തു!", show_alert=True)
+        
+        for row in current_markup.inline_keyboard:
+            new_row = []
+            for btn in row:
+                if btn.callback_data and btn.callback_data.startswith("dbmute_"):
+                    new_row.append(InlineKeyboardButton("🔊 UNMUTE USER", callback_data=f"dbunmute_{target_user_id}"))
+                else:
+                    new_row.append(btn)
+            new_buttons.append(new_row)
+            
+    elif action == "dbunmute":
+        # ഡാറ്റാബേസിൽ മ്യൂട്ട് സ്റ്റാറ്റസ് ഫാൾസ് (False) ആക്കുന്നു
+        if hasattr(db, "col"):
+            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': False}})
+            
+        await query.answer("🔊 യൂസറെ അൺമ്യൂട്ട് ചെയ്തു!", show_alert=True)
+        
+        for row in current_markup.inline_keyboard:
+            new_row = []
+            for btn in row:
+                if btn.callback_data and btn.callback_data.startswith("dbunmute_"):
+                    new_row.append(InlineKeyboardButton("🔇 MUTE USER", callback_data=f"dbmute_{target_user_id}"))
+                else:
+                    new_row.append(btn)
+            new_buttons.append(new_row)
+            
+    try:
+        await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(new_buttons))
+    except Exception as e:
+        logger.error(f"Error updating database mute markup: {e}")
+
+
+
 @Client.on_message(filters.private & (filters.text | filters.photo | filters.video | filters.sticker) & filters.incoming)
 async def pm_text(bot: Client, message):
     user_id = message.from_user.id
