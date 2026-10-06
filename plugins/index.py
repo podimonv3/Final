@@ -61,84 +61,56 @@ async def index_files(bot, query):
         await index_files_to_db(int(lst_msg_id), chat, msg, bot)
 
 
-@Client.on_message((filters.forwarded | (filters.regex(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)\$")) & filters.text ) & filters.private & filters.incoming & filters.user(ADMINS))
+@Client.on_message((filters.forwarded | (filters.regex(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)\$")) & filters.text) & filters.private & filters.incoming & filters.user(ADMINS))
 async def send_for_index(bot, message):
     if message.text:
         regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)\$")
-        match = regex.match(message.text)
+        match = regex.match(message.text.strip())
         if not match:
-            return await message.reply('Invalid link')
+            return await message.reply("Invalid link")
         chat_id = match.group(4)
         last_msg_id = int(match.group(5))
         if chat_id.isnumeric():
-            chat_id  = int(("-100" + chat_id))
-    elif message.forward_from_chat and message.forward_from_chat.type == enums.ChatType.CHANNEL:
+            chat_id = int("-100" + chat_id)
+    elif message.forward_from_chat and message.forward_from_message_id:
+        chat_id = message.forward_from_chat.id
         last_msg_id = message.forward_from_message_id
-        chat_id = message.forward_from_chat.username or message.forward_from_chat.id
     else:
-        return await message.reply('ദയവായി ഒരു പബ്ലിക് ചാനലിൽ നിന്നുള്ള മെസ്സേജ് ഫോർവേഡ് ചെയ്യുക അല്ലെങ്കിൽ ശരിയായ മെസ്സേജ് ലിങ്ക് നൽകുക.')
+        return await message.reply("ദയവായി ഒരു channel message forward ചെയ്യുക അല്ലെങ്കിൽ ശരിയായ message link നൽകുക.")
 
-    try:
-        await bot.get_chat(chat_id)
-    except ChannelInvalid:
-        return await message.reply('This may be a private channel / group. Make me an admin over there to index the files.')
-    except (UsernameInvalid, UsernameNotModified):
-        return await message.reply('Invalid Link specified.')
-    except Exception as e:
-        logger.exception(e)
-        return await message.reply(f'Errors - {e}')
-        
     try:
         k = await bot.get_messages(chat_id, last_msg_id)
-    except:
-        return await message.reply('Make Sure That Iam An Admin In The Channel, if channel is private')
-        
-    if k.empty:
-        return await message.reply('This may be group and iam not a admin of the group.')
-
-    # ബട്ടണുകൾ ഒരൊറ്റ ഇൻഡെക്സ് ഓപ്ഷൻ മാത്രമാക്കി ലളിതമാക്കി
-    if message.from_user.id in ADMINS:
-        buttons = [
-            [
-                InlineKeyboardButton('Index to Database',
-                                     callback_data=f'index#accept#{chat_id}#{last_msg_id}#{message.from_user.id}')
-            ],
-            [
-                InlineKeyboardButton('Close', callback_data='close_data'),
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(buttons)
+    except Exception as e:
+        logger.exception("Unable to access source channel: %s", e)
         return await message.reply(
-            f'Do you Want To Index This Channel/ Group ?\n\nChat ID/ Username: <code>{chat_id}</code>\nLast Message ID: <code>{last_msg_id}</code>',
-            reply_markup=reply_markup)
+            "❌ ഈ channel-ൽ നിന്ന് message access ചെയ്യാൻ കഴിയുന്നില്ല.\n\n"
+            "Bot ആ channel-ൽ admin/member ആണെന്ന് ഉറപ്പാക്കുക."
+        )
 
-    if type(chat_id) is int:
-        try:
-            link = (await bot.create_chat_invite_link(chat_id)).invite_link
-        except ChatAdminRequired:
-            return await message.reply('Make sure iam an admin in the chat and have permission to invite users.')
-    else:
-        username = message.forward_from_chat.username if message.forward_from_chat else chat_id
-        link = f"@{username}"
-        
+    if not k or k.empty:
+        return await message.reply(
+            "❌ Source message ലഭിച്ചില്ല. Channel ID / Message ID പരിശോധിക്കുക."
+        )
+
+    user_id = message.from_user.id if message.from_user else 0
+
     buttons = [
-        [
-            InlineKeyboardButton('Accept Index',
-                                 callback_data=f'index#accept#{chat_id}#{last_msg_id}#{message.from_user.id}')
-        ],
-        [
-            InlineKeyboardButton('Reject Index',
-                                 callback_data=f'index#reject#{chat_id}#{message.id}#{message.from_user.id}'),
-        ]
+        [InlineKeyboardButton(
+            "Index to Database",
+            callback_data=f"index#accept#{chat_id}#{last_msg_id}#{user_id}"
+        )],
+        [InlineKeyboardButton(
+            "Close",
+            callback_data="close_data"
+        )]
     ]
-    reply_markup = InlineKeyboardMarkup(buttons)
-    await bot.send_message(
-        LOG_CHANNEL,
-        f'#IndexRequest\n\nBy : {message.from_user.mention} (<code>{message.from_user.id}</code>)\nChat ID/ Username - <code> {chat_id}</code>\nLast Message ID - <code>{last_msg_id}</code>\nInviteLink - {link}',
-        reply_markup=reply_markup
-    )
-    await message.reply('ThankYou For the Contribution, Wait For My Moderators to verify the files.')
 
+    return await message.reply(
+        f"Do you Want To Index This Channel/ Group ?\n\n"
+        f"Chat ID/ Username: <code>{chat_id}</code>\n"
+        f"Last Message ID: <code>{last_msg_id}</code>",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
 
 @Client.on_message(filters.command('setskip') & filters.user(ADMINS))
 async def set_skip_number(bot, message):
