@@ -31,7 +31,7 @@ from database.requests_db import save_missing_movie, get_all_missing_movies
 import io
 from urllib.parse import quote_plus
 import time
-
+from info import IMG
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
@@ -803,30 +803,27 @@ async def auto_filter(client, msg, spoll=False):
         
         reply_markup = InlineKeyboardMarkup(btn)                   
                             
-    # 🎬 പോസ്റ്റർ ഫെച്ച് ചെയ്യാൻ ശ്രമിക്കുന്നു (പരമാവധി 2.0 സെക്കൻഡ് ടൈംഔട്ട് നേരിട്ട് നൽകിയിരിക്കുന്നു)
-    poster_url = None
-    try:
-        # 2 സെക്കൻഡിനുള്ളിൽ get_any_movie_poster മറുപടി തന്നില്ലെങ്കിൽ ടാസ്ക് ഇവിടെവെച്ച് Cancel ആകും
-        poster_url = await asyncio.wait_for(get_any_movie_poster(clean_title), timeout=3.0)
-    except (asyncio.TimeoutError, asyncio.CancelledError):
-        # ടൈംഔട്ട് ആയാൽ Koyeb ലോഗ്സ് വരാതിരിക്കാൻ ഇത് സഹായിക്കും
-        poster_url = None
-    except Exception:
-        poster_url = None
+    # 🎬 PICS ലിസ്റ്റിൽ നിന്നും റാൻഡം ആയി ഒരു ഇമേജ് ലിങ്ക് തിരഞ്ഞെടുക്കുന്നു
+    # ലിസ്റ്റ് ശൂന്യമാണെങ്കിൽ None എന്ന് സെറ്റ് ചെയ്യും
+    poster_url = random.choice(IMG) if IMG else None
 
     fmsg = None
     try:
         if poster_url:
-            # 2 സെക്കൻഡിനുള്ളിൽ പോസ്റ്റർ ലഭിച്ചാൽ ഫോട്ടോയായി അയക്കുന്നു
+            # നേരിട്ട് ഫോട്ടോയായി അയക്കാൻ ശ്രമിക്കുന്നു
             fmsg = await message.reply_photo(photo=poster_url, caption=cap, reply_markup=reply_markup)
         else:
-            # സമയത്തിനകം കിട്ടിയില്ലെങ്കിലോ ക്യാൻസൽ ആയാലോ നേരിട്ട് ടെക്സ്റ്റ് അയക്കുന്നു
+            # ലിങ്ക് ഇല്ലെങ്കിൽ നേരിട്ട് ടെക്സ്റ്റ് അയക്കുന്നു
             fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
     except Exception:
-        fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
+        try:
+            # ഇമേജ് ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജായി അയക്കുന്നു
+            fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
+        except Exception:
+            pass
 
 
-    
+
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text
