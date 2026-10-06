@@ -532,16 +532,23 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
     elif query.data == "start":
         buttons = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
-            [
-                InlineKeyboardButton("🛠️ Commands", callback_data="bot_commands"), # പുതിയ ബട്ടൺ 🛠️
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")]
+        ]
+       
+        # 🔐 അഡ്മിൻമാർക്ക് മാത്രം കാണിക്കുന്ന പ്രത്യേക ബട്ടണുകൾ
+        if query.from_user.id in ADMINS:
+            buttons.append([
+                InlineKeyboardButton("🛠️ Commands", callback_data="bot_commands"), 
                 InlineKeyboardButton("📊 Stats", callback_data="stats")
-            ],
-            [
+            ])
+            buttons.append([
                 InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats"),
                 InlineKeyboardButton("✖️ Cʟᴏsᴇ ✖️", callback_data="close_data")
-            ]
-        ]
+            ])
+        else:
+            # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് ബോട്ട് ഗ്രൂപ്പിലേക്ക് ആഡ് ചെയ്യാനുള്ള ബട്ടണും ക്ലോസ് ബട്ടണും
+            buttons.append([InlineKeyboardButton("➕ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ➕", url=f"https://t.me/{temp.U_NAME}?startgroup=true")])
+            buttons.append([InlineKeyboardButton("✖️ Cʟᴏsᴇ ✖️", callback_data="close_data")])
        
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
