@@ -129,7 +129,7 @@ class Bot(Client):
             return 
  
 
-        await self.send_message(chat_id=LOG_CHANNEL, text="restarted ❤️‍🩹")   
+       # await self.send_message(chat_id=LOG_CHANNEL, text="restarted ❤️‍🩹")   
         # Verify this line inside your bot.py start sequence:
         app = web.AppRunner(await init_web_application(), access_log=None)
         await app.setup()
