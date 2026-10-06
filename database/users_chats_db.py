@@ -94,6 +94,10 @@ class Database:
         user = await self.col.find_one({'id': int(id)})
         return user.get('is_muted', False) if user else False
 
+    async def get_all_muted_users(self):
+        """ഡാറ്റാബേസിൽ 'is_muted: True' ആയിട്ടുള്ള എല്ലാ ഉപയോക്താക്കളെയും കണ്ടെത്തുന്നു"""
+        return self.col.find({'is_muted': True})
+
     async def get_banned(self):
         users = self.col.find({'ban_status.is_banned': True})
         chats = self.grp.find({'chat_status.is_disabled': True})
