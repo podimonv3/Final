@@ -13,6 +13,21 @@ class script(object):
 <b>Powered by:</b>
 <u><b><i><a href="https://t.me/+eb__Eg3RS2IyZWQ1">𝐓𝐞𝐚𝐦 𝐔𝐫𝐯𝐚𝐬𝐡𝐢 𝐓𝐡𝐞𝐚𝐭𝐞𝐫𝐬™️</a></i></b></u>"""
 
+    COMMANDS_TXT = """🛠️ <b><u>BOT COMMANDS LIST</u></b>
+
+• /start /stats /about /connections
+•  /channel  /link /clear_locks /clearposterdb
+• /logs /setskip /delete /restart
+• /deleteall /missing /clear_missing /dbstatus
+• /plink - /link - /b - /p
+• /addg - /add - /gfilters - /viewgfilters 
+•  /delallg /delg /totalreq /purge_one
+• /locks /locktypes /unlock /lock
+• /gen_link /users /chats /broadcast
+• /lockall /unlockall /settings /purge_two"""
+
+
+     
     SPELL_TEXT = """<b><i><u>🚸നിർദ്ദേശങ്ങൾ🚸</u></i></b>
 <blockquote><b><i>🌿 ᴄʜᴇᴄᴋ ᴛʜᴇ ꜱᴘᴇʟʟɪɴɢ—ʙᴜᴛ ᴏɴʟ യ ɪꜰ ᴛʜᴀᴛ ᴍᴏᴠɪᴇ ʜᴀꜱ ʜᴀᴅ ᴀɴ ᴏᴛᴛ ʀᴇʟᴇᴀꜱᴇ.</i></b></blockquote>"""
 
