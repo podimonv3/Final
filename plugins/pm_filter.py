@@ -187,9 +187,9 @@ async def db_mute_unmute_handler(bot, query):
     new_buttons = []
     
     if action == "dbmute":
-        # ഡാറ്റാബേസിൽ മ്യൂട്ട് സ്റ്റാറ്റസ് ട്രൂ (True) ആക്കി അപ്ഡേറ്റ് ചെയ്യുന്നു
+        # യൂസർ ഇതിനകം ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ പോലും upsert=True ഉള്ളതുകൊണ്ട് പുതിയ റെക്കോർഡ് ആയി ക്രിയേറ്റ് ആയിക്കോളും
         if hasattr(db, "col"):
-            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': True}})
+            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': True}}, upsert=True)
         
         await query.answer("🔇 യൂസറെ ഡാറ്റാബേസിൽ മ്യൂട്ട് ചെയ്തു!", show_alert=True)
         
@@ -203,9 +203,8 @@ async def db_mute_unmute_handler(bot, query):
             new_buttons.append(new_row)
             
     elif action == "dbunmute":
-        # ഡാറ്റാബേസിൽ മ്യൂട്ട് സ്റ്റാറ്റസ് ഫാൾസ് (False) ആക്കുന്നു
         if hasattr(db, "col"):
-            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': False}})
+            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': False}}, upsert=True)
             
         await query.answer("🔊 യൂസറെ അൺമ്യൂട്ട് ചെയ്തു!", show_alert=True)
         
