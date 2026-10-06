@@ -25,6 +25,15 @@ SPELL_IMG = os.environ.get("SPELL_IMG", "https://files.catbox.moe/yt159d.jpg")
 FANART_API_KEY = os.environ.get("FANART_API_KEY", "d56b45eb243c31ca1229bd37813e66d8")
 
 
+# info.py ഫയലിൽ ഇത് ചേർക്കുക
+IMG = [
+    "https://files.catbox.moe/xwbx9a.jpg",
+    "https://files.catbox.moe/xwbx9a.jpg",
+    "https://files.catbox.moe/xwbx9a.jpg",
+    "https://files.catbox.moe/xwbx9a.jpg"
+]
+
+
 
 
 # TMDB API Keys (കോമ ഇട്ട് എത്ര കീകൾ വേണമെങ്കിലും നൽകാം)
