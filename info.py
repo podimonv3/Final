@@ -28,9 +28,9 @@ FANART_API_KEY = os.environ.get("FANART_API_KEY", "d56b45eb243c31ca1229bd37813e6
 # info.py ഫയലിൽ ഇത് ചേർക്കുക
 IMG = [
     "https://files.catbox.moe/xwbx9a.jpg",
-    "https://files.catbox.moe/xwbx9a.jpg",
-    "https://files.catbox.moe/xwbx9a.jpg",
-    "https://files.catbox.moe/xwbx9a.jpg"
+    "https://files.catbox.moe/t2rb5f.jpg",
+    "https://files.catbox.moe/8llz8q.jpg",
+    "https://files.catbox.moe/bxxms7.jpg"
 ]
 
 
