@@ -866,3 +866,79 @@ async def clear_poster_database(client, message):
         await status_msg.edit_text("✅ <b>sᴜᴄᴄᴇss:</b> The movie poster database has been completely cleared!")
     else:
         await status_msg.edit_text("❌ Failed to clear the database due to a database restriction.")
+
+
+
+
+
+@Client.on_message(filters.command("muted") & filters.private)
+async def list_muted_users(bot: Client, message):
+    # 🔐 അഡ്മിൻ സുരക്ഷാ ചെക്ക്
+    if message.from_user.id not in ADMINS:
+        return
+
+    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+    
+    # ഡാറ്റാബേസിൽ നിന്ന് മ്യൂട്ട് ചെയ്ത യൂസർമാരെ എടുക്കുന്നു
+    muted_cursor = await db.get_all_muted_users()
+    muted_users = [user async for user in muted_cursor]
+
+    if not muted_users:
+        return await message.reply_text("<b>📭 നിലവിൽ മ്യൂട്ട് ചെയ്യപ്പെട്ട ഉപയോക്താക്കൾ ആരും തന്നെ ഡാറ്റാബേസിൽ ഇല്ല!</b>")
+
+    text = f"📊 <b><u>മ്യൂട്ട് ചെയ്യപ്പെട്ട ഉപയോക്താക്കളുടെ ലിസ്റ്റ് ({len(muted_users)})</u></b>\n\n"
+    buttons = []
+
+    for index, user in enumerate(muted_users, start=1):
+        u_id = user.get('id')
+        u_name = user.get('name', 'Unknown')
+        
+        text += f"<b>{index}. {u_name}</b> (<code>{u_id}</code>)\n"
+        # ഓരോ യൂസർക്കും നേരെയുള്ള അൺമ്യൂട്ട് ബട്ടൺ സെറ്റ് ചെയ്യുന്നു
+        buttons.append([InlineKeyboardButton(f"🔊 Unmute {u_name}", callback_data=f"listunmute_{u_id}")])
+
+    buttons.append([InlineKeyboardButton("✖️ Close", callback_data="close_data")])
+    
+    await message.reply_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(buttons),
+        parse_mode=enums.ParseMode.HTML
+    )
+
+
+# ലിസ്റ്റിലെ അൺമ്യൂട്ട് ബട്ടൺ പ്രവർത്തിക്കാനുള്ള Callback Query Handler
+@Client.on_callback_query(filters.regex(r"^listunmute_"))
+async def list_unmute_callback_handler(bot, query):
+    if query.from_user.id not in ADMINS:
+        return await query.answer("❌ അഡ്മിന്മാർക്ക് മാത്രമേ ഈ ബട്ടൺ ഉപയോഗിക്കാൻ കഴിയൂ!", show_alert=True)
+
+    target_user_id = int(query.data.split("_")[1])
+
+    # ഡാറ്റാബേസിൽ അപ്ഡേറ്റ് ചെയ്യുന്നു
+    if hasattr(db, "col"):
+        await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': False}})
+    
+    await query.answer("🔊 യൂസറെ വിജയകരമായി അൺമ്യൂട്ട് ചെയ്തു!", show_alert=True)
+
+    # അൺമ്യൂട്ട് ചെയ്ത ശേഷം ലിസ്റ്റ് പുതുക്കുന്നു
+    muted_cursor = await db.get_all_muted_users()
+    muted_users = [user async for user in muted_cursor]
+
+    if not muted_users:
+        return await query.message.edit_text("<b>📭 നിലവിൽ മ്യൂട്ട് ചെയ്യപ്പെട്ട ഉപയോക്താക്കൾ ആരും തന്നെ ഡാറ്റാബേസിൽ ഇല്ല!</b>")
+
+    text = f"📊 <b><u>മ്യൂട്ട് ചെയ്യപ്പെട്ട ഉപയോക്താക്കളുടെ ലിസ്റ്റ് ({len(muted_users)})</u></b>\n\n"
+    buttons = []
+
+    for index, user in enumerate(muted_users, start=1):
+        u_id = user.get('id')
+        u_name = user.get('name', 'Unknown')
+        text += f"<b>{index}. {u_name}</b> (<code>{u_id}</code>)\n"
+        buttons.append([InlineKeyboardButton(f"🔊 Unmute {u_name}", callback_data=f"listunmute_{u_id}")])
+
+    buttons.append([InlineKeyboardButton("✖️ Close", callback_data="close_data")])
+
+    try:
+        await query.message.edit_text(text=text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
+    except Exception as e:
+        logger.error(f"Error updating muted list: {e}")
