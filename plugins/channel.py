@@ -36,11 +36,14 @@ async def media_handler(bot, message: Message):
     media_obj.caption = message.caption
     
     try:
-        # 3. Safe Database Storage Execution
-        # We verify and pass the structural data using standard query filters
-        file_status = await check_file(media_obj)
-        if file_status == "okda":
+        # Fixed: Routed lookup straight through the collection model by unique ID hash parameters
+        from database.ia_filterdb import Media, unpack_new_file_id, save_file
+        
+        file_id, file_ref = unpack_new_file_id(media_obj.file_id)
+        exists = await Media.collection.find_one({'_id': file_id})
+        
+        if not exists:
             await save_file(media_obj)
-            
+            logger.info(f"🎥 Auto-Indexed File: {getattr(media_obj, 'file_name', 'Unknown')}")
     except Exception as db_error:
         logger.error(f"Failed to auto-index incoming channel file element: {db_error}")
