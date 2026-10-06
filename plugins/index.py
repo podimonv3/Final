@@ -154,6 +154,9 @@ async def set_skip_number(bot, message):
         await message.reply("Give me a skip number")
 
 
+
+
+
 async def index_files_to_db(lst_msg_id, chat, msg, bot):
     total_files, duplicate, errors, deleted, no_media, unsupported = 0, 0, 0, 0, 0, 0
     
@@ -162,11 +165,11 @@ async def index_files_to_db(lst_msg_id, chat, msg, bot):
             current_processed = temp.CURRENT
             temp.CANCEL = False
             
-            # 🚀 1. FIXED TOTAL BATCH COUNT RANGE CALCULATIONS ✨
+            # 🚀 1. FIXED TOTAL BATCH COUNT RANGE CALCULATIONS
             # Prevents looping over infinite ranges or hitting deep FloodWait freezes
             total_range_limit = max(1, (int(lst_msg_id) - int(temp.CURRENT)) + 1)
             
-            # 🚀 2. NAMED ARGUMENTS INTERFACE ALIGNMENT ✨
+            # 🚀 2. NAMED ARGUMENTS INTERFACE ALIGNMENT
             # Correctly maps the limit and offset parameters to match your bot.py custom iter_messages wrapper
             async for message in bot.iter_messages(chat, limit=total_range_limit, offset=int(temp.CURRENT)):
                 if temp.CANCEL:
@@ -200,8 +203,8 @@ async def index_files_to_db(lst_msg_id, chat, msg, bot):
                 media.file_type = message.media.value
                 media.caption = message.caption
                 
-                # 🚀 3. FIXED MONGO COLLECTION VALIDATION PIPELINE ✨
-                # Bypasses the broken umongo check wrapper and queries by direct unique binary ID hashes
+                # 🚀 3. FIXED MONGO COLLECTION VALIDATION PIPELINE
+                # Perfectly indented try/except block to eliminate the SyntaxError crash
                 try:
                     from database.ia_filterdb import Media, unpack_new_file_id, save_file
                     
@@ -219,3 +222,10 @@ async def index_files_to_db(lst_msg_id, chat, msg, bot):
                 except Exception as loop_err:
                     logger.error(f"Error indexing item in manual loop: {loop_err}")
                     errors += 1
+                    
+        except Exception as outer_err:
+            logger.exception(outer_err)
+            await msg.edit_text(f'❌ Indexing process encountered a critical error: {outer_err}')
+        else:
+            status_prefix = "❌ Indexing Cancelled Manually!!" if temp.CANCEL else "✅ Indexing Successfully Completed!"
+            await msg.edit_text(f'**{status_prefix}**\n\nSaved: <code>{total_files}</code>\nDuplicates: <code>{duplicate}</code>\nDeleted: <code>{deleted}</code>\nNon-Media Skipped: <code>{no_media + unsupported}</code>\nErrors: <code>{errors}</code>')
