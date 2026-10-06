@@ -61,83 +61,83 @@ async def index_files(bot, query):
         await index_files_to_db(int(lst_msg_id), chat, msg, bot)
 
 
-@Client.on_message((filters.forwarded | (filters.regex(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)\$")) & filters.text ) & filters.private & filters.incoming & filters.user(ADMINS))
-async def send_for_index(bot, message):
+@Client.on_message((filters.forwarded | filters.text) & filters.private & filters.incoming)
+async def send_for_index(bot, message: Message):
+    chat_id = None
+    last_msg_id = None
+    user_id = message.from_user.id if message.from_user else None
+
+    if not user_id:
+        return
+
+    # 1. URL / Forward Link Regex Parsing
     if message.text:
-        regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)\$")
-        match = regex.match(message.text)
+        match = URL_PATTERN.search(message.text)
         if not match:
-            return await message.reply('Invalid link')
+            return await message.reply('❌ Invalid Telegram message link format provided.')
         chat_id = match.group(4)
         last_msg_id = int(match.group(5))
         if chat_id.isnumeric():
-            chat_id  = int(("-100" + chat_id))
+            chat_id = int(("-100" + chat_id))
+            
     elif message.forward_from_chat and message.forward_from_chat.type == enums.ChatType.CHANNEL:
         last_msg_id = message.forward_from_message_id
         chat_id = message.forward_from_chat.username or message.forward_from_chat.id
     else:
         return await message.reply('ദയവായി ഒരു പബ്ലിക് ചാനലിൽ നിന്നുള്ള മെസ്സേജ് ഫോർവേഡ് ചെയ്യുക അല്ലെങ്കിൽ ശരിയായ മെസ്സേജ് ലിങ്ക് നൽകുക.')
 
+    # 2. Chat Accessibility Verification Checks
     try:
         await bot.get_chat(chat_id)
-    except ChannelInvalid:
-        return await message.reply('This may be a private channel / group. Make me an admin over there to index the files.')
-    except (UsernameInvalid, UsernameNotModified):
-        return await message.reply('Invalid Link specified.')
-    except Exception as e:
-        logger.exception(e)
-        return await message.reply(f'Errors - {e}')
-        
-    try:
         k = await bot.get_messages(chat_id, last_msg_id)
-    except:
-        return await message.reply('Make Sure That Iam An Admin In The Channel, if channel is private')
-        
-    if k.empty:
-        return await message.reply('This may be group and iam not a admin of the group.')
+        if not k or k.empty:
+            return await message.reply('Cannot read message context. If this is a private channel, confirm I am added as an admin.')
+    except Exception as chat_err:
+        logger.error(f"Chat validation failure in index tool: {chat_err}")
+        return await message.reply('Make sure I am an admin in the target channel/group to index its history.')
 
-    # ബട്ടണുകൾ ഒരൊറ്റ ഇൻഡെക്സ് ഓപ്ഷൻ മാത്രമാക്കി ലളിതമാക്കി
-    if message.from_user.id in ADMINS:
-        buttons = [
-            [
-                InlineKeyboardButton('Index to Database',
-                                     callback_data=f'index#accept#{chat_id}#{last_msg_id}#{message.from_user.id}')
-            ],
-            [
-                InlineKeyboardButton('Close', callback_data='close_data'),
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(buttons)
-        return await message.reply(
-            f'Do you Want To Index This Channel/ Group ?\n\nChat ID/ Username: <code>{chat_id}</code>\nLast Message ID: <code>{last_msg_id}</code>',
-            reply_markup=reply_markup)
-
-    if type(chat_id) is int:
-        try:
-            link = (await bot.create_chat_invite_link(chat_id)).invite_link
-        except ChatAdminRequired:
-            return await message.reply('Make sure iam an admin in the chat and have permission to invite users.')
-    else:
-        username = message.forward_from_chat.username if message.forward_from_chat else chat_id
-        link = f"@{username}"
-        
+    # 3. Dynamic Inline UI Menu Panel Construction
     buttons = [
-        [
-            InlineKeyboardButton('Accept Index',
-                                 callback_data=f'index#accept#{chat_id}#{last_msg_id}#{message.from_user.id}')
-        ],
-        [
-            InlineKeyboardButton('Reject Index',
-                                 callback_data=f'index#reject#{chat_id}#{message.id}#{message.from_user.id}'),
-        ]
+        [InlineKeyboardButton('Index to Database', callback_data=f'index#accept#{chat_id}#{last_msg_id}#{user_id}')],
+        [InlineKeyboardButton('Close ❌', callback_data='close_data')]
     ]
-    reply_markup = InlineKeyboardMarkup(buttons)
-    await bot.send_message(
-        LOG_CHANNEL,
-        f'#IndexRequest\n\nBy : {message.from_user.mention} (<code>{message.from_user.id}</code>)\nChat ID/ Username - <code> {chat_id}</code>\nLast Message ID - <code>{last_msg_id}</code>\nInviteLink - {link}',
-        reply_markup=reply_markup
-    )
-    await message.reply('ThankYou For the Contribution, Wait For My Moderators to verify the files.')
+    
+    # 🚀 FIXED USER INTERFACE GATEWAY SIGNATURE
+    # If the user is an Admin, give them the immediate direct trigger controls layout
+    if user_id in ADMINS:
+        return await message.reply(
+            f'Do you want to index this channel/group?\n\nChat ID/Username: <code>{chat_id}</code>\nLast Message ID: <code>{last_msg_id}</code>',
+            reply_markup=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
+        )
+
+    # 🚀 FIXED LOGGING ISOLATION CHANNEL GATEWAY
+    # Wraps the administrator log routing inside a try/except guard so a missing log channel won't silence the bot's reply to the user!
+    link = f"@{chat_id}" if not isinstance(chat_id, int) else "Private Channel Managed"
+    if isinstance(chat_id, int):
+        try:
+            link_obj = await bot.create_chat_invite_link(chat_id)
+            link = link_obj.invite_link
+        except Exception:
+            pass
+
+    moderator_buttons = [
+        [InlineKeyboardButton('Accept Index', callback_data=f'index#accept#{chat_id}#{last_msg_id}#{user_id}')],
+        [InlineKeyboardButton('Reject Index', callback_data=f'index#reject#{chat_id}#{message.id}#{user_id}')]
+    ]
+    
+    try:
+        from info import INDEX_REQ_CHANNEL
+        await bot.send_message(
+            INDEX_REQ_CHANNEL,
+            f'#IndexRequest\n\nBy: {message.from_user.mention} (<code>{user_id}</code>)\nChat ID: <code>{chat_id}</code>\nLast Message ID: <code>{last_msg_id}</code>\nInvite Link: {link}',
+            reply_markup=InlineKeyboardMarkup(moderator_buttons)
+        )
+    except Exception as log_error:
+        logger.error(f"Failed to push notification to admin indexing log channel: {log_error}")
+
+    # Bypasses logging errors and guarantees the user always receives their submission success prompt
+    await message.reply('Thank you for the contribution! Please wait for our moderators to verify and unpack the files.')
 
 
 @Client.on_message(filters.command('setskip') & filters.user(ADMINS))
