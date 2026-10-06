@@ -867,9 +867,7 @@ async def advantage_spell_chok(client, msg):
             reply_to_message_id=msg.id,
             parse_mode=enums.ParseMode.HTML,
             disable_web_page_preview=True
-        )
-        await asyncio.sleep(20)
-        await k.delete()
+        )        
         return
 
     if not movies:
@@ -879,9 +877,7 @@ async def advantage_spell_chok(client, msg):
             reply_to_message_id=msg.id,
             parse_mode=enums.ParseMode.HTML,
             disable_web_page_preview=True
-        )
-        await asyncio.sleep(20)
-        await k.delete()
+        )        
         return
 
     # 1. ലിസ്റ്റിൽ നിന്ന് ടൈറ്റിലും വർഷവും വേർതിരിച്ചെടുക്കുന്നു
@@ -925,7 +921,7 @@ async def advantage_spell_chok(client, msg):
 
     # 📥 ഫോട്ടോ സഹിതം മറുപടി അയക്കുന്നു
     try:
-        spell_check_del = await msg.reply_photo(
+        await msg.reply_photo(
             photo=photo_url,
             caption=spell_list_text,
             reply_markup=google_button,
@@ -935,7 +931,7 @@ async def advantage_spell_chok(client, msg):
     except Exception:
         # ഫോട്ടോ അയക്കുന്നതിൽ എന്തെങ്കിലും തടസ്സം വന്നാൽ ബാക്കപ്പ് ആയി ടെക്സ്റ്റ് അയക്കും
         try:
-            spell_check_del = await msg.reply_text(
+            await msg.reply_text(
                 text=spell_list_text,
                 reply_markup=google_button,
                 reply_to_message_id=msg.id,
