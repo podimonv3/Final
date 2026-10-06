@@ -4,14 +4,14 @@ class script(object):
 <i>This is an automated movie delivery system built exclusively for our official community.</i>
 <i>If Any Bug Please Contact Admins 👇</i>
 <b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
-<a href="https://t.me/SreejithSKumar">Admin™ I</a>
-<a href="https://t.me/SreejithSKumar">Admin™ II</a>
-<a href="https://t.me/SreejithSKumar">Admin™ III</a>
-<a href="https://t.me/SreejithSKumar">Admin™ IV</a>
+<a href="https://t.me/Adhityan_edavattom">Admin™ I</a>
+<a href="https://t.me/heisenbergalready">Admin™ II</a>
+<a href="https://t.me/Akhilkrishnan121">Admin™ III</a>
+<a href="https://t.me/Roopak_raj">Admin™ IV</a>
 <a href="https://t.me/SreejithSKumar">Admin™ V</a>
 <b>━━━━━━━━━━━━━━━━━━━━━━━━━━━━</b>
 <b>Powered by:</b>
-<u><b><i><a href="https://t.me/SreejithSKumar">𝐓𝐞𝐚𝐦 𝐔𝐫𝐯𝐚𝐬𝐡𝐢 𝐓𝐡𝐞𝐚𝐭𝐞𝐫𝐬™️</a></i></b></u>"""
+<u><b><i><a href="https://t.me/+eb__Eg3RS2IyZWQ1">𝐓𝐞𝐚𝐦 𝐔𝐫𝐯𝐚𝐬𝐡𝐢 𝐓𝐡𝐞𝐚𝐭𝐞𝐫𝐬™️</a></i></b></u>"""
 
     SPELL_TEXT = """<b><i><u>🚸നിർദ്ദേശങ്ങൾ🚸</u></i></b>
 <blockquote><b><i>🌿 ᴄʜᴇᴄᴋ ᴛʜᴇ ꜱᴘᴇʟʟɪɴɢ—ʙᴜᴛ ᴏɴʟ യ ɪꜰ ᴛʜᴀᴛ ᴍᴏᴠɪᴇ ʜᴀꜱ ʜᴀᴅ ᴀɴ ᴏᴛᴛ ʀᴇʟᴇᴀꜱᴇ.</i></b></blockquote>"""
@@ -28,7 +28,7 @@ class script(object):
 ⚠ താഴെ കാണുന്ന ബട്ടണിൽ ക്ലിക്ക് ചെയിത് ചാനലിൽ ജോയിൻ ചെയ്യുക..!!👇👇</b>
     
 <b>⚡ Powered by:</b>
-👉 <i><a href="https://t.me/SreejithSKumar">© Team Urvashi Theaters™</a></i>"""
+👉 <i><a href="https://t.me/+eb__Eg3RS2IyZWQ1">© Team Urvashi Theaters™</a></i>"""
 
     CUSTOM_FILE_CAPTION = """<code>{file_name}</code>"""
     
