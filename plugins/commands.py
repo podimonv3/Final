@@ -136,10 +136,17 @@ async def start(client, message):
 
     if len(message.command) != 2:
         btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+VqyHBSateMcwNjU9")],
-            [InlineKeyboardButton("📊 Statistics", callback_data="stats"), InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats")],
-            [InlineKeyboardButton("❌ Close", callback_data="close")]
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")]
         ]
+        
+        # 🔐 അഡ്മിൻമാർക്ക് മാത്രം കാണിക്കുന്ന പ്രത്യേക ബട്ടണുകൾ
+        if message.from_user.id in ADMINS:
+            btn.append([InlineKeyboardButton("🛠️ Commands", callback_data="bot_commands"), InlineKeyboardButton("📊 Statistics", callback_data="stats")])
+            btn.append([InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats"), InlineKeyboardButton("❌ Close", callback_data="close")])
+        else:
+            # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് Close ബട്ടൺ മാത്രം (ഗ്രൂപ്പ് ബട്ടൺ മുകളിലുണ്ട്)
+            btn.append([InlineKeyboardButton("❌ Close", callback_data="close")])
+            
         caption = script.START_TXT.format(message.from_user.mention if message.from_user else "User")
         try:
             await message.reply_photo(photo="https://files.catbox.moe/egu0ip.jpg", caption=caption, reply_markup=InlineKeyboardMarkup(btn))
@@ -247,16 +254,22 @@ async def start(client, message):
     # ================= SPECIAL COMMANDS =================
     if data in ["subscribe", "error", "okay", "help"]:
         btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+VqyHBSateMcwNjU9")],
-            [InlineKeyboardButton("❌ Close", callback_data="close")]
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+VqyHBSateMcwNjU9")]
         ]
+        
+        # 🔐 അഡ്മിൻമാർക്ക് മാത്രം കാണിക്കുന്ന പ്രത്യേക ബട്ടണുകൾ
+        if message.from_user and message.from_user.id in ADMINS:
+            btn.append([InlineKeyboardButton("🛠️ Commands", callback_data="bot_commands"), InlineKeyboardButton("📊 Statistics", callback_data="stats")])
+            btn.append([InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats"), InlineKeyboardButton("❌ Close", callback_data="close")])
+        else:
+            # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് Close ബട്ടൺ മാത്രം
+            btn.append([InlineKeyboardButton("❌ Close", callback_data="close")])
+            
         try:
             await message.reply_text(text=script.START_TXT.format(message.from_user.mention if message.from_user else "User"), reply_markup=InlineKeyboardMarkup(btn))
         except Exception as e:
             logger.exception(e)
         return
-
-
 
     # ================= BATCH =================
     if data.split("-", 1)[0] == "BATCH":
