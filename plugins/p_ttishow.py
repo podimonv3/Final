@@ -95,15 +95,22 @@ async def gen_invite(bot, message):
 @Client.on_message(filters.command('purge_one') & filters.private & filters.user(ADMINS))
 async def purge_req_one(bot, message):
     r = await message.reply("`processing...`")
-    await db.delete_all_one()
-    await r.edit("**Req db Cleared**" )
+    try:
+        result = await db.reqone.delete_many({})
+        await r.edit(f"**Req db Cleared**\n\nDeleted: `{result.deleted_count}` requests.")
+    except Exception as e:
+        await r.edit(f"❌ **Error:** `{e}`")
 
 
 @Client.on_message(filters.command('purge_two') & filters.private & filters.user(ADMINS))
 async def purge_req_two(bot, message):
     r = await message.reply("`processing...`")
-    await db.delete_all_two()
-    await r.edit("**Req db Cleared**" )
+    try:
+        result = await db.reqtwo.delete_many({})
+        await r.edit(f"**Req db Cleared**\n\nDeleted: `{result.deleted_count}` requests.")
+    except Exception as e:
+        await r.edit(f"❌ **Error:** `{e}`")
+
 
 @Client.on_message(filters.command("totalreq") & filters.user(ADMINS))
 async def total_requests(bot, message): 
