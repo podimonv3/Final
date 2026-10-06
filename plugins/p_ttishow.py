@@ -111,21 +111,26 @@ async def total_requests(bot, message):
     total_one = await db.get_all_one_count()
     total_two = await db.get_all_two_count()
     
-    # Fixed: Evaluates using string value casting structures to prevent runtime type mismatch exceptions
-    if REQ_CHANNEL1 and str(REQ_CHANNEL1).strip().replace("-", "").isdigit(): 
-        try:
-            req_channel1_obj = await bot.get_chat(int(REQ_CHANNEL1))
-            req_channel1 = req_channel1_obj.title
-        except Exception:
-            req_channel1 = f"Channel 1 ({REQ_CHANNEL1})"
+    if REQ_CHANNEL1 != False: 
+        req_channel1 = await bot.get_chat(REQ_CHANNEL1)
+        req_channel1 = req_channel1.title
     else:
-        req_channel1 = "REQ_CHANNEL1 (Not Configured)"
+        req_channel1 = "REQ_CHANNEL1"
         
-    if REQ_CHANNEL2 and str(REQ_CHANNEL2).strip().replace("-", "").isdigit():
-        try:
-            req_channel2_obj = await bot.get_chat(int(REQ_CHANNEL2))
-            req_channel2 = req_channel2_obj.title
-        except Exception:
-            req_channel2 = f"Channel 2 ({REQ_CHANNEL2})"
+    if REQ_CHANNEL2 != False:
+        req_channel2 = await bot.get_chat(REQ_CHANNEL2)
+        req_channel2 = req_channel2.title
     else:
-        req_channel2 = "REQ_CHANNEL2 (Not Configured)"
+        req_channel2 = "REQ_CHANNEL2"
+    
+    # 🛠️ MessageNotModified എറർ ഒഴിവാക്കാനായി try...except ബ്ലോക്ക് ചേർത്തു
+    try:
+        await rju.edit(
+            f"<b>📊 Total Join Requests Stats</b>\n\n"
+            f"📢 {req_channel1} : <code>{total_one}</code>\n"
+            f"📢 {req_channel2} : <code>{total_two}</code>",
+            parse_mode=enums.ParseMode.HTML
+        )
+    except Exception:
+        # ഒരേ ഡാറ്റ വെച്ച് വീണ്ടും എഡിറ്റ് ചെയ്യാൻ നോക്കുമ്പോൾ വരുന്ന എറർ ഇവിടെ സ്കിപ്പ് ചെയ്യും
+        pass
