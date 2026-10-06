@@ -74,19 +74,24 @@ async def send_for_index(bot, message):
         regex = re.compile(r"(https://)?(t\.me/|telegram\.me/|telegram\.dog/)(c/)?(\d+|[a-zA-Z_0-9]+)/(\d+)$")
         match = regex.match(message.text.strip())
         if not match:
-            return
+            return await message.reply("Invalid channel message link.")
         chat_id = match.group(4)
         last_msg_id = int(match.group(5))
         if chat_id.isnumeric():
             chat_id = int("-100" + chat_id)
 
     else:
-        return
+        return await message.reply(
+            "⚠️ ഈ message-ൽ channel forward information ലഭിച്ചില്ല.\n\n"
+            "Index ചെയ്യേണ്ട channel message നേരിട്ട് Forward ചെയ്യുക."
+        )
 
     try:
         await bot.get_chat(chat_id)
     except ChannelInvalid:
-        return await message.reply("This may be a private channel / group. Make me an admin over there to index the files.")
+        return await message.reply(
+            "This may be a private channel / group. Make me an admin over there to index the files."
+        )
     except (UsernameInvalid, UsernameNotModified):
         return await message.reply("Invalid Link specified.")
     except Exception as e:
@@ -96,10 +101,14 @@ async def send_for_index(bot, message):
     try:
         k = await bot.get_messages(chat_id, last_msg_id)
     except Exception:
-        return await message.reply("Make Sure That Iam An Admin In The Channel, if channel is private")
+        return await message.reply(
+            "Make Sure That Iam An Admin In The Channel, if channel is private"
+        )
 
     if not k or k.empty:
-        return await message.reply("This may be group and iam not a admin of the group.")
+        return await message.reply(
+            "This may be group and iam not a admin of the group."
+        )
 
     buttons = [
         [InlineKeyboardButton(
@@ -115,6 +124,9 @@ async def send_for_index(bot, message):
         f"Last Message ID: <code>{last_msg_id}</code>",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
+
+
+
 
 @Client.on_message(filters.command('setskip') & filters.user(ADMINS))
 async def set_skip_number(bot, message):
