@@ -2,6 +2,7 @@ import asyncio
 lock = asyncio.Lock()
 import re
 import ast
+import random
 import math
 import ast  # eval-ന് പകരം സുരക്ഷിതമായി സ്ട്രിങ് ലിസ്റ്റ് ആക്കാൻ
 import emoji  # ഇമോജികൾ നീക്കം ചെയ്യാൻ
