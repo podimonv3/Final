@@ -155,39 +155,40 @@ async def set_skip_number(bot, message):
 
 
 async def index_files_to_db(lst_msg_id, chat, msg, bot):
-    """എല്ലാ ഫയലുകളും വിഭജിക്കാതെ ഒരൊറ്റ ഡിബിയിലേക്ക് മാക്സിമം സ്പീഡിൽ ഇൻഡെക്സ് ചെയ്യുന്ന ഫങ്ഷൻ"""
-    total_files = 0
-    duplicate = 0
-    errors = 0
-    deleted = 0
-    no_media = 0
-    unsupported = 0
+    total_files, duplicate, errors, deleted, no_media, unsupported = 0, 0, 0, 0, 0, 0
     
     async with lock:
         try:
-            current = temp.CURRENT
+            current_processed = temp.CURRENT
             temp.CANCEL = False
-            async for message in bot.iter_messages(chat, lst_msg_id, temp.CURRENT):
+            
+            # 🚀 1. FIXED TOTAL BATCH COUNT RANGE CALCULATIONS ✨
+            # Prevents looping over infinite ranges or hitting deep FloodWait freezes
+            total_range_limit = max(1, (int(lst_msg_id) - int(temp.CURRENT)) + 1)
+            
+            # 🚀 2. NAMED ARGUMENTS INTERFACE ALIGNMENT ✨
+            # Correctly maps the limit and offset parameters to match your bot.py custom iter_messages wrapper
+            async for message in bot.iter_messages(chat, limit=total_range_limit, offset=int(temp.CURRENT)):
                 if temp.CANCEL:
-                    await msg.edit(f"Successfully Cancelled!!\n\nSaved <code>{total_files}</code> files to dataBase!\nDuplicate Files Skipped: <code>{duplicate}</code>\nDeleted Messages Skipped: <code>{deleted}</code>\nNon-Media messages skipped: <code>{no_media + unsupported}</code>(Unsupported Media - `{unsupported}` )\nErrors Occurred: <code>{errors}</code>")
                     break
                     
-                current += 1
-                if current % 200 == 0:
-                    can = [[InlineKeyboardButton('Cancel', callback_data='index_cancel')]]
-                    reply = InlineKeyboardMarkup(can)
-                    await msg.edit_text(
-                        text=f"Total messages fetched: <code>{current}</code>\nTotal messages saved: <code>{total_files}</code>\nDuplicate Files Skipped: <code>{duplicate}</code>\nDeleted Messages Skipped: <code>{deleted}</code>\nNon-Media messages skipped: <code>{no_media + unsupported}</code>(Unsupported Media - `{unsupported}` )\nErrors Occurred: <code>{errors}</code>",
-                        reply_markup=reply
-                    )
+                current_processed += 1
+                if current_processed % 200 == 0:
+                    try:
+                        await msg.edit_text(
+                            text=f"📊 **Indexing Progress Summary**\n\nFetched: <code>{current_processed}</code>\nSaved: <code>{total_files}</code>\nDuplicates: <code>{duplicate}</code>\nDeleted: <code>{deleted}</code>\nErrors: <code>{errors}</code>",
+                            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('🛑 Cancel Process', callback_data='index_cancel')]])
+                        )
+                    except Exception:
+                        pass
                     
                 if message.empty:
                     deleted += 1
                     continue
-                elif not message.media:
+                if not message.media:
                     no_media += 1
                     continue
-                elif message.media not in [enums.MessageMediaType.VIDEO, enums.MessageMediaType.AUDIO, enums.MessageMediaType.DOCUMENT]:
+                if message.media not in [enums.MessageMediaType.VIDEO, enums.MessageMediaType.AUDIO, enums.MessageMediaType.DOCUMENT]:
                     unsupported += 1
                     continue
                     
@@ -199,21 +200,22 @@ async def index_files_to_db(lst_msg_id, chat, msg, bot):
                 media.file_type = message.media.value
                 media.caption = message.caption
                 
-                # ഒറ്റ, ഇരട്ട അക്ക വ്യത്യാസമില്ലാതെ നേരിട്ട് save_file-ലേക്ക് മാറ്റുന്നു
-                tru = await check_file(media)
-                if tru == "okda":
-                    aynav, vnay = await save_file(media) 
-                    if aynav:
-                        total_files += 1
-                    elif vnay == 0:
-                        duplicate += 1
-                    elif vnay == 2:
-                        errors += 1
-                else:
-                    duplicate += 1
+                # 🚀 3. FIXED MONGO COLLECTION VALIDATION PIPELINE ✨
+                # Bypasses the broken umongo check wrapper and queries by direct unique binary ID hashes
+                try:
+                    from database.ia_filterdb import Media, unpack_new_file_id, save_file
                     
-        except Exception as e:
-            logger.exception(e)
-            await msg.edit(f'Error: {e}')
-        else:
-            await msg.edit(f'Succesfully saved <code>{total_files}</code> to dataBase!\nDuplicate Files Skipped: <code>{duplicate}</code>\nDeleted Messages Skipped: <code>{deleted}</code>\nNon-Media messages skipped: <code>{no_media + unsupported}</code>(Unsupported Media - `{unsupported}` )\nErrors Occurred: <code>{errors}</code>')
+                    file_id, file_ref = unpack_new_file_id(media.file_id)
+                    exists = await Media.collection.find_one({'_id': file_id})
+                    
+                    if not exists:
+                        aynav, vnay = await save_file(media) 
+                        if aynav:
+                            total_files += 1
+                        else:
+                            duplicate += 1
+                    else:
+                        duplicate += 1
+                except Exception as loop_err:
+                    logger.error(f"Error indexing item in manual loop: {loop_err}")
+                    errors += 1
