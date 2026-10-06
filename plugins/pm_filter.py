@@ -504,15 +504,42 @@ async def cb_handler(client: Client, query: CallbackQuery):
                     
     elif query.data == "pages":
         await query.answer()
+
     
+    elif query.data == "bot_commands":
+        # 🔐 അഡ്മിൻ സുരക്ഷാ ചെക്ക് (അഡ്മിന്മാർക്ക് മാത്രമേ കാണാൻ സാധിക്കൂ)
+        if query.from_user.id not in ADMINS:
+            return await query.answer("❌ This feature is restricted to Bot Admins only!", show_alert=True)
+            
+        buttons = [[
+            InlineKeyboardButton('ʙᴀᴄᴋ', callback_data='start') # തിരികെ മെയിൻ മെനുവിലേക്ക് പോകാൻ 🔙          
+        ]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        
+        try:
+            await query.message.edit_text(
+                text=script.COMMANDS_TXT, 
+                reply_markup=reply_markup, 
+                parse_mode=enums.ParseMode.HTML
+            )
+        except Exception:
+            await query.message.edit_caption(
+                caption=script.COMMANDS_TXT, 
+                reply_markup=reply_markup, 
+                parse_mode=enums.ParseMode.HTML
+            )
+
     elif query.data == "start":
         buttons = [
             [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")],
             [
-                InlineKeyboardButton("📊 Stats", callback_data="stats"), 
-                InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats")
+                InlineKeyboardButton("🛠️ Commands", callback_data="bot_commands"), # പുതിയ ബട്ടൺ 🛠️
+                InlineKeyboardButton("📊 Stats", callback_data="stats")
             ],
-            [InlineKeyboardButton("✖️ Cʟᴏsᴇ ✖️", callback_data="close_data")]
+            [
+                InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats"),
+                InlineKeyboardButton("✖️ Cʟᴏsᴇ ✖️", callback_data="close_data")
+            ]
         ]
        
         reply_markup = InlineKeyboardMarkup(buttons)
@@ -521,6 +548,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )    
+    
 
 
     elif query.data == "koyeb_stats":
