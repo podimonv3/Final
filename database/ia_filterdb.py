@@ -35,6 +35,17 @@ class Media(Document):
         collection_name = COLLECTION_NAME
 
 
+async def check_file(media):
+    """Check if file is present in the database"""
+    file_id, file_ref = unpack_new_file_id(media.file_id)
+    existing_file = await Media.collection.find_one({"_id": file_id})
+    
+    if existing_file:
+        return None
+    else:
+        return "okda"
+
+
 async def clean_file_name(raw_name: str) -> str:
     """ഫയൽ നെയിം ശുദ്ധീകരിക്കാനുള്ള ഹെൽപർ ഫങ്ഷൻ"""
     name_without_ext, _ = os.path.splitext(raw_name)
@@ -48,17 +59,6 @@ async def clean_file_name(raw_name: str) -> str:
     cleaned_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', name_no_apostrophe)
     final_name = re.sub(r'\s+', ' ', cleaned_chars).strip()
     return final_name
-
-
-async def check_file(media):
-    """Check if file is present in the database"""
-    file_id, file_ref = unpack_new_file_id(media.file_id)
-    existing_file = await Media.collection.find_one({"_id": file_id})
-    
-    if existing_file:
-        return None
-    else:
-        return "okda"
 
 
 async def save_file(media):
@@ -85,7 +85,6 @@ async def save_file(media):
             return True, 1
         except DuplicateKeyError:      
             return False, 0
-
 
 async def delete_files_below_threshold(threshold_size_mb=50, batch_size=20, chat_id=None, message_id=None):
     # Fixed: Uses Media.collection.find to accurately step through data items without throwing exceptions
@@ -217,8 +216,11 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
 
 
 async def get_file_details(query):
-    cursor_media = Media.collection.find({'file_id': query})
-    return await cursor_media.to_list(length=1)
+    filter = {'file_id': query}
+    cursor_media = Media.find(filter)
+    filedetails_media = await cursor_media.to_list(length=1)
+    return filedetails_media
+
 
 def encode_file_id(s: bytes) -> str:
     r = b""
