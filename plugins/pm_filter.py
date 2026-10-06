@@ -85,7 +85,9 @@ async def pm_text(bot: Client, message):
     if user_id in ADMINS: return
 
     # 1. യൂസർ ഡാറ്റാബേസിൽ മ്യൂട്ട് ചെയ്യപ്പെട്ട ആളാണോ എന്ന് പരിശോധിക്കുന്നു
-    is_muted = await db.is_user_muted(user_id) if hasattr(db, "is_user_muted") else False
+    user_data = await db.col.find_one({'id': int(user_id)}) if hasattr(db, "col") else None
+    is_muted = user_data.get('is_muted', False) if user_data else False
+    warning_sent = user_data.get('warning_sent', False) if user_data else False
 
     # 2. ഫയൽ ഉണ്ടോ എന്ന് ആദ്യം പരിശോധിക്കുന്നു
     files_found = False
@@ -95,7 +97,7 @@ async def pm_text(bot: Client, message):
         search_query = message.text.strip()
         files, offset, total_results = await get_search_results(search_query.lower(), offset=0, filter=True)
 
-    # 3. ഫയൽ കണ്ടെത്തിയാൽ മ്യൂട്ട് നോക്കാതെ ഫയൽ ബട്ടൺ നൽകും
+    # 3. ഫയൽ കണ്ടെത്തിയാൽ മ്യൂട്ട് നോക്കാതെ ഓട്ടോഫിൽറ്റർ ശൈലിയിലുള്ള ഫുൾ ക്യാപ്ഷനോടെ ബട്ടണുകൾ നൽകും
     if files:
         files_found = True
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
@@ -112,16 +114,94 @@ async def pm_text(bot: Client, message):
         if total_results > 10:
             btn.append([InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")])
 
-        cap = "<b><i><u>© can_Urvashi Theaters™️</u></i></b>"
-        await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn))
+        # ⚡ ഓട്ടോഫിൽറ്ററിലെ ക്യാപ്ഷൻ ലോജിക് ഇവിടെ ഇൻബിൽറ്റ് ആയി സെറ്റ് ചെയ്യുന്നു ✨
+        year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search_query)
+        combined_file_names = ""
+        print_check_text = ""
+        languages_found = []
+
+        lang_map = {
+            'malayalam': 'Malayalam', 'mal': 'Malayalam', 'tamil': 'Tamil', 'tam': 'Tamil',
+            'telugu': 'Telugu', 'tel': 'Telugu', 'hindi': 'Hindi', 'hin': 'Hindi',
+            'english': 'English', 'eng': 'English', 'kannada': 'Kannada', 'kan': 'Kannada',
+            'marathi': 'Marathi', 'mar': 'Marathi', 'bengali': 'Bengali', 'ben': 'Bengali',
+            'odia': 'Odia', 'ori': 'Odia', 'multi': 'Multi_Audio', 'audio': 'Multi_Audio', 'dual': 'Multi_Audio'
+        }
+        
+        if files and isinstance(files, list):
+            for index, file in enumerate(files[:5]):
+                if hasattr(file, 'file_name') and file.file_name:
+                    f_name_lower = file.file_name.lower()
+                    combined_file_names += " " + f_name_lower
+                    file_words = set(re.findall(r'\b\w+\b', f_name_lower))
+                    for word in file_words:
+                        if word in lang_map and lang_map[word] not in languages_found:
+                            languages_found.append(lang_map[word])
+                            
+            if hasattr(files[0], 'file_name') and files[0].file_name:
+                print_check_text = files[0].file_name.lower()
+
+        search_words = set(re.findall(r'\b\w+\b', search_query.lower()))
+        for word in search_words:
+            if word in lang_map and lang_map[word] not in languages_found:
+                languages_found.append(lang_map[word])
+
+        if not year_match and files and hasattr(files[0], 'file_name') and files[0].file_name:
+            found_years = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
+            if found_years:
+                year_match = [found_years[0]]
+        
+        detected_year = year_match[0] if year_match else ""
+        movie_year = f" ({detected_year})" if detected_year else ""
+        
+        detected_print = "HD_Original" 
+        if print_check_text:
+            if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
+                detected_print = "Theater_Print_⚠️"
+
+        detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
+        files_count = total_results
+        clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search_query).strip().upper()
+
+        # 🎬 ഓട്ടോഫിൽറ്ററിലെ അതേ വലിയ ക്യാപ്ഷൻ ഫോർമാറ്റ് ഇൻബോക്സിലും കൊണ്ടുവരുന്നു ✨
+        pm_cap = (
+            f"<b><i>🎬ᴍᴏᴠɪᴇꜱ ᴄᴏʟʟᴇᴄᴛɪᴏɴ\n\n"
+            f"➤ꜰɪʟᴍ : {clean_title}{movie_year}\n"
+            f"➤ʟᴀɴɢᴜᴀɢＥ : {detected_lang}\n"
+            f"➤ᴘʀɪɴᴛ ᴛʏᴘＥ : {detected_print}\n"
+            f"➤ᴛᴏᴛᴀʟ ꜰɪʟＥꜱ : {files_count}\n\n"
+            f"© can_Urvashi Theaters™️</i></b>"
+        )
+
+        # 🖼️ ഓട്ടോഫിൽറ്ററിലെ പോലെ റാൻഡം ആയി ഒരു ഇമേജ് പോസ്റ്റർ കൂടി തിരഞ്ഞെടുക്കുന്നു
+        import random
+        from info import IMG
+        poster_url = random.choice(IMG) if ( 'IMG' in globals() and IMG ) else None
+
+        try:
+            if poster_url:
+                await message.reply_photo(photo=poster_url, caption=pm_cap, reply_markup=InlineKeyboardMarkup(btn))
+            else:
+                await message.reply_text(text=pm_cap, reply_markup=InlineKeyboardMarkup(btn))
+        except Exception:
+            try:
+                await message.reply_text(text=pm_cap, reply_markup=InlineKeyboardMarkup(btn))
+            except Exception:
+                pass
         return
 
     # 4. ഫയൽ ഇല്ലെങ്കിൽ ഫോർമാറ്റ് ചെക്ക് ചെയ്യുന്നു
     if message.text:
         text_to_check = message.text.strip()
         if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
-            # അഡ്മിൻ മ്യൂട്ട് ചെയ്ത യൂസർ ആണെങ്കിൽ ബോട്ട് റിപ്ലൈ നൽകില്ല
             if is_muted:
+                if not warning_sent:
+                    await db.col.update_one({'id': user_id}, {'$set': {'warning_sent': True}})
+                    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+                    await message.reply_text(
+                        text=f"<b>⚠️ ശ്രദ്ധിക്കുക / WARNING!\n\nനിങ്ങൾ ബോട്ടിന്റെ നിയമങ്ങൾ (Rules) തുടർച്ചയായി ലംഘിച്ചതിനാൽ അഡ്മിൻ നിങ്ങളെ മ്യൂട്ട് ചെയ്തിരിക്കുകയാണ്.\n\nഇനി മുതൽ കൃത്യമായ ഫോർമാറ്റിൽ (Movie Name + Year) അയച്ചാൽ മാത്രമേ ബോട്ട് നിങ്ങളുടെ റിക്വസ്റ്റുകൾ സ്വീകരിക്കുകയുള്ളൂ. നിയമങ്ങൾ വ്യക്തമായി വായിക്കാൻ താഴെയുള്ള ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.</b>",
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 READ RULES 🚸", url="http://telegra.ph")]])
+                    )
                 return
                 
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
@@ -134,8 +214,13 @@ async def pm_text(bot: Client, message):
 
     # 5. ഫോർമാറ്റ് കറക്റ്റാണ് പക്ഷെ ഫയൽ ഇല്ലെങ്കിൽ (റിക്വസ്റ്റ് സബ്മിറ്റ് ചെയ്യുമ്പോൾ)
     if not files_found:
-        # അഡ്മിൻ മ്യൂട്ട് ചെയ്ത യൂസർ ആണെങ്കിൽ റിക്വസ്റ്റ് സബ്മിറ്റഡ് മെസ്സേജും ലോഗും പൂർണ്ണമായി ഒഴിവാക്കും
         if is_muted:
+            if not warning_sent:
+                await db.col.update_one({'id': user_id}, {'$set': {'warning_sent': True}})
+                await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+                await message.reply_text(
+                    text=f"<b>⚠️ റിക്വസ്റ്റ് നിരസിച്ചു!\n\nനിങ്ങളെ അഡ്മിൻ മ്യൂട്ട് ചെയ്തിരിക്കുന്നതിനാൽ പുതിയ റിക്വസ്റ്റുകൾ സബ്മിറ്റ് ചെയ്യാൻ സാധിക്കില്ല. സിനിമയുടെ പേര് ഡാറ്റാബേസിൽ ഉണ്ടെങ്കിൽ മാത്രമേ ഫയലുകൾ ലഭിക്കുകയുള്ളൂ.</b>"
+                )
             return
             
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
@@ -151,7 +236,6 @@ async def pm_text(bot: Client, message):
 
         content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
         
-        # 🔔 ലോഗ് ചാനലിൽ മ്യൂട്ട് ബട്ടൺ കൂടി ഉൾപ്പെടുത്തുന്നു
         log_reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")],
             [InlineKeyboardButton("🔇 MUTE USER", callback_data=f"dbmute_{user_id}")]
@@ -175,6 +259,7 @@ async def pm_text(bot: Client, message):
             logger.error(f"Error sending log to LOG_CHANNEL: {e}")
 
 
+
 @Client.on_callback_query(filters.regex(r"^dbmute_") | filters.regex(r"^dbunmute_"))
 async def db_mute_unmute_handler(bot, query):
     if query.from_user.id not in ADMINS:
@@ -187,9 +272,8 @@ async def db_mute_unmute_handler(bot, query):
     new_buttons = []
     
     if action == "dbmute":
-        # യൂസർ ഇതിനകം ഡാറ്റാബേസിൽ ഇല്ലെങ്കിൽ പോലും upsert=True ഉള്ളതുകൊണ്ട് പുതിയ റെക്കോർഡ് ആയി ക്രിയേറ്റ് ആയിക്കോളും
         if hasattr(db, "col"):
-            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': True}}, upsert=True)
+            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': True, 'warning_sent': False}}, upsert=True)
         
         await query.answer("🔇 യൂസറെ ഡാറ്റാബേസിൽ മ്യൂട്ട് ചെയ്തു!", show_alert=True)
         
@@ -204,7 +288,8 @@ async def db_mute_unmute_handler(bot, query):
             
     elif action == "dbunmute":
         if hasattr(db, "col"):
-            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': False}}, upsert=True)
+            # അൺമ്യൂട്ട് ചെയ്യുമ്പോൾ രണ്ട് ഫീൽഡുകളും false ആക്കുന്നു
+            await db.col.update_one({'id': target_user_id}, {'$set': {'is_muted': False, 'warning_sent': False}}, upsert=True)
             
         await query.answer("🔊 യൂസറെ അൺമ്യൂട്ട് ചെയ്തു!", show_alert=True)
         
@@ -222,86 +307,6 @@ async def db_mute_unmute_handler(bot, query):
     except Exception as e:
         logger.error(f"Error updating database mute markup: {e}")
 
-
-
-@Client.on_message(filters.private & (filters.text | filters.photo | filters.video | filters.sticker) & filters.incoming)
-async def pm_text(bot: Client, message):
-    user_id = message.from_user.id
-    user = message.from_user.first_name or "User"
-
-    if message.text and (message.text.startswith("/") or message.text.startswith("#")): return
-    if user_id in ADMINS: return
-
-    if message.text:
-        text_to_check = message.text.strip()
-        if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
-            await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-            await asyncio.sleep(0.5)
-            await message.reply_text(
-                text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9D%E0%B4%A8%E0%B4%A4-08-19")]])
-            )
-            return
-
-    content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
-    files_found = False
-
-    if message.text:
-        search_query = message.text.strip()
-        files, offset, total_results = await get_search_results(search_query.lower(), offset=0, filter=True)
-
-        if files:
-            files_found = True
-            await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-            
-            # settings ഒഴിവാക്കി ഫിക്സഡ് പ്രീഫിക്സ് നൽകി
-            pre = 'file' 
-            key = f"{message.chat.id}-{message.id}"
-            _trim_dict(BUTTONS) 
-            BUTTONS[key] = {"query": search_query, "time": time.time()} 
-            
-            btn = []
-
-            # Standard Single Button Format ഫിക്സ് ചെയ്തു (ഡാറ്റാബേസ് കോൾ ഇല്ല)
-            for file in files[:10]: 
-                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
-
-            if total_results > 10:
-                btn.append([InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")])
-
-            cap = "<b><i><u>© can_Urvashi Theaters™️</u></i></b>"
-            await message.reply_text(text=cap, reply_markup=InlineKeyboardMarkup(btn))
-
-    if not files_found:
-        await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-        await asyncio.sleep(0.5)
-
-        await message.reply_text(
-            text="<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me/Adhityan_edavattom")],
-                [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9D%E0%B4%A8%E0%B4%A4-08-19")]
-            ])
-        )
-
-        log_reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]])
-        log_text = f"<b>#PM_MSG\n\nNᴀᴍE : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢE :</b> <code>{content}</code>\n\n#id{user_id}"
-
-        try:
-            if message.photo:
-                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
-                await bot.send_photo(chat_id=LOG_CHANNEL, photo=message.photo.file_id, caption=log_text, reply_markup=log_reply_markup)
-            elif message.video:
-                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_VIDEO)
-                await bot.send_video(chat_id=LOG_CHANNEL, video=message.video.file_id, caption=log_text, reply_markup=log_reply_markup)
-            elif message.sticker:
-                await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
-                await bot.send_sticker(chat_id=LOG_CHANNEL, sticker=message.sticker.file_id)
-            else:
-                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.TYPING)
-                await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
-        except Exception as e:
-            logger.error(f"Error sending log to LOG_CHANNEL: {e}")
 
 
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
