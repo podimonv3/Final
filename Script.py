@@ -19,7 +19,7 @@ class script(object):
 •  /channel  /link /clear_locks /clearposterdb
 • /logs /setskip /delete /restart
 • /deleteall /missing /clear_missing /dbstatus
-• /plink - /link - /b - /p
+• /plink - /link - /b - /p /muted
 • /addg - /add - /gfilters - /viewgfilters 
 •  /delallg /delg /totalreq /purge_one
 • /locks /locktypes /unlock /lock
