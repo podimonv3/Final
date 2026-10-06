@@ -87,7 +87,6 @@ async def save_file(media):
             return False, 0
 
 
-
 async def delete_files_below_threshold(threshold_size_mb=50, batch_size=20, chat_id=None, message_id=None):
     # Fixed: Uses Media.collection.find to accurately step through data items without throwing exceptions
     cursor = Media.collection.find({"file_size": {"$lt": threshold_size_mb * 1024 * 1024}}).limit(batch_size)
@@ -228,7 +227,8 @@ def encode_file_id(s: bytes) -> str:
     r = b""
     n = 0
     for i in s + bytes([22]) + bytes([4]):
-        if i == 0: n += 1
+        if i == 0:
+            n += 1
         else:
             if n:
                 r += b"\x00" + bytes([n])
