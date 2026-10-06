@@ -144,7 +144,8 @@ async def start(client, message):
             btn.append([InlineKeyboardButton("🛠️ Commands", callback_data="bot_commands"), InlineKeyboardButton("📊 Statistics", callback_data="stats")])
             btn.append([InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats"), InlineKeyboardButton("❌ Close", callback_data="close")])
         else:
-            # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് Close ബട്ടൺ മാത്രം (ഗ്രൂപ്പ് ബട്ടൺ മുകളിലുണ്ട്)
+            # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് ബോട്ട് ഗ്രൂപ്പിലേക്ക് ആഡ് ചെയ്യാനുള്ള ബട്ടണും ക്ലോസ് ബട്ടണും
+            btn.append([InlineKeyboardButton("➕ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ➕", url=f"https://t.me/{temp.U_NAME}?startgroup=true")])
             btn.append([InlineKeyboardButton("❌ Close", callback_data="close")])
             
         caption = script.START_TXT.format(message.from_user.mention if message.from_user else "User")
@@ -253,8 +254,9 @@ async def start(client, message):
     
     # ================= SPECIAL COMMANDS =================
     if data in ["subscribe", "error", "okay", "help"]:
+        # 👥 എല്ലാ യൂസർമാർക്കും കാണാവുന്ന ഗ്രൂപ്പ് ബട്ടൺ
         btn = [
-            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+VqyHBSateMcwNjU9")]
+            [InlineKeyboardButton("👥 Jᴏɪɴ Oᴜʀ Gʀᴏᴜᴘ 👥", url="https://t.me/+eb__Eg3RS2IyZWQ1")]
         ]
         
         # 🔐 അഡ്മിൻമാർക്ക് മാത്രം കാണിക്കുന്ന പ്രത്യേക ബട്ടണുകൾ
@@ -262,7 +264,8 @@ async def start(client, message):
             btn.append([InlineKeyboardButton("🛠️ Commands", callback_data="bot_commands"), InlineKeyboardButton("📊 Statistics", callback_data="stats")])
             btn.append([InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats"), InlineKeyboardButton("❌ Close", callback_data="close")])
         else:
-            # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് Close ബട്ടൺ മാത്രം
+            # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് ബോട്ട് ഗ്രൂപ്പിലേക്ക് ആഡ് ചെയ്യാനുള്ള ബട്ടണും ക്ലോസ് ബട്ടണും
+            btn.append([InlineKeyboardButton("➕ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ➕", url=f"https://t.me{temp.U_NAME}?startgroup=true")])
             btn.append([InlineKeyboardButton("❌ Close", callback_data="close")])
             
         try:
@@ -270,6 +273,7 @@ async def start(client, message):
         except Exception as e:
             logger.exception(e)
         return
+
 
     # ================= BATCH =================
     if data.split("-", 1)[0] == "BATCH":
