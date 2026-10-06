@@ -260,6 +260,10 @@ async def next_page(bot, query):
             InlineKeyboardButton("Next", callback_data=f"next_{req}_{key}_{n_offset}")
         ])
 
+    # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
+    btn.append([
+        InlineKeyboardButton("✨ Join Our Group ✨", url="https://t.me")
+    ])
     try:
         await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
         await query.answer()
