@@ -90,6 +90,10 @@ class Database:
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
 
+    async def is_user_muted(self, id):
+        user = await self.col.find_one({'id': int(id)})
+        return user.get('is_muted', False) if user else False
+
     async def get_banned(self):
         users = self.col.find({'ban_status.is_banned': True})
         chats = self.grp.find({'chat_status.is_disabled': True})
