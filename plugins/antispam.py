@@ -1,7 +1,7 @@
 import re
 import asyncio
 import logging
-from pyrogram import Client, filters
+from pyrogram import Client, filters, enums  # enums ഇമ്പോർട്ട് ചെയ്തു
 from pyrogram.types import Message, ChatPermissions
 from info import LOG_CHANNEL
 
@@ -46,34 +46,54 @@ async def anti_spam_handler(client: Client, message: Message):
 
     # 🛠️ ആക്ഷൻ എടുക്കണോ എന്ന് തീരുമാനിക്കുന്നു
     if has_bad_word or has_adult_emoji or contains_link:
+        action_type = "Muted for 18+ Content"
+        
         try:
             # 1. ലിങ്ക് മാത്രമാണെങ്കിൽ ഡിലീറ്റ് ചെയ്യുക മാത്രം ചെയ്യുന്നു (No Mute, No Log)
             if contains_link and not (has_bad_word or has_adult_emoji):
-                await message.delete()
+                try:
+                    await message.delete()
+                except Exception:
+                    # ⚠️ ഡിലീറ്റ് ചെയ്യാൻ പെർമിഷൻ ഇല്ലെങ്കിൽ ഗ്രൂപ്പിലേക്ക് എറർ ഇല്ലാതെ മെസ്സേജ് അയക്കുന്നു
+                    await client.send_message(
+                        chat_id=chat.id,
+                        text=f"⚠️ {user.mention}, ഗ്രൂപ്പിൽ ലിങ്കുകൾ അയക്കാൻ അനുവാദമില്ല! (ഡിലീറ്റ് ചെയ്യാൻ ബോട്ടിന് അഡ്മിൻ പെർമിഷൻ നൽകുക)"
+                    )
                 return  # ഇവിടെ വെച്ച് ഫംഗ്ഷൻ നിർത്തുന്നു, ലോഗ് അയക്കില്ല 🛑
             
             # 2. ബാഡ് വേർഡ്സ് അല്ലെങ്കിൽ മോശം ഇമോജി ഉണ്ടെങ്കിൽ ഡിലീറ്റ് ചെയ്യുകയും മ്യൂട്ട് ചെയ്യുകയും ചെയ്യുന്നു
             else:
-                action_type = "Muted for 18+ Content"
-                # Completely restrict all forms of interactions safely
-                await chat.restrict_member(
-                    user.id, 
-                    ChatPermissions(
-                        can_send_messages=False,
-                        can_send_media_messages=False,
-                        can_send_other_messages=False,
-                        can_add_web_page_previews=False
+                # ഗ്രൂപ്പിലെ മറ്റ് ആക്ഷനുകൾ (Mute) ആദ്യം ചെയ്യാം
+                try:
+                    await chat.restrict_member(
+                        user.id, 
+                        ChatPermissions(
+                            can_send_messages=False,
+                            can_send_media_messages=False,
+                            can_send_other_messages=False,
+                            can_add_web_page_previews=False
+                        )
                     )
-                )
-                await message.delete()
+                except Exception as mute_error:
+                    logger.error(f"Mute Error: {mute_error}")
+                    action_type = "Mute Failed (No Admin Rights)"
+
+                # മെസ്സേജ് ഡിലീറ്റ് ചെയ്യാൻ നോക്കുന്നു
+                try:
+                    await message.delete()
+                except Exception:
+                    # ⚠️ ഡിലീറ്റ് ചെയ്യാൻ പെർമിഷൻ ഇല്ലെങ്കിൽ ഗ്രൂപ്പിലേക്ക് മെസ്സേജ് അയക്കുന്നു
+                    await client.send_message(
+                        chat_id=chat.id,
+                        text=f"⚠️ {user.mention}, ഗ്രൂപ്പിൽ മോശം വാക്കുകളോ ഇമോജികളോ ഉപയോഗിക്കരുത്! (ഡിലീറ്റ് ചെയ്യാൻ ബോട്ടിന് അഡ്മിൻ പെർമിഷൻ നൽകുക)"
+                    )
                 
         except Exception as e:
             logger.error(f"Action Execution Error: {e}")
             return
 
-        # 3. മ്യൂട്ട് ചെയ്യുമ്പോൾ മാത്രം അഡ്മിൻ ലോഗ് ചാനലിലേക്ക് റിപ്പോർട്ട് അയക്കുന്നു 🚨
-        # Fixed: Added missing trailing forward slash to prevent broken URL rendering crashes
-        pm_link = f"https://t.me{user.username}" if user.username else f"tg://user?id={user.id}"
+        # 3. അഡ്മിൻ ലോഗ് ചാനലിലേക്ക് റിപ്പോർട്ട് അയക്കുന്നു 🚨
+        pm_link = f"https://t.me/{user.username}" if user.username else f"tg://user?id={user.id}"
         
         report_text = (
             "🚨 **Anti-Spam Filter Report** 🚨\n\n"
