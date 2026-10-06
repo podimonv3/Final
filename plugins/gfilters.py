@@ -128,13 +128,12 @@ async def delallgfilters(client, message: Message):
         quote=True
     )
 
-@Client.on_callback_query(filters.regex("^gfiltersdeleteallconfirm\$"))
-async def dellacbd(client, query: CallbackQuery):
-    await del_allg('gfilters')
+@Client.on_callback_query(filters.regex("^gfiltersdeleteallconfirm$"))
+async def dellacbd(client, query):
+    await del_allg(query.message, 'gfilters')
     await query.answer("All Global Filters Deleted! 👍")
-    await query.message.edit_text("✅ All global filters have been completely removed from database.")
 
-@Client.on_callback_query(filters.regex("^gfiltersdeleteallcancel\$"))
-async def cancel_delall(client, query: CallbackQuery):
+@Client.on_callback_query(filters.regex("^gfiltersdeleteallcancel$"))
+async def cancel_delall(client, query):
     await query.answer("Action Cancelled!")
     await query.message.edit_text("Process Cancelled. ❌")
