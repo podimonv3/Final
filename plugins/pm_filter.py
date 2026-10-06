@@ -262,7 +262,7 @@ async def next_page(bot, query):
 
     # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
     btn.append([
-        InlineKeyboardButton("✨ Join Our Group ✨", url="https://t.me")
+        InlineKeyboardButton("✨ Join Our Group ✨", url="https://t.me/+eb__Eg3RS2IyZWQ1")
     ])
     try:
         await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
@@ -805,6 +805,11 @@ async def auto_filter(client, msg, spoll=False):
         if offset > 0:
             btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
         
+        # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
+        btn.append([
+            InlineKeyboardButton("✨ Join Our Group ✨", url="https://t.me/+eb__Eg3RS2IyZWQ1")
+        ])
+
         reply_markup = InlineKeyboardMarkup(btn)                   
                             
     # 🎬 PICS ലിസ്റ്റിൽ നിന്നും റാൻഡം ആയി ഒരു ഇമേജ് ലിങ്ക് തിരഞ്ഞെടുക്കുന്നു
@@ -812,6 +817,7 @@ async def auto_filter(client, msg, spoll=False):
     poster_url = random.choice(IMG) if IMG else None
 
     fmsg = None
+
     try:
         if poster_url:
             # നേരിട്ട് ഫോട്ടോയായി അയക്കാൻ ശ്രമിക്കുന്നു
