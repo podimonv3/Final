@@ -127,7 +127,7 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media, total_results
 
 
-async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False, total_results=None):
+async def get_search_results(query, file_type=None, max_results=10, offset=0, filter=False, total_results=None):
     query = query.replace("'", "")
     query = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query)
     query = re.sub(r'\s+', ' ', query).strip()
