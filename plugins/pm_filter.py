@@ -104,7 +104,7 @@ async def pm_text(bot: Client, message):
                 await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
                 await message.reply_text(
                     text=f"<b>⚠️ ശ്രദ്ധിക്കുക / WARNING!\n\nനിങ്ങൾ ബോട്ടിന്റെ നിയമങ്ങൾ (Rules) ലംഘിച്ചതിനാൽ അഡ്മിൻ നിങ്ങളെ മ്യൂട്ട് ചെയ്തിരിക്കുകയാണ്.\n\നിയമങ്ങൾ വ്യക്തമായി വായിക്കാൻ താഴെയുള്ള rules ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.Mute ഒഴിവാക്കാൻ അഡ്മിനെ സമീപിക്കുക @Chithralokham",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 READ RULES 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]])
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 READ RULES 🚸", url="https://t.me/Chithralokham/7")]])
                 )
             return
             
@@ -112,7 +112,7 @@ async def pm_text(bot: Client, message):
         await asyncio.sleep(0.5)
         await message.reply_text(
             text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2021</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="https://t.me/Chithralokham/7")]])
         )
         return
 
@@ -966,7 +966,7 @@ async def advantage_spell_chok(client, msg):
     reqst_gle = quote_plus(mv_rqst)
     google_button = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾)", url=f"https://www.google.com/search?q={reqst_gle}")],
-        [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/UrvasiTheatres_bot")]
+        [InlineKeyboardButton("📜 Rᴜʟᴇs", url="https://t.me/Chithralokham/7"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/UrvasiTheatres_bot")]
     ])
 
     try:
@@ -990,30 +990,62 @@ async def advantage_spell_chok(client, msg):
     movielist = []
     for movie in movies:
         if isinstance(movie, dict):
-            title, year = movie.get('title'), movie.get('year')
+            title = movie.get('title')
+            year = movie.get('year')
         else:
             title = movie.get('title') if hasattr(movie, 'get') else getattr(movie, 'title', None)
             year = movie.get('year') if hasattr(movie, 'get') else getattr(movie, 'year', None)
+        
         if title:
-            year_str = re.findall(r'\b(19\d{2}|20\d{2})\b', str(year)) if year and str(year) != "N/A" else []
-            movielist.append(f"{title.strip()}{' ' + year_str[0] if year_str else ''}")
+            if year and str(year) != "N/A":
+                year_str = re.findall(r'\b(19\d{2}|20\d{2})\b', str(year))
+                year_val = f" {year_str[0]}" if year_str else ""
+            else:
+                year_val = ""
+                
+            movielist.append(f"{title.strip()}{year_val}")
 
     if not movielist:
         return
 
-    spell_list_text = script.NO_TXT + "\n\n<u><b>SUGGESTIONS 👇</b></u>\n\n"
-    spell_list_text += "\n".join(f"<b>{i}. {name}</b>" for i, name in enumerate(movielist[:4], 1))
+    # 📝 Heading ചേർക്കുന്നു
+    spell_list_text = script.NO_TXT + "\n\n"
+    spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n\n"
+    
+    # സജഷനുകൾ HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
+    for index, movie_name in enumerate(movielist[:4], start=1):
+        spell_list_text += f"<b>{index}. {movie_name}</b>\n"
 
+    # 🖼️ ഫോട്ടോ എടുക്കാൻ get_any_movie_poster നിലനിർത്തിയിരിക്കുന്നു
+    try: 
+        photo_url = await get_any_movie_poster(cleaned_query)
+    except Exception: 
+        photo_url = None
+
+    if not photo_url:
+        photo_url = "https://files.catbox.moe/8llz8q.jpg"
+
+    # 📥 ഫോട്ടോ സഹിതം മറുപടി അയക്കുന്നു
     try:
-        await msg.reply_text(
-            spell_list_text,
+        spell_check_del = await msg.reply_photo(
+            photo=photo_url,
+            caption=spell_list_text,
             reply_markup=google_button,
             reply_to_message_id=msg.id,
-            parse_mode=enums.ParseMode.HTML,
-            disable_web_page_preview=True
+            parse_mode=enums.ParseMode.HTML
         )
     except Exception:
-        pass
+        # ഫോട്ടോ അയക്കുന്നതിൽ എന്തെങ്കിലും തടസ്സം വന്നാൽ ബാക്കപ്പ് ആയി ടെക്സ്റ്റ് അയക്കും
+        try:
+            spell_check_del = await msg.reply_text(
+                text=spell_list_text,
+                reply_markup=google_button,
+                reply_to_message_id=msg.id,
+                parse_mode=enums.ParseMode.HTML,
+                disable_web_page_preview=True
+            )
+        except Exception:
+            return
            
                                
         
