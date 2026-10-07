@@ -127,30 +127,31 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media, total_results
 
 
-async def get_search_results(query, file_type=None, max_results=10, offset=0):
-    """For given query return (results, next_offset)"""
-    query = query.strip()
+async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
+    query = query.replace("'", "")
+    query = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query)
+    query = re.sub(r'\s+', ' ', query).strip()
     if not query:
-        raw_pattern = '.'
-    elif ' ' not in query:
+        return [], '', 0
+    if ' ' not in query:
         raw_pattern = r'(\b|[\.\+\-_])' + re.escape(query) + r'(\b|[\.\+\-_])'
     else:
-        raw_pattern = re.escape(query).replace(r'\ ', r'.*[\s\.\+\-_\(\)\[\]]')
+        raw_pattern = re.escape(query).replace(r'\ ', r'.*[\s\.\+\-_()]')
     try:
-        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
+        regex = re.compile(raw_pattern, re.IGNORECASE)
     except Exception:
-        return [], ''
-    filter_data = {'$or': [{'file_name': regex}, {'caption': regex}]} if USE_CAPTION_FILTER else {'file_name': regex}
+        return [], '', 0
+    filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]} if USE_CAPTION_FILTER else {'file_name': regex}
     if file_type:
-        filter_data['file_type'] = file_type
-    total_results = await Media.collection.count_documents(filter_data)
-    next_offset = offset + max_results
-    if next_offset > total_results:
-        next_offset = ''
-    cursor = Media.collection.find(filter_data).sort('$natural', -1).skip(offset).limit(max_results)
+        filter_dict['file_type'] = file_type
+    cursor = Media.collection.find(filter_dict).sort('file_name', 1).skip(offset).limit(max_results)
     raw_files = await cursor.to_list(length=max_results)
     files = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
-    return files, next_offset
+    total_results = await Media.collection.count_documents(filter_dict)
+    next_offset = offset + len(files)
+    if next_offset >= total_results:
+        next_offset = ''
+    return files, next_offset, total_results
 
 
 async def get_file_details(query):
