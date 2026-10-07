@@ -157,7 +157,8 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
 
 async def get_file_details(query):
     try:
-        return await Media.collection.find({"_id": query}).limit(1).to_list(length=1)
+        raw_files = await Media.collection.find({"_id": query}).limit(1).to_list(length=1)
+        return [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
     except Exception:
         return []
 
