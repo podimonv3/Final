@@ -20,12 +20,14 @@ import os
 # നിലവിലുള്ള മറ്റ് വേരിയബിളുകൾക്ക് താഴെ ഇത് ചേർക്കുക:
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "5f28978232d6d780d64dd0d0e0bbe2f2")
 OMDB_API_KEY = os.environ.get("OMDB_API_KEY", "65f7219f")
-DEFAULT_POSTER = os.environ.get("DEFAULT_POSTER", "https://files.catbox.moe/oryxah.jpg")
 SPELL_IMG = os.environ.get("SPELL_IMG", "https://files.catbox.moe/yt159d.jpg")
 FANART_API_KEY = os.environ.get("FANART_API_KEY", "d56b45eb243c31ca1229bd37813e66d8")
+DEFAULT_POSTER = os.environ.get("DEFAULT_POSTER", "https://files.catbox.moe/oryxah.jpg")
 
 
 # info.py ഫയലിൽ ഇത് ചേർക്കുക
+YEAR_IMG = os.environ.get("YEAR_IMG", "https://files.catbox.moe/2ooq8t.jpg")
+
 IMG = [
     "https://files.catbox.moe/xwbx9a.jpg",
     "https://files.catbox.moe/t2rb5f.jpg",
