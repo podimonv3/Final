@@ -143,12 +143,13 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0):
     filter_data = {'$or': [{'file_name': regex}, {'caption': regex}]} if USE_CAPTION_FILTER else {'file_name': regex}
     if file_type:
         filter_data['file_type'] = file_type
-    total_results = await Media.count_documents(filter_data)
+    total_results = await Media.collection.count_documents(filter_data)
     next_offset = offset + max_results
     if next_offset > total_results:
         next_offset = ''
-    cursor = Media.find(filter_data).sort('$natural', -1).skip(offset).limit(max_results)
-    files = await cursor.to_list(length=max_results)
+    cursor = Media.collection.find(filter_data).sort('$natural', -1).skip(offset).limit(max_results)
+    raw_files = await cursor.to_list(length=max_results)
+    files = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
     return files, next_offset
 
 
