@@ -830,35 +830,33 @@ async def cb_handler(client: Client, query: CallbackQuery):
 
 
 
-
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
         if not message.text or message.text.startswith("/"): return
-        if re.findall(r"((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
-        if 0 < len(message.text) < 100:
-            raw_search_query = message.text.strip()
-            search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', raw_search_query)
-            search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
-            search = re.sub(r"['‘’]", "", search)
-            search = re.sub(r"[-–—\_,#&?/( )\[\]\\\":\.¡%“”]", " ", search)
-            search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)
-            find = search.lower().split()
-            removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
-            search = " ".join(w for w in find if w not in removes).strip()
-            if not search: return
-            files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
-            if not files:
-                try:
-                    await advantage_spell_chok(client, msg)
-                except Exception:
-                    pass
-                return
-            key = f"{message.chat.id}-{message.id}"
-            _trim_dict(BUTTONS)
-            BUTTONS[key] = {"query": search, "total": total_results, "time": time.time()}
-        else:
+        if re.findall(r"((^/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
+        if not 0 < len(message.text) < 100: return
+
+        raw_search_query = message.text.strip()
+        search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', raw_search_query)
+        search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
+        search = re.sub(r"['‘’]", "", search)
+        search = re.sub(r"""[-–—\\_,#&?/( )\[\]":\.¡%“”]""", " ", search)
+        search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)
+
+        removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
+        search = " ".join(w for w in search.lower().split() if w not in removes).strip()
+        if not search: return
+
+        files, offset, total_results = await get_search_results(search, offset=0, filter=True)
+        if not files:
+            try: await advantage_spell_chok(client, msg)
+            except Exception: pass
             return
+
+        key = f"{message.chat.id}-{message.id}"
+        _trim_dict(BUTTONS)
+        BUTTONS[key] = {"query": search, "total": total_results, "time": time.time()}
     else:
         message = msg.message.reply_to_message if hasattr(msg, "message") and msg.message else msg
         search, files, offset, total_results = spoll
@@ -868,8 +866,7 @@ async def auto_filter(client, msg, spoll=False):
     BUTTONS[key] = {"query": search, "total": total_results, "time": time.time()}
 
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
-    print_check_text = ""
-    languages_found = []
+    print_check_text, languages_found = "", []
     lang_map = {
         'malayalam':'Malayalam','mal':'Malayalam','tamil':'Tamil','tam':'Tamil',
         'telugu':'Telugu','tel':'Telugu','hindi':'Hindi','hin':'Hindi',
@@ -880,32 +877,30 @@ async def auto_filter(client, msg, spoll=False):
 
     if files and isinstance(files, list):
         for file in files[:5]:
-            if hasattr(file, 'file_name') and file.file_name:
-                f_name_lower = file.file_name.lower()
-                for word in set(re.findall(r'\b\w+\b', f_name_lower)):
-                    if word in lang_map and lang_map[word] not in languages_found:
-                        languages_found.append(lang_map[word])
-        if hasattr(files[0], 'file_name') and files[0].file_name:
-            print_check_text = files[0].file_name.lower()
+            if getattr(file, "file_name", None):
+                fname = file.file_name.lower()
+                for word in set(re.findall(r'\b\w+\b', fname)):
+                    lang = lang_map.get(word)
+                    if lang and lang not in languages_found: languages_found.append(lang)
+        if getattr(files[0], "file_name", None): print_check_text = files[0].file_name.lower()
 
     for word in set(re.findall(r'\b\w+\b', search.lower())):
-        if word in lang_map and lang_map[word] not in languages_found:
-            languages_found.append(lang_map[word])
+        lang = lang_map.get(word)
+        if lang and lang not in languages_found: languages_found.append(lang)
 
-    if not year_match and files and hasattr(files[0], 'file_name') and files[0].file_name:
+    if not year_match and files and getattr(files[0], "file_name", None):
         found_years = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
-        if found_years:
-            year_match = [found_years[0]]
+        if found_years: year_match = [found_years[0]]
 
     detected_year = year_match[0] if year_match else ""
     movie_year = f" ({detected_year})" if detected_year else ""
     detected_print = "HD_Original"
 
-    if print_check_text and re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text, re.IGNORECASE):
+    if print_check_text and re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text, re.I):
         detected_print = "Theater_Print ⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
-    files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
+    files_count = total_results if total_results is not None else len(files)
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
     cap = (
@@ -917,16 +912,13 @@ async def auto_filter(client, msg, spoll=False):
     )
 
     settings = await get_settings(message.chat.id)
-    btn = []
-    pre = 'filep' if settings.get('file_secure', False) else 'file'
+    btn, pre = [], 'filep' if settings.get('file_secure', False) else 'file'
 
-    if settings.get("button", False):
-        for file in files:
-            url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
+    for file in files:
+        url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
+        if settings.get("button", False):
             btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", url=url)])
-    else:
-        for file in files:
-            url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
+        else:
             btn.append([
                 InlineKeyboardButton(text=file.file_name, url=url),
                 InlineKeyboardButton(text=get_size(file.file_size), url=url)
@@ -934,26 +926,27 @@ async def auto_filter(client, msg, spoll=False):
 
     offset = int(offset) if offset != "" and str(offset).isdigit() else 0
     if offset > 0:
-    btn.append([
-        InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
-        InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")
-    ])
+        btn.append([
+            InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
+            InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")
+        ])
 
-reply_markup = InlineKeyboardMarkup(btn)
+    reply_markup = InlineKeyboardMarkup(btn)
 
-try:
-    poster = await get_any_movie_poster(movie_name)
-    if poster:
-        await message.reply_photo(photo=poster, caption=cap, reply_markup=reply_markup)
-    else:
-        await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
-except Exception:
     try:
-        await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
+        poster = await asyncio.wait_for(get_any_movie_poster(search), timeout=2.0)
+    except Exception:
+        poster = None
+
+    try:
+        if poster:
+            await message.reply_photo(photo=poster, caption=cap, reply_markup=reply_markup)
+        else:
+            await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
     except Exception:
         pass
-                 
-                
+    
+                              
 
 async def advantage_spell_chok(client, msg):
     mv_id, mv_rqst = msg.id, msg.text
@@ -973,7 +966,7 @@ async def advantage_spell_chok(client, msg):
     reqst_gle = quote_plus(mv_rqst)
     google_button = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾)", url=f"https://www.google.com/search?q={reqst_gle}")],
-        [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
+        [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/UrvasiTheatres_bot")]
     ])
 
     try:
