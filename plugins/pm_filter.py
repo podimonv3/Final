@@ -111,7 +111,7 @@ async def pm_text(bot: Client, message):
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
         await asyncio.sleep(0.5)
         await message.reply_text(
-            text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
+            text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2021</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]])
         )
         return
@@ -859,7 +859,7 @@ async def auto_filter(client, msg, spoll=False):
                     "Please send your request in this format:\n"
                     "<code>Movie Name + Year</code>\n\n"
                     "Example:\n"
-                    "<code>Kuruthi 2019</code>\n\n"
+                    "<code>Kuruthi 2021</code>\n\n"
                     "💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>"
                 )
                 
