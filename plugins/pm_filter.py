@@ -409,7 +409,7 @@ async def next_page(bot, query):
 
     # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
     btn.append([
-        InlineKeyboardButton("✨ Join Our Group ✨", url="https://t.me/+eb__Eg3RS2IyZWQ1")
+        InlineKeyboardButton("⚠️ HOW T USE BOT FOR FILES ⚠️", url="https://t.me/Chithralokham/5")
     ])
     try:
         await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
@@ -954,7 +954,7 @@ async def auto_filter(client, msg, spoll=False):
         
         # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
         btn.append([
-            InlineKeyboardButton("✨ Join Our Group ✨", url="https://t.me/+eb__Eg3RS2IyZWQ1")
+            InlineKeyboardButton("⚠️ HOW TO USE BOT FOR FILES ⚠️, url="https://t.me/Chithralokham/5")
         ])
 
         reply_markup = InlineKeyboardMarkup(btn)                   
@@ -1058,7 +1058,7 @@ async def advantage_spell_chok(client, msg):
 
     # 📝 Heading ചേർക്കുന്നു
     spell_list_text = script.NO_TXT + "\n\n"
-    spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n"
+    spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n\n"
     
     # സജഷനുകൾ HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
     for index, movie_name in enumerate(movielist[:4], start=1):
