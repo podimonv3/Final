@@ -103,8 +103,8 @@ async def pm_text(bot: Client, message):
                 await db.col.update_one({'id': user_id}, {'$set': {'warning_sent': True}})
                 await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
                 await message.reply_text(
-                    text=f"<b>⚠️ ശ്രദ്ധിക്കുക / WARNING!\n\nനിങ്ങൾ ബോട്ടിന്റെ നിയമങ്ങൾ (Rules) തുടർച്ചയായി ലംഘിച്ചതിനാൽ അഡ്മിൻ നിങ്ങളെ മ്യൂട്ട് ചെയ്തിരിക്കുകയാണ്.\n\nഇനി മുതൽ കൃത്യമായ ഫോർമാറ്റിൽ (Movie Name + Year) അയച്ചാൽ മാത്രമേ ബോട്ട് നിങ്ങളുടെ റിക്വസ്റ്റുകൾ സ്വീകരിക്കുകയുള്ളൂ. നിയമങ്ങൾ വ്യക്തമായി വായിക്കാൻ താഴെയുള്ള ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.</b>",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 READ RULES 🚸", url="http://telegra.ph")]])
+                    text=f"<b>⚠️ ശ്രദ്ധിക്കുക / WARNING!\n\nനിങ്ങൾ ബോട്ടിന്റെ നിയമങ്ങൾ (Rules) ലംഘിച്ചതിനാൽ അഡ്മിൻ നിങ്ങളെ മ്യൂട്ട് ചെയ്തിരിക്കുകയാണ്.\n\നിയമങ്ങൾ വ്യക്തമായി വായിക്കാൻ താഴെയുള്ള rules ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.Mute ഒഴിവാക്കാൻ അഡ്മിനെ സമീപിക്കുക @Chithralokham",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 READ RULES 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]])
                 )
             return
             
@@ -112,7 +112,7 @@ async def pm_text(bot: Client, message):
         await asyncio.sleep(0.5)
         await message.reply_text(
             text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]])
         )
         return
 
@@ -223,7 +223,7 @@ async def pm_text(bot: Client, message):
                 await db.col.update_one({'id': user_id}, {'$set': {'warning_sent': True}})
                 await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
                 await message.reply_text(
-                    text=f"<b>⚠️ റിക്വസ്റ്റ് നിരസിച്ചു!\n\nനിങ്ങളെ അഡ്മിൻ മ്യൂട്ട് ചെയ്തിരിക്കുന്നതിനാൽ പുതിയ റിക്വസ്റ്റുകൾ സബ്മിറ്റ് ചെയ്യാൻ സാധിക്കില്ല. സിനിമയുടെ പേര് ഡാറ്റാബേസിൽ ഉണ്ടെങ്കിൽ മാത്രമേ ഫയലുകൾ ലഭിക്കുകയുള്ളൂ.</b>"
+                    text=f"<b>⚠️ റിക്വസ്റ്റ് നിരസിച്ചു!\n\nനിങ്ങളെ അഡ്മിൻ മ്യൂട്ട് ചെയ്തിരിക്കുന്നതിനാൽ പുതിയ റിക്വസ്റ്റുകൾ സബ്മിറ്റ് ചെയ്യാൻ സാധിക്കില്ല. Mute ഒഴിവാക്കാൻ അഡ്മിനെ സമീപിക്കുക @Chithralokham/3"
                 )
             return
             
@@ -233,8 +233,8 @@ async def pm_text(bot: Client, message):
         await message.reply_text(
             text="<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me")],
-                [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph")]
+                [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me/Chithralokham/3")],
+                [InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B4%95%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19")]
             ])
         )
 
