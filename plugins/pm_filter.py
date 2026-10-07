@@ -131,8 +131,7 @@ async def pm_text(bot: Client, message):
     if files:
         files_found = True
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-        
-        pre = 'file' 
+                
         key = f"{message.chat.id}-{message.id}"
         _trim_dict(BUTTONS) 
         BUTTONS[key] = {"query": search_query, "total": total_results, "time": time.time()}
@@ -379,8 +378,7 @@ async def next_page(bot, query):
         return
 
     btn = []
-    pre = 'file'  # ഫിക്സഡ് പ്രീഫിക്സ്
-
+    
     for file in files:
         btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
 
