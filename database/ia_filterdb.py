@@ -128,32 +128,51 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 async def get_search_results(query, file_type=None, max_results=10, offset=0, filter=False, total_results=None):
-    query = query.replace("'", "")
-    query = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query)
-    query = re.sub(r'\s+', ' ', query).strip()
+    query=query.replace("'", "")
+    query=re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query)
+    query=re.sub(r'\s+', ' ', query).strip()
     if not query:
         return [], '', 0
+
     if ' ' not in query:
-        raw_pattern = r'(\b|[\.\+\-_])' + re.escape(query) + r'(\b|[\.\+\-_])'
+        raw_pattern=r'(\b|[\.\+\-_])'+re.escape(query)+r'(\b|[\.\+\-_])'
     else:
-        raw_pattern = re.escape(query).replace(r'\ ', r'.*[\s\.\+\-_()]')
+        raw_pattern=re.escape(query).replace(r'\ ', r'.*[\s\.\+\-_()]')
+
     try:
-        regex = re.compile(raw_pattern, re.IGNORECASE)
+        regex=re.compile(raw_pattern, re.IGNORECASE)
+        start_regex=re.compile(r'^'+re.escape(query)+r'(?=\s|[\.\+\-_()]|$)', re.IGNORECASE)
     except Exception:
         return [], '', 0
-    filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]} if USE_CAPTION_FILTER else {'file_name': regex}
-    if file_type:
-        filter_dict['file_type'] = file_type
-    if total_results is None:
-        total_results = await Media.collection.count_documents(filter_dict)
-    cursor = Media.collection.find(filter_dict).sort('file_name', 1).skip(offset).limit(max_results)
-    raw_files = await cursor.to_list(length=max_results)
-    files = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
-    next_offset = offset + len(files)
-    if next_offset >= total_results:
-        next_offset = ''
-    return files, next_offset, total_results
 
+    filter_dict={'file_name': regex}
+    if file_type:
+        filter_dict['file_type']=file_type
+
+    if total_results is None:
+        total_results=await Media.collection.count_documents(filter_dict)
+
+    start_filter={'file_name': start_regex}
+    if file_type:
+        start_filter['file_type']=file_type
+
+    start_count=await Media.collection.count_documents(start_filter)
+
+    if offset < start_count:
+        cursor=Media.collection.find(start_filter).sort('file_name',1).skip(offset).limit(max_results)
+    else:
+        normal_filter={'$and':[{'file_name':regex},{'file_name':{'$not':start_regex}}]}
+        if file_type:
+            normal_filter['$and'].append({'file_type':file_type})
+        cursor=Media.collection.find(normal_filter).sort('file_name',1).skip(offset-start_count).limit(max_results)
+
+    raw_files=await cursor.to_list(length=max_results)
+    files=[Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
+    next_offset=offset+len(files)
+    if next_offset>=total_results:
+        next_offset=''
+
+    return files,next_offset,total_results
 
 async def get_file_details(query):
     try:
