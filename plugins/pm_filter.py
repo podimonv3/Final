@@ -85,20 +85,49 @@ async def pm_text(bot: Client, message):
     if message.text and (message.text.startswith("/") or message.text.startswith("#")): return
     if user_id in ADMINS: return
 
-    # 1. യൂസർ ഡാറ്റാബേസിൽ മ്യൂട്ട് ചെയ്യപ്പെട്ട ആളാണോ എന്ന് പരിശോധിക്കുന്നു
+    # 1. ടെക്സ്റ്റ് മെസ്സേജ് ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്തുന്നു
+    if not message.text:
+        return
+
+    text_to_check = message.text.strip()
+
+    # 2. ⚡ [ആദ്യ ഘട്ടം] ഫോർമാറ്റ് പരിശോധന (Format Validation)
+    # മെസ്സേജിന്റെ അവസാനം വർഷം (eg: 2024) ഇല്ലെങ്കിൽ ഡാറ്റാബേസ് സെർച്ച് ചെയ്യാതെ നേരിട്ട് Wrong Format മെസ്സേജ് അയക്കും
+    if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
+        user_data = await db.col.find_one({'id': int(user_id)}) if hasattr(db, "col") else None
+        is_muted = user_data.get('is_muted', False) if user_data else False
+        warning_sent = user_data.get('warning_sent', False) if user_data else False
+
+        if is_muted:
+            if not warning_sent:
+                await db.col.update_one({'id': user_id}, {'$set': {'warning_sent': True}})
+                await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+                await message.reply_text(
+                    text=f"<b>⚠️ ശ്രദ്ധിക്കുക / WARNING!\n\nനിങ്ങൾ ബോട്ടിന്റെ നിയമങ്ങൾ (Rules) തുടർച്ചയായി ലംഘിച്ചതിനാൽ അഡ്മിൻ നിങ്ങളെ മ്യൂട്ട് ചെയ്തിരിക്കുകയാണ്.\n\nഇനി മുതൽ കൃത്യമായ ഫോർമാറ്റിൽ (Movie Name + Year) അയച്ചാൽ മാത്രമേ ബോട്ട് നിങ്ങളുടെ റിക്വസ്റ്റുകൾ സ്വീകരിക്കുകയുള്ളൂ. നിയമങ്ങൾ വ്യക്തമായി വായിക്കാൻ താഴെയുള്ള ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.</b>",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 READ RULES 🚸", url="http://telegra.ph")]])
+                )
+            return
+            
+        await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+        await asyncio.sleep(0.5)
+        await message.reply_text(
+            text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph")]])
+        )
+        return
+
+    # 3. ⚡ [രണ്ടാം ഘട്ടം] മ്യൂട്ട് പരിശോധന
     user_data = await db.col.find_one({'id': int(user_id)}) if hasattr(db, "col") else None
     is_muted = user_data.get('is_muted', False) if user_data else False
     warning_sent = user_data.get('warning_sent', False) if user_data else False
 
-    # 2. ഫയൽ ഉണ്ടോ എന്ന് ആദ്യം പരിശോധിക്കുന്നു
+    # 4. ⚡ [മൂന്നാം ഘട്ടം] ഡാറ്റാബേസ് സെർച്ചിംഗ് (ശരിയായ ഫോർമാറ്റിൽ ഉള്ളവ മാത്രം ഇവിടെ എത്തും)
     files_found = False
     files = []
-    
-    if message.text:
-        search_query = message.text.strip()
-        files, offset, total_results = await get_search_results(search_query.lower(), offset=0, filter=True)
+    search_query = text_to_check
+    files, offset, total_results = await get_search_results(search_query.lower(), offset=0, filter=True)
 
-    # 3. ഫയൽ കണ്ടെത്തിയാൽ മ്യൂട്ട് നോക്കാതെ ഓട്ടോഫിൽറ്റർ ശൈലിയിലുള്ള ഫുൾ ക്യാപ്ഷനോടെ ബട്ടണുകൾ നൽകും
+    # 5. ഫയൽ കണ്ടെത്തിയാൽ ബട്ടണുകൾ നൽകുന്നു
     if files:
         files_found = True
         await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
@@ -115,7 +144,6 @@ async def pm_text(bot: Client, message):
         if total_results > 10:
             btn.append([InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")])
 
-        # ⚡ ഓട്ടോഫിൽറ്ററിലെ ക്യാപ്ഷൻ ലോജിക് ഇവിടെ ഇൻബിൽറ്റ് ആയി സെറ്റ് ചെയ്യുന്നു ✨
         year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search_query)
         combined_file_names = ""
         print_check_text = ""
@@ -164,19 +192,16 @@ async def pm_text(bot: Client, message):
         files_count = total_results
         clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search_query).strip().upper()
 
-        # 🎬 ഓട്ടോഫിൽറ്ററിലെ അതേ വലിയ ക്യാപ്ഷൻ ഫോർമാറ്റ് ഇൻബോക്സിലും കൊണ്ടുവരുന്നു ✨
         pm_cap = (
-            f"<b><i>🎬ᴍᴏᴠɪᴇꜱ ᴄᴏʟʟᴇᴄᴛɪᴏɴ\n\n"
+            f"<b><i>🎬ᴍᴏᴠɪᴇs ᴄᴏʟʟᴇᴄᴛɪᴏɴ\n\n"
             f"➤ꜰɪʟᴍ : {clean_title}{movie_year}\n"
             f"➤ʟᴀɴɢᴜᴀɢＥ : {detected_lang}\n"
             f"➤ᴘʀɪɴᴛ ᴛʏᴘＥ : {detected_print}\n"
-            f"➤ᴛᴏᴛᴀʟ ꜰɪʟＥꜱ : {files_count}\n\n"
+            f"➤ᴛᴏᴛᴀʟ ꜰɪʟＥs : {files_count}\n\n"
             f"© can_Urvashi Theaters™️</i></b>"
         )
 
-        # 🖼️ ഓട്ടോഫിൽറ്ററിലെ പോലെ റാൻഡം ആയി ഒരു ഇമേജ് പോസ്റ്റർ കൂടി തിരഞ്ഞെടുക്കുന്നു
         import random
-        from info import IMG
         poster_url = random.choice(IMG) if ( 'IMG' in globals() and IMG ) else None
 
         try:
@@ -191,29 +216,7 @@ async def pm_text(bot: Client, message):
                 pass
         return
 
-    # 4. ഫയൽ ഇല്ലെങ്കിൽ ഫോർമാറ്റ് ചെക്ക് ചെയ്യുന്നു
-    if message.text:
-        text_to_check = message.text.strip()
-        if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', text_to_check):
-            if is_muted:
-                if not warning_sent:
-                    await db.col.update_one({'id': user_id}, {'$set': {'warning_sent': True}})
-                    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-                    await message.reply_text(
-                        text=f"<b>⚠️ ശ്രദ്ധിക്കുക / WARNING!\n\nനിങ്ങൾ ബോട്ടിന്റെ നിയമങ്ങൾ (Rules) തുടർച്ചയായി ലംഘിച്ചതിനാൽ അഡ്മിൻ നിങ്ങളെ മ്യൂട്ട് ചെയ്തിരിക്കുകയാണ്.\n\nഇനി മുതൽ കൃത്യമായ ഫോർമാറ്റിൽ (Movie Name + Year) അയച്ചാൽ മാത്രമേ ബോട്ട് നിങ്ങളുടെ റിക്വസ്റ്റുകൾ സ്വീകരിക്കുകയുള്ളൂ. നിയമങ്ങൾ വ്യക്തമായി വായിക്കാൻ താഴെയുള്ള ബട്ടൺ ക്ലിക്ക് ചെയ്യുക.</b>",
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 READ RULES 🚸", url="http://telegra.ph")]])
-                    )
-                return
-                
-            await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-            await asyncio.sleep(0.5)
-            await message.reply_text(
-                text=f"<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\nPlease send your request in this format:\n<code>Movie Name + Year</code>\n\nExample:\n<code>Kuruthi 2019</code>\n\n💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚸 MUST READ 🚸", url="http://telegra.ph")]])
-            )
-            return
-
-    # 5. ഫോർമാറ്റ് കറക്റ്റാണ് പക്ഷെ ഫയൽ ഇല്ലെങ്കിൽ (റിക്വസ്റ്റ് സബ്മിറ്റ് ചെയ്യുമ്പോൾ)
+    # 6. ⚡ [നാലാം ഘട്ടം] ഫോർമാറ്റ് കറക്റ്റാണ് പക്ഷെ ഫയൽ ഇല്ലെങ്കിൽ (റിക്വസ്റ്റ് സബ്മിറ്റ് ചെയ്യുന്നു)
     if not files_found:
         if is_muted:
             if not warning_sent:
@@ -235,30 +238,19 @@ async def pm_text(bot: Client, message):
             ])
         )
 
-        content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
-        
         log_reply_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")],
             [InlineKeyboardButton("🔇 MUTE USER", callback_data=f"dbmute_{user_id}")]
         ])
-        log_text = f"<b>#PM_MSG\n\nNᴀᴍE : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢE :</b> <code>{content}</code>\n\n#id{user_id}"
+        log_text = f"<b>#PM_MSG\n\nNᴀᴍE : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢE :</b> <code>{text_to_check}</code>\n\n#id{user_id}"
 
         try:
-            if message.photo:
-                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
-                await bot.send_photo(chat_id=LOG_CHANNEL, photo=message.photo.file_id, caption=log_text, reply_markup=log_reply_markup)
-            elif message.video:
-                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_VIDEO)
-                await bot.send_video(chat_id=LOG_CHANNEL, video=message.video.file_id, caption=log_text, reply_markup=log_reply_markup)
-            elif message.sticker:
-                await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
-                await bot.send_sticker(chat_id=LOG_CHANNEL, sticker=message.sticker.file_id)
-            else:
-                await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.TYPING)
-                await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
+            await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.TYPING)
+            await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
         except Exception as e:
             logger.error(f"Error sending log to LOG_CHANNEL: {e}")
 
+           
 
 
 @Client.on_callback_query(filters.regex(r"^dbmute_") | filters.regex(r"^dbunmute_"))
