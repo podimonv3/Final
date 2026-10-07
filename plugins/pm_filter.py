@@ -854,11 +854,12 @@ async def auto_filter(client, msg, spoll=False):
 
             # 🚀 നമ്പറുകൾ അടുപ്പിച്ചു വന്നാൽ വർഷത്തിന് മുൻപ് സ്പേസ് നൽകുന്നു (eg: 20182023 -> 2018 2023)
             search = re.sub(r'(\d+)(19\d{2}|20[0-2]\d)\b', r'\1 \2', search)
+
             # അക്ഷരങ്ങൾക്ക് ശേഷമുള്ള വർഷങ്ങൾക്കും സ്പേസ് ഉറപ്പാക്കുന്നു (eg: kuruthi2019 -> kuruthi 2019)
             search = re.sub(r'(?<=\D)(19\d{2}|20[0-2]\d)\b', r' \1', search)
 
-            # 🛠️ മെസ്സേജിന്റെ അവസാന ഭാഗത്ത് വർഷം ഇല്ലെങ്കിൽ:
-            if not re.search(r'\b(19\d{2}|20[0-2]\d)\b\$', search):
+            # മെസ്സേജിന്റെ അവസാന ഭാഗത്ത് വർഷം ഇല്ലെങ്കിൽ
+            if not re.search(r'\b(19\d{2}|20[0-2]\d)\s*$', search):
                 wrong_format_text = (
                     "<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\n"
                     "Please send your request in this format:\n"
