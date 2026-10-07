@@ -934,12 +934,20 @@ async def auto_filter(client, msg, spoll=False):
 
     offset = int(offset) if offset != "" and str(offset).isdigit() else 0
     if offset > 0:
-        btn.append([
-            InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
-            InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")
-        ])    
-    reply_markup = InlineKeyboardMarkup(btn)
+    btn.append([
+        InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
+        InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")
+    ])
 
+reply_markup = InlineKeyboardMarkup(btn)
+
+try:
+    poster = await get_any_movie_poster(movie_name)
+    if poster:
+        await message.reply_photo(photo=poster, caption=cap, reply_markup=reply_markup)
+    else:
+        await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
+except Exception:
     try:
         await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
     except Exception:
