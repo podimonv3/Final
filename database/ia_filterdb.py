@@ -129,54 +129,35 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 async def get_search_results(query, file_type=None, max_results=10, offset=0):
     """For given query return (results, next_offset)"""
-
     query = query.strip()
     if not query:
         raw_pattern = '.'
     elif ' ' not in query:
-        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
+        raw_pattern = r'(\b|[\.\+\-_])' + re.escape(query) + r'(\b|[\.\+\-_])'
     else:
-        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_\(\)\[\]]')
-
+        parts = [re.escape(x) for x in query.split()]
+        raw_pattern = r'.*[\s\.\+\-_\(\)\[\]]'.join(parts)
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-    except:
+    except Exception:
         return [], ''
-
-    if USE_CAPTION_FILTER:
-        filter = {'$or': [{'file_name': regex}, {'caption': regex}]}
-    else:
-        filter = {'file_name': regex}
-
+    filter_data = {'$or': [{'file_name': regex}, {'caption': regex}]} if USE_CAPTION_FILTER else {'file_name': regex}
     if file_type:
-        filter['file_type'] = file_type
-
-    total_results = await Media.count_documents(filter)
+        filter_data['file_type'] = file_type
+    total_results = await Media.count_documents(filter_data)
     next_offset = offset + max_results
-
     if next_offset > total_results:
         next_offset = ''
-
-    cursor = Media.find(filter)
-
-    # Sort by recent
-    cursor.sort('$natural', -1)
-
-    # Slice files according to offset and max results
-    cursor.skip(offset).limit(max_results)
-
-    # Get list of files
+    cursor = Media.find(filter_data).sort('$natural', -1).skip(offset).limit(max_results)
     files = await cursor.to_list(length=max_results)
-
     return files, next_offset
 
 
-
 async def get_file_details(query):
-    filter = {'file_id': query}
-    cursor_media = Media.find(filter)
-    filedetails_media = await cursor_media.to_list(length=1)
-    return filedetails_media
+    try:
+        return await Media.collection.find({"_id": query}).limit(1).to_list(length=1)
+    except Exception:
+        return []
 
 
 def encode_file_id(s: bytes) -> str:
