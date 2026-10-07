@@ -127,7 +127,7 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media, total_results
 
 
-async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
+async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False, total_results=None):
     query = query.replace("'", "")
     query = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query)
     query = re.sub(r'\s+', ' ', query).strip()
@@ -144,10 +144,11 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]} if USE_CAPTION_FILTER else {'file_name': regex}
     if file_type:
         filter_dict['file_type'] = file_type
+    if total_results is None:
+        total_results = await Media.collection.count_documents(filter_dict)
     cursor = Media.collection.find(filter_dict).sort('file_name', 1).skip(offset).limit(max_results)
     raw_files = await cursor.to_list(length=max_results)
     files = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
-    total_results = await Media.collection.count_documents(filter_dict)
     next_offset = offset + len(files)
     if next_offset >= total_results:
         next_offset = ''
