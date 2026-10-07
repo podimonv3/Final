@@ -13,7 +13,7 @@ import pyrogram
 from database.connections_mdb import active_connection, all_connections, delete_connection, if_active, make_active, \
     make_inactive
 # 🚀 സ്റ്റാറ്റ്സ് പാനലിൽ പേര് കൃത്യമായി വരാൻ DATABASE_NAME കൂടി ഇമ്പോർട്ട് ചെയ്യുന്നു ✨
-from info import ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, AUTH_USERS, CUSTOM_FILE_CAPTION, AUTH_GROUPS, P_TTI_SHOW_OFF, SINGLE_BUTTON, SPELL_CHECK_REPLY, LOG_CHANNEL, SPELL_IMG, DATABASE_NAME
+from info import ADMINS, REQ_CHANNEL1, REQ_CHANNEL2, AUTH_USERS, CUSTOM_FILE_CAPTION, AUTH_GROUPS, P_TTI_SHOW_OFF, SINGLE_BUTTON, SPELL_CHECK_REPLY, LOG_CHANNEL, SPELL_IMG, DATABASE_NAME, YEAR_IMG
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram import Client, filters, enums
 from utils import get_size, is_subscribed, temp, get_settings, save_group_settings, is_requested_one, is_requested_two, get_any_movie_poster, get_poster
@@ -852,16 +852,37 @@ async def auto_filter(client, msg, spoll=False):
             search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
 
+            # 🛠️ ഫോർമാറ്റ് പരിശോധനയും YEAR_IMG (സിംഗിൾ ഫോട്ടോ) മറുപടിയും:
             if not re.search(r'\b(19\d{2}|20[0-2]\d)\b', search):
+                wrong_format_text = (
+                    "<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\n"
+                    "Please send your request in this format:\n"
+                    "<code>Movie Name + Year</code>\n\n"
+                    "Example:\n"
+                    "<code>Kuruthi 2019</code>\n\n"
+                    "💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>"
+                )
+                
+                # YEAR_IMG നേരിട്ട് എടുക്കുന്നു (globals സുരക്ഷയോടെ)
+                format_photo = YEAR_IMG if 'YEAR_IMG' in globals() and YEAR_IMG else "https://files.catbox.moe/2ooq8t.jpg"
+                
                 try:
-                    await message.reply_text(
-                        "<b>🎬 Movie Name + Year ആയി അയക്കൂ.\n\n"
-                        "ഉദാഹരണം: <code>Bigil 2019</code></b>",
+                    # 1. ആദ്യം YEAR_IMG ഫോട്ടോ ലിങ്ക് വെച്ച് ഫോട്ടോ സഹിതം അയക്കാൻ ശ്രമിക്കുന്നു
+                    await message.reply_photo(
+                        photo=format_photo,
+                        caption=wrong_format_text,
                         quote=True
                     )
                 except Exception:
-                    pass
-                    return
+                    try:
+                        # 2. ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ മാത്രം ടെക്സ്റ്റ് മെസ്സേജായി അയക്കുന്നു
+                        await message.reply_text(
+                            text=wrong_format_text,
+                            quote=True
+                        )
+                    except Exception:
+                        pass
+                return  # കോഡ് താഴേക്ക് പോകാതെ ഇവിടെ വെച്ച് സ്റ്റോപ്പ് ആകും
 
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
             if not files:
