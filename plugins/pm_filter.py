@@ -851,7 +851,9 @@ async def auto_filter(client, msg, spoll=False):
             removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
             search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
-            search = re.sub(r'(\d{4})(19\d{2}|20[0-2]\d)\b', r'\1 \2', search)
+            # 🚀 [അൾട്ടിമേറ്റ് നായർ ഫിക്സ്] നമ്പറുകൾ അടുപ്പിച്ചു വന്നാൽ വർഷത്തിന് മുൻപ് സ്പേസ് നൽകുന്നു (eg: 20182023 -> 2018 2023, 962018 -> 96 2018)
+            search = re.sub(r'(\d+)(19\d{2}|20[0-2]\d)\b', r'\1 \2', search)
+
             # അക്ഷരങ്ങൾക്ക് ശേഷമുള്ള വർഷങ്ങൾക്കും സ്പേസ് ഉറപ്പാക്കുന്നു (eg: kuruthi2019 -> kuruthi 2019)
             search = re.sub(r'(?<=\D)(19\d{2}|20[0-2]\d)\b', r' \1', search)
 
