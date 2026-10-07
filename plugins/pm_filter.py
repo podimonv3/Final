@@ -135,7 +135,7 @@ async def pm_text(bot: Client, message):
         pre = 'file' 
         key = f"{message.chat.id}-{message.id}"
         _trim_dict(BUTTONS) 
-        BUTTONS[key] = {"query": search_query, "time": time.time()} 
+        BUTTONS[key] = {"query": search_query, "total": total_results, "time": time.time()}
         
         btn = []
         for file in files[:10]: 
@@ -372,7 +372,8 @@ async def next_page(bot, query):
         tags = search.split(" [")[1].replace("]", "").split(" + ")
         db_search = f"{base} {' '.join(tags)}"
 
-    files, n_offset, total = await get_search_results(db_search.lower(), offset=offset, filter=True)
+    cached_total = button_data.get("total")
+    files, n_offset, total = await get_search_results(db_search.lower(), offset=offset, filter=True, total_results=cached_total)
     if not files:
         await query.answer("no files", show_alert=True)
         return
@@ -853,7 +854,7 @@ async def auto_filter(client, msg, spoll=False):
             # Fixed: Map the complete query layout inside the global index to allow downstream calculations to work
             key = f"{message.chat.id}-{message.id}"
             _trim_dict(BUTTONS) 
-            BUTTONS[key] = {"query": search, "time": time.time()} 
+            BUTTONS[key] = {"query": search, "total": total_results, "time": time.time()}
         else:
             return
     else:
