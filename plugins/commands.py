@@ -531,7 +531,11 @@ async def start(client, message):
     except UserIsBlocked:
         logger.warning("User %s blocked the bot", message.from_user.id)
     except Exception as e:
-        logger.error(e, exc_info=True)
+        logger.error("FILE SEND ERROR | file_id=%s | user=%s | error=%s", file_id, message.from_user.id, e, exc_info=True)
+        try:
+            await message.reply_text("❌ File send failed. Please try again.")
+        except Exception:
+            pass
 
    
     
