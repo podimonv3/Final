@@ -851,9 +851,12 @@ async def auto_filter(client, msg, spoll=False):
             removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
             search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
+            search = re.sub(r'(\d{4})(19\d{2}|20[0-2]\d)\b', r'\1 \2', search)
+            # അക്ഷരങ്ങൾക്ക് ശേഷമുള്ള വർഷങ്ങൾക്കും സ്പേസ് ഉറപ്പാക്കുന്നു (eg: kuruthi2019 -> kuruthi 2019)
+            search = re.sub(r'(?<=\D)(19\d{2}|20[0-2]\d)\b', r' \1', search)
 
-            # 🛠️ ഫോർമാറ്റ് പരിശോധനയും YEAR_IMG (സിംഗിൾ ഫോട്ടോ) മറുപടിയും:
-            if not re.search(r'\b(19\d{2}|20[0-2]\d)\b', search):
+            # 🛠️ [വർഷ പരിശോധന] മെസ്സേജിന്റെ ഏറ്റവും അവസാന ഭാഗത്ത് ഒരു വർഷം ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്തുന്നു
+            if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', search):
                 wrong_format_text = (
                     "<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\n"
                     "Please send your request in this format:\n"
