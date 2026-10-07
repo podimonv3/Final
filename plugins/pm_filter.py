@@ -417,11 +417,7 @@ async def next_page(bot, query):
             InlineKeyboardButton("Back", callback_data=f"next_{req}_{key}_{off_set}"),
             InlineKeyboardButton(f"{page} / {total_pages}", callback_data="pages"),
             InlineKeyboardButton("Next", callback_data=f"next_{req}_{key}_{n_offset}")
-        ])
-
-    btn.append([
-        InlineKeyboardButton("⚠️ HOW T USE BOT FOR FILES ⚠️", url="https://t.me/Chithralokham/5")
-    ])
+        ])    
 
     try:
         await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
@@ -941,9 +937,7 @@ async def auto_filter(client, msg, spoll=False):
         btn.append([
             InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
             InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")
-        ])
-
-    btn.append([InlineKeyboardButton("⚠️ HOW TO USE BOT FOR FILES ⚠️", url="https://t.me/Chithralokham/5")])
+        ])    
     reply_markup = InlineKeyboardMarkup(btn)
 
     try:
