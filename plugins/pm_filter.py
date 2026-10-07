@@ -954,7 +954,7 @@ async def auto_filter(client, msg, spoll=False):
         
         # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
         btn.append([
-            InlineKeyboardButton("⚠️ HOW TO USE BOT FOR FILES ⚠️, url="https://t.me/Chithralokham/5")
+            InlineKeyboardButton("⚠️ HOW TO USE BOT FOR FILES ⚠️", url="https://t.me/Chithralokham/5")
         ])
 
         reply_markup = InlineKeyboardMarkup(btn)                   
