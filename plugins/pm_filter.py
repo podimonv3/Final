@@ -852,8 +852,18 @@ async def auto_filter(client, msg, spoll=False):
             search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
 
-            files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
+            if not re.search(r'\b(19\d{2}|20[0-2]\d)\b', search):
+                try:
+                    await message.reply_text(
+                        "<b>🎬 Movie Name + Year ആയി അയക്കൂ.\n\n"
+                        "ഉദാഹരണം: <code>Bigil 2019</code></b>",
+                        quote=True
+                    )
+                except Exception:
+                    pass
+                    return
 
+            files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
             if not files:
                 try:
                     await advantage_spell_chok(client, msg)
