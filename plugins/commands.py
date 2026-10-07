@@ -265,7 +265,7 @@ async def start(client, message):
             btn.append([InlineKeyboardButton("🖥️ Server", callback_data="koyeb_stats"), InlineKeyboardButton("❌ Close", callback_data="close")])
         else:
             # 👥 സാധാരണ ഉപയോക്താക്കൾക്ക് ബോട്ട് ഗ്രൂപ്പിലേക്ക് ആഡ് ചെയ്യാനുള്ള ബട്ടണും ക്ലോസ് ബട്ടണും
-            btn.append([InlineKeyboardButton("➕ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ➕", url=f"https://t.me{temp.U_NAME}?startgroup=true")])
+            btn.append([InlineKeyboardButton("➕ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ➕", url=f"https://t.me/{temp.U_NAME}?startgroup=true")])
             btn.append([InlineKeyboardButton("❌ Close", callback_data="close")])
             
         try:
