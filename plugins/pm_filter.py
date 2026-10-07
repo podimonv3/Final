@@ -137,8 +137,8 @@ async def pm_text(bot: Client, message):
         BUTTONS[key] = {"query": search_query, "total": total_results, "time": time.time()}
         
         btn = []
-        for file in files[:10]: 
-            btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+        for file in files[:10]:
+            btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", url=f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}")])
 
         if total_results > 10:
             btn.append([InlineKeyboardButton(text=f"   𝟷 / {math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="ɴᴇxᴛ", callback_data=f"next_{user_id}_{key}_10")])
@@ -341,12 +341,11 @@ async def admin_reply_to_user(bot: Client, message):
 
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
-    # Fixed: Uses maxsplit=3 to safely unpack parameters even if chat IDs contain negative sign dashes or underscores
     try:
         ident, req, key, offset = query.data.split("_", 3)
     except ValueError:
-        return await query.answer("❌ Navigation layout error, please try searching again.", show_alert=True)
-        
+        return await query.answer("❌ Navigation error. Please search again.", show_alert=True)
+
     if int(req) not in [query.from_user.id, 0]:
         return await query.answer("Search for Yourself", show_alert=True)
 
@@ -357,13 +356,11 @@ async def next_page(bot, query):
 
     button_data = BUTTONS.get(key)
     if not button_data or not isinstance(button_data, dict):
-        await query.answer("Expired ,send request again🚫വീണ്ടും ഗ്രൂപ്പിൽ സെർച്ച്‌ ചെയ്യുക✅", show_alert=True)
-        return
+        return await query.answer("Expired. Please search again 🚫", show_alert=True)
 
     search = button_data.get("query")
     if not search:
-        await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
-        return
+        return await query.answer("Please search again.", show_alert=True)
 
     db_search = search
     if " [" in search:
@@ -372,15 +369,28 @@ async def next_page(bot, query):
         db_search = f"{base} {' '.join(tags)}"
 
     cached_total = button_data.get("total")
-    files, n_offset, total = await get_search_results(db_search.lower(), offset=offset, filter=True, total_results=cached_total)
-    if not files:
-        await query.answer("no files", show_alert=True)
-        return
+    files, n_offset, total = await get_search_results(
+        db_search.lower(), offset=offset, filter=True, total_results=cached_total
+    )
 
+    if not files:
+        return await query.answer("No files", show_alert=True)
+
+    settings = await get_settings(query.message.chat.id)
+    pre = "filep" if settings.get("file_secure", False) else "file"
     btn = []
-    
+
     for file in files:
-        btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+        url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
+        if settings.get("button", False):
+            btn.append([InlineKeyboardButton(
+                text=f"{get_size(file.file_size)}➪{file.file_name}", url=url
+            )])
+        else:
+            btn.append([
+                InlineKeyboardButton(text=file.file_name, url=url),
+                InlineKeyboardButton(text=get_size(file.file_size), url=url)
+            ])
 
     if 0 < offset < 10:
         off_set = 0
@@ -389,37 +399,39 @@ async def next_page(bot, query):
     else:
         off_set = offset - 10
 
-    if n_offset == '':
+    page = math.ceil(offset / 10) + 1
+    total_pages = math.ceil(total / 10)
+
+    if n_offset == "":
         btn.append([
             InlineKeyboardButton("Back", callback_data=f"next_{req}_{key}_{off_set}"),
-            InlineKeyboardButton(f"{math.ceil(offset / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages")
+            InlineKeyboardButton(f"{page} / {total_pages}", callback_data="pages")
         ])
     elif off_set is None:
         btn.append([
-            InlineKeyboardButton(f"{math.ceil(offset / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages"),
+            InlineKeyboardButton(f"{page} / {total_pages}", callback_data="pages"),
             InlineKeyboardButton("Next", callback_data=f"next_{req}_{key}_{n_offset}")
         ])
     else:
         btn.append([
             InlineKeyboardButton("Back", callback_data=f"next_{req}_{key}_{off_set}"),
-            InlineKeyboardButton(f"{math.ceil(offset / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages"),
+            InlineKeyboardButton(f"{page} / {total_pages}", callback_data="pages"),
             InlineKeyboardButton("Next", callback_data=f"next_{req}_{key}_{n_offset}")
         ])
 
-    # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
     btn.append([
         InlineKeyboardButton("⚠️ HOW T USE BOT FOR FILES ⚠️", url="https://t.me/Chithralokham/5")
     ])
+
     try:
         await query.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btn))
         await query.answer()
     except MessageNotModified:
         await query.answer()
     except MessageIdInvalid:
-        await query.answer("Expired 🚫 Search Again കാലാവധി കഴിഞ്ഞു വീണ്ടും സെർച്ച് ചെയ്യുക!", show_alert=True)
+        await query.answer("Expired 🚫 Search Again", show_alert=True)
     except FloodWait as e:
-        await query.answer(f"Slow Down Over Speed! ദയവായി {e.value} സെക്കൻഡ് കാത്തിരിക്കൂ.", show_alert=True)
-
+        await query.answer(f"Please wait {e.value} seconds.", show_alert=True)
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -941,11 +953,11 @@ async def auto_filter(client, msg, spoll=False):
         
         if settings.get("button", False):
             for file in files:
-                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", callback_data=f'{pre}#{file.file_id}')])
+                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", url=f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}")])
         else:
             for file in files:
-                btn.append([InlineKeyboardButton(text=file.file_name, callback_data=f'{pre}#{file.file_id}'), InlineKeyboardButton(text=get_size(file.file_size), callback_data=f'{pre}#{file.file_id}')])
-
+                url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
+                btn.append([InlineKeyboardButton(text=file.file_name, url=url), InlineKeyboardButton(text=get_size(file.file_size), url=url)])
         offset = int(offset) if (offset != "" and str(offset).isdigit()) else 0
 
         if offset > 0:
