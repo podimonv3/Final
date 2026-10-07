@@ -127,92 +127,49 @@ async def get_bad_files(query, file_type=None, filter=False):
     return files_media, total_results
 
 
-async def get_search_results(query, file_type=None, max_results=12, offset=0, filter=False):
-    query_no_apostrophe = query.replace("'", "")
-    cleaned_query_chars = re.sub(r'[^\u0D00-\u0D7F\u0041-\u005A\u0061-\u007A\u0030-\u0039]', ' ', query_no_apostrophe)
-    query = re.sub(r'\s+', ' ', cleaned_query_chars).strip()
+async def get_search_results(query, file_type=None, max_results=10, offset=0):
+    """For given query return (results, next_offset)"""
 
+    query = query.strip()
     if not query:
-        return [], '', 0
-
-    if ' ' not in query:
+        raw_pattern = '.'
+    elif ' ' not in query:
         raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
     else:
-        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_()]')
+        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_\(\)\[\]]')
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
-        return [], '', 0
+        return [], ''
 
     if USE_CAPTION_FILTER:
-        filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]}
+        filter = {'$or': [{'file_name': regex}, {'caption': regex}]}
     else:
-        filter_dict = {'file_name': regex}
+        filter = {'file_name': regex}
 
     if file_type:
-        filter_dict['file_type'] = file_type
+        filter['file_type'] = file_type
 
-    # Fixed: Routed directly through the collection driver handle to avoid umongo's missing attribute crash
-    cursor_media = Media.collection.find(filter_dict).sort('file_name', 1).allow_disk_use(True)
+    total_results = await Media.count_documents(filter)
+    next_offset = offset + max_results
 
-    # Convert the returned raw dictionary documents into proper umongo object mappings for downstream processing compatibility
-    raw_files = await cursor_media.to_list(length=60)
-    files_media = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
+    if next_offset > total_results:
+        next_offset = ''
 
+    cursor = Media.find(filter)
 
-    if files_media:
-        query_lower = query.lower().strip()
-        
-        def sort_by_exact_match(file_obj):
-            file_name_lower = file_obj.file_name.lower().strip()
-            file_name_lower = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', file_name_lower)
-            file_name_lower = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', file_name_lower)
-            
-            custom_key = []
-            is_series = bool(re.search(r'\b(s\d+|e\d+)\b', file_name_lower))
-            
-            for text in re.split(r'(\d+)', file_name_lower):
-                if text.isdigit():
-                    num = int(text)
-                    if len(text) == 4 and not is_series:
-                        custom_key.append(-num)
-                    else:
-                        custom_key.append(num)
-                else:
-                    custom_key.append(text)
+    # Sort by recent
+    cursor.sort('$natural', -1)
 
-            exact_year_pattern = r'^' + re.escape(query_lower) + r'\s*(\d{4})\b'
-            if re.search(exact_year_pattern, file_name_lower): return (0, custom_key)
+    # Slice files according to offset and max results
+    cursor.skip(offset).limit(max_results)
 
-            match_season_pattern = r'^' + re.escape(query_lower) + r'\b.*?(s\d+|e\d+)'
-            if re.search(match_season_pattern, file_name_lower): return (1, custom_key)
+    # Get list of files
+    files = await cursor.to_list(length=max_results)
 
-            match_year_pattern = r'^' + re.escape(query_lower) + r'\b.*?(\d{4})'
-            if re.search(match_year_pattern, file_name_lower): return (2, custom_key)
-                
-            if file_name_lower.startswith(query_lower): return (3, custom_key)
-            return (4, custom_key)
+    return files, next_offset
 
-        files_media.sort(key=sort_by_exact_match)
-
-    seen_ids = set()
-    final_sorted_files = []
-    for file in files_media:
-        if file.file_id not in seen_ids:
-            final_sorted_files.append(file)
-            seen_ids.add(file.file_id)
-
-    total_results = len(final_sorted_files)
-    if offset < 0: offset = 0
-
-    files = final_sorted_files[offset:offset + max_results]
-    next_offset = offset + len(files)
-
-    if next_offset < total_results:
-        return files, next_offset, total_results
-    else:
-        return files, '', total_results
 
 
 async def get_file_details(query):
