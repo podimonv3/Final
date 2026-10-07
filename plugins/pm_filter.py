@@ -832,38 +832,34 @@ async def cb_handler(client: Client, query: CallbackQuery):
         except Exception:
             await query.message.edit_text(text=stats_text, reply_markup=reply_markup, parse_mode=enums.ParseMode.HTML)
 
+
+
+
 async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
         if not message.text or message.text.startswith("/"): return
-        if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
-
+        if re.findall(r"((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text): return
         if 0 < len(message.text) < 100:
-            # Fixed: Retain the original user query parameters for pagination, while optimizing a local variable for search execution
             raw_search_query = message.text.strip()
             search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', raw_search_query)
             search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
             search = re.sub(r"['‘’]", "", search)
-            search = re.sub(r"[-–—_,#&?/( )\[\]\\\":\.¡%“”]", " ", search)
+            search = re.sub(r"[-–—\_,#&?/( )\[\]\\\":\.¡%“”]", " ", search)
             search = re.sub(r"\b(hd|full|print|file)\b", "", search, flags=re.IGNORECASE)
-
-            find = search.lower().split(" ")
-            removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
+            find = search.lower().split()
+            removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
             search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
-
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
-
             if not files:
                 try:
                     await advantage_spell_chok(client, msg)
-                    return
                 except Exception:
-                    return
-                    
-            # Fixed: Map the complete query layout inside the global index to allow downstream calculations to work
+                    pass
+                return
             key = f"{message.chat.id}-{message.id}"
-            _trim_dict(BUTTONS) 
+            _trim_dict(BUTTONS)
             BUTTONS[key] = {"query": search, "total": total_results, "time": time.time()}
         else:
             return
@@ -872,119 +868,90 @@ async def auto_filter(client, msg, spoll=False):
         search, files, offset, total_results = spoll
 
     key = f"{message.chat.id}-{message.id}"
-    _trim_dict(BUTTONS) 
-    BUTTONS[key] = {"query": search, "time": time.time()} 
-    
+    _trim_dict(BUTTONS)
+    BUTTONS[key] = {"query": search, "total": total_results, "time": time.time()}
+
     year_match = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', search)
-    
-    combined_file_names = ""
     print_check_text = ""
     languages_found = []
-
-    # ⚡ ഭാഷകൾ വേഗത്തിൽ ചെക്ക് ചെയ്യാനുള്ള മാപ്പ്
     lang_map = {
-        'malayalam': 'Malayalam', 'mal': 'Malayalam', 'tamil': 'Tamil', 'tam': 'Tamil',
-        'telugu': 'Telugu', 'tel': 'Telugu', 'hindi': 'Hindi', 'hin': 'Hindi',
-        'english': 'English', 'eng': 'English', 'kannada': 'Kannada', 'kan': 'Kannada',
-        'marathi': 'Marathi', 'mar': 'Marathi', 'bengali': 'Bengali', 'ben': 'Bengali',
-        'odia': 'Odia', 'ori': 'Odia', 'multi': 'Multi_Audio', 'audio': 'Multi_Audio', 'dual': 'Multi_Audio'
+        'malayalam':'Malayalam','mal':'Malayalam','tamil':'Tamil','tam':'Tamil',
+        'telugu':'Telugu','tel':'Telugu','hindi':'Hindi','hin':'Hindi',
+        'english':'English','eng':'English','kannada':'Kannada','kan':'Kannada',
+        'marathi':'Marathi','mar':'Marathi','bengali':'Bengali','ben':'Bengali',
+        'odia':'Odia','ori':'Odia','multi':'Multi_Audio','audio':'Multi_Audio','dual':'Multi_Audio'
     }
-    
+
     if files and isinstance(files, list):
-        # ⚡ ആദ്യത്തെ 5 ഫയലുകൾ ഓരോന്നായി (Separate) എടുത്ത് ഭാഷ ചെക്ക് ചെയ്യുന്നു
-        for index, file in enumerate(files[:5]):
+        for file in files[:5]:
             if hasattr(file, 'file_name') and file.file_name:
                 f_name_lower = file.file_name.lower()
-                combined_file_names += " " + f_name_lower
-                
-                # ഓരോ ഫയലിലെയും വാക്കുകൾ വേർതിരിച്ച് ഭാഷ നോക്കുന്നു
-                file_words = set(re.findall(r'\b\w+\b', f_name_lower))
-                for word in file_words:
+                for word in set(re.findall(r'\b\w+\b', f_name_lower)):
                     if word in lang_map and lang_map[word] not in languages_found:
                         languages_found.append(lang_map[word])
-                        
-        # ⚡ പ്രിന്റ് ടൈപ്പ് നോക്കാൻ ആദ്യത്തെ ഫയൽ മാത്രം എടുക്കുന്നു
         if hasattr(files[0], 'file_name') and files[0].file_name:
             print_check_text = files[0].file_name.lower()
 
-    # യൂസർ സെർച്ച് ചെയ്ത ടെക്സ്റ്റിലും ഭാഷയുണ്ടോ എന്ന് നോക്കുന്നു
-    search_words = set(re.findall(r'\b\w+\b', search.lower()))
-    for word in search_words:
+    for word in set(re.findall(r'\b\w+\b', search.lower())):
         if word in lang_map and lang_map[word] not in languages_found:
             languages_found.append(lang_map[word])
 
-    # ⚡ ലിസ്റ്റ് തെറ്റാതെ ആദ്യത്തെ ഫയലിലെ വർഷം മാത്രം കൃത്യമായി എടുക്കുന്നു
     if not year_match and files and hasattr(files[0], 'file_name') and files[0].file_name:
         found_years = re.findall(r'\b(19\d{2}|20[0-2]\d)\b', files[0].file_name)
         if found_years:
-            year_match = [found_years[0]] # ലിസ്റ്റിലെ ആദ്യത്തെ വർഷം മാത്രം സ്ട്രിംഗായി മാറ്റുന്നു
-    
+            year_match = [found_years[0]]
+
     detected_year = year_match[0] if year_match else ""
     movie_year = f" ({detected_year})" if detected_year else ""
-    
-    # 🎞️ പ്രിന്റ് ടൈപ്പ് (ആദ്യത്തെ ഫയൽ വെച്ച് മാത്രം)
-    detected_print = "HD_Original" 
-    if print_check_text:
-        if re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text):
-            detected_print = "Theater_Print_⚠️"
+    detected_print = "HD_Original"
+
+    if print_check_text and re.search(r'\b(predvd|pre-dvd|dvdscr|hallprint|camrip|cam|hdcam|hall-print|s-print|HDTC)\b', print_check_text, re.IGNORECASE):
+        detected_print = "Theater_Print ⚠️"
 
     detected_lang = ", ".join(languages_found) if languages_found else "#Unknown"
-    
     files_count = total_results if 'total_results' in locals() else (len(files) if isinstance(files, list) else 1)
     clean_title = re.sub(r'\b(19\d{2}|20[0-2]\d)\b', '', search).strip().upper()
 
-    cap = (        
+    cap = (
         f"➤ꜰɪʟᴍ : {clean_title}{movie_year}\n"
         f"➤ʟᴀɴɢᴜᴀɢᴇ : {detected_lang}\n"
         f"➤ᴘʀɪɴᴛ ᴛʏᴘᴇ : {detected_print}\n"
         f"➤ᴛᴏᴛᴀʟ ꜰɪʟᴇꜱ : {files_count}\n\n"
-        f"© ᴛᴇᴀᴍ ᴜʀᴠᴀꜱʜɪ ᴛʜᴇᴀᴛᴇʀꜱ™</b></i>"
+        f"© ᴛᴇᴀᴍ ᴜʀᴠᴀꜱʜɪ ᴛʜᴇᴀᴛᴇʀꜱ™"
     )
-        
-        settings = await get_settings(message.chat.id)
-        btn = []
-        pre = 'filep' if settings.get('file_secure', False) else 'file'
-        
-        if settings.get("button", False):
-            for file in files:
-                btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", url=f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}")])
-        else:
-            for file in files:
-                url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
-                btn.append([InlineKeyboardButton(text=file.file_name, url=url), InlineKeyboardButton(text=get_size(file.file_size), url=url)])
-        offset = int(offset) if (offset != "" and str(offset).isdigit()) else 0
 
-        if offset > 0:
-            btn.append([InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"), InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")])
-        
-        # 🔹 പുതിയ ഗ്രൂപ്പ് ബട്ടൺ
+    settings = await get_settings(message.chat.id)
+    btn = []
+    pre = 'filep' if settings.get('file_secure', False) else 'file'
+
+    if settings.get("button", False):
+        for file in files:
+            url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
+            btn.append([InlineKeyboardButton(text=f"{get_size(file.file_size)}➪{file.file_name}", url=url)])
+    else:
+        for file in files:
+            url = f"https://t.me/{temp.U_NAME}?start={pre}_{file.file_id}"
+            btn.append([
+                InlineKeyboardButton(text=file.file_name, url=url),
+                InlineKeyboardButton(text=get_size(file.file_size), url=url)
+            ])
+
+    offset = int(offset) if offset != "" and str(offset).isdigit() else 0
+    if offset > 0:
         btn.append([
-            InlineKeyboardButton("⚠️ HOW TO USE BOT FOR FILES ⚠️", url="https://t.me/Chithralokham/5")
+            InlineKeyboardButton(text=f"1/{math.ceil(int(total_results) / 10)}", callback_data="pages"),
+            InlineKeyboardButton(text="Nᴇxᴛ", callback_data=f"next_{message.from_user.id}_{key}_{offset}")
         ])
 
-        reply_markup = InlineKeyboardMarkup(btn)                   
-                            
-    # 🎬 PICS ലിസ്റ്റിൽ നിന്നും റാൻഡം ആയി ഒരു ഇമേജ് ലിങ്ക് തിരഞ്ഞെടുക്കുന്നു
-    # ലിസ്റ്റ് ശൂന്യമാണെങ്കിൽ None എന്ന് സെറ്റ് ചെയ്യും
-    poster_url = random.choice(IMG) if IMG else None
-
-    fmsg = None
+    btn.append([InlineKeyboardButton("⚠️ HOW TO USE BOT FOR FILES ⚠️", url="https://t.me/Chithralokham/5")])
+    reply_markup = InlineKeyboardMarkup(btn)
 
     try:
-        if poster_url:
-            # നേരിട്ട് ഫോട്ടോയായി അയക്കാൻ ശ്രമിക്കുന്നു
-            fmsg = await message.reply_photo(photo=poster_url, caption=cap, reply_markup=reply_markup)
-        else:
-            # ലിങ്ക് ഇല്ലെങ്കിൽ നേരിട്ട് ടെക്സ്റ്റ് അയക്കുന്നു
-            fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
+        await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
     except Exception:
-        try:
-            # ഇമേജ് ലോഡ് ആയില്ലെങ്കിൽ ടെക്സ്റ്റ് മെസ്സേജായി അയക്കുന്നു
-            fmsg = await message.reply_text(text=cap, reply_markup=reply_markup, disable_web_page_preview=True)
-        except Exception:
-            pass
-
-
+        pass
+                 
+                
 
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
