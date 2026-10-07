@@ -133,25 +133,59 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
     query = re.sub(r'\s+', ' ', query).strip()
     if not query:
         return [], '', 0
+
     if ' ' not in query:
         raw_pattern = r'(\b|[\.\+\-_])' + re.escape(query) + r'(\b|[\.\+\-_])'
     else:
         raw_pattern = re.escape(query).replace(r'\ ', r'.*[\s\.\+\-_()]')
+
     try:
         regex = re.compile(raw_pattern, re.IGNORECASE)
     except Exception:
         return [], '', 0
+
     filter_dict = {'$or': [{'file_name': regex}, {'caption': regex}]} if USE_CAPTION_FILTER else {'file_name': regex}
     if file_type:
         filter_dict['file_type'] = file_type
+
     if total_results is None:
         total_results = await Media.collection.count_documents(filter_dict)
-    cursor = Media.collection.find(filter_dict).sort('file_name', 1).skip(offset).limit(max_results)
-    raw_files = await cursor.to_list(length=max_results)
-    files = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
+
+    exact_regex = re.compile(r'^' + re.escape(query) + r'$', re.IGNORECASE)
+    exact_filter = {'file_name': exact_regex}
+    if file_type:
+        exact_filter['file_type'] = file_type
+
+    exact_cursor = Media.collection.find(exact_filter).limit(max_results)
+    exact_raw = await exact_cursor.to_list(length=max_results)
+    exact_files = [Media.build_from_mongo(doc) for doc in exact_raw] if exact_raw else []
+    exact_ids = [doc['_id'] for doc in exact_raw]
+
+    remaining = max_results - len(exact_files)
+    normal_files = []
+
+    if remaining > 0:
+        normal_filter = dict(filter_dict)
+        if exact_ids:
+            if '$or' in normal_filter:
+                normal_filter = {'$and': [normal_filter, {'_id': {'$nin': exact_ids}}]}
+            else:
+                normal_filter['_id'] = {'$nin': exact_ids}
+
+        normal_offset = max(0, offset - len(exact_files))
+        cursor = Media.collection.find(normal_filter).sort('file_name', 1).skip(normal_offset).limit(remaining)
+        raw_files = await cursor.to_list(length=remaining)
+        normal_files = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
+
+    if offset == 0:
+        files = exact_files + normal_files
+    else:
+        files = normal_files
+
     next_offset = offset + len(files)
     if next_offset >= total_results:
         next_offset = ''
+
     return files, next_offset, total_results
 
 
