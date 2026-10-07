@@ -157,7 +157,7 @@ async def get_search_results(query, file_type=None, max_results=12, offset=0, fi
     cursor_media = Media.collection.find(filter_dict).sort('file_name', 1).allow_disk_use(True)
 
     # Convert the returned raw dictionary documents into proper umongo object mappings for downstream processing compatibility
-    raw_files = await cursor_media.to_list(length=125)
+    raw_files = await cursor_media.to_list(length=180)
     files_media = [Media.build_from_mongo(doc) for doc in raw_files] if raw_files else []
 
 
