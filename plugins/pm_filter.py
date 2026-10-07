@@ -851,43 +851,76 @@ async def auto_filter(client, msg, spoll=False):
             removes = {"pls","plz","plzz","please","send","snd","snt","gib","veno","venam","venum","undo","ayakkumo","ayakkumo","und","move","multi","dubb","dub","bro","bruh","broh","dubbed","link","lnk","iruka","pannunga","pannungga","anuppunga","anupunga","anuppungga","anupungga","subtile","kitti","kitty","tharu","kittumo","kittum","da","mwonse","bhai","share","malayalm","malylm","subtitle"}
             search = " ".join(w for w in find if w not in removes).strip()
             if not search: return
-            # 🚀 [അൾട്ടിമേറ്റ് നായർ ഫിക്സ്] നമ്പറുകൾ അടുപ്പിച്ചു വന്നാൽ വർഷത്തിന് മുൻപ് സ്പേസ് നൽകുന്നു (eg: 20182023 -> 2018 2023, 962018 -> 96 2018)
-            search = re.sub(r'(\d+)(19\d{2}|20[0-2]\d)\b', r'\1 \2', search)
 
+            # 🚀 നമ്പറുകൾ അടുപ്പിച്ചു വന്നാൽ വർഷത്തിന് മുൻപ് സ്പേസ് നൽകുന്നു (eg: 20182023 -> 2018 2023)
+            search = re.sub(r'(\d+)(19\d{2}|20[0-2]\d)\b', r'\1 \2', search)
             # അക്ഷരങ്ങൾക്ക് ശേഷമുള്ള വർഷങ്ങൾക്കും സ്പേസ് ഉറപ്പാക്കുന്നു (eg: kuruthi2019 -> kuruthi 2019)
             search = re.sub(r'(?<=\D)(19\d{2}|20[0-2]\d)\b', r' \1', search)
 
-            # 🛠️ [വർഷ പരിശോധന] മെസ്സേജിന്റെ ഏറ്റവും അവസാന ഭാഗത്ത് ഒരു വർഷം ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്തുന്നു
-            if not re.search(r'\b(19\d{2}|20[0-2]\d)\b$', search):
+            # 🛠️ മെസ്സേജിന്റെ അവസാന ഭാഗത്ത് വർഷം ഇല്ലെങ്കിൽ:
+            if not re.search(r'\b(19\d{2}|20[0-2]\d)\b\$', search):
                 wrong_format_text = (
                     "<b>❌ Wrong Format / തെറ്റായ ഫോർമാറ്റ്!\n\n"
                     "Please send your request in this format:\n"
                     "<code>Movie Name + Year</code>\n\n"
                     "Example:\n"
-                    "<code>Kuruthi 2021</code>\n\n"
+                    "<code>bigil 2019</code>\n"
+                    "<code>2018 2023</code>\n\n"
                     "💡 സിനിമയുടെ പേരിനൊപ്പം വർഷം കൂടി ടൈപ്പ് ചെയ്ത് അയക്കുക.</b>"
                 )
-                
-                # YEAR_IMG നേരിട്ട് എടുക്കുന്നു (globals സുരക്ഷയോടെ)
+
+                # `get_poster` വഴി സജഷനുകൾ എടുക്കുന്നു
+                try:
+                    movies = await get_poster(search, bulk=True)
+                except Exception:
+                    movies = None
+
+                if movies:
+                    movielist = []
+                    for movie in movies:
+                        title = movie.get('title') if isinstance(movie, dict) else getattr(movie, 'title', None)
+                        year = movie.get('year') if isinstance(movie, dict) else getattr(movie, 'year', None)
+                        
+                        if title:
+                            if year and str(year) != "N/A":
+                                year_str = re.findall(r'\b(19\d{2}|20\d{2})\b', str(year))
+                                year_val = f" {year_str[0]}" if year_str else ""
+                            else:
+                                year_val = ""
+                            movielist.append(f"{title.strip()}{year_val}")
+
+                    if movielist:
+                        wrong_format_text += "\n\n<u><b>💡 SUGGESTIONS FOR YOU 👇</b></u>\n\n"
+                        for index, movie_name in enumerate(movielist[:4], start=1):
+                            wrong_format_text += f"<b>{index}. {movie_name}</b>\n"
+
+                # 🟢 ഒരൊറ്റ ഗൂഗിൾ ബട്ടൺ മാത്രം ഇവിടെ സെറ്റ് ചെയ്യുന്നു
+                from urllib.parse import quote_plus
+                reqst_gle = quote_plus(raw_search_query)
+                google_button = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔎 Find Year On Google 🔍", url=f"https://www.google.com/search?q={reqst_gle}")]
+                ])
+
                 format_photo = YEAR_IMG if 'YEAR_IMG' in globals() and YEAR_IMG else "https://files.catbox.moe/2ooq8t.jpg"
                 
                 try:
-                    # 1. ആദ്യം YEAR_IMG ഫോട്ടോ ലിങ്ക് വെച്ച് ഫോട്ടോ സഹിതം അയക്കാൻ ശ്രമിക്കുന്നു
                     await message.reply_photo(
                         photo=format_photo,
                         caption=wrong_format_text,
+                        reply_markup=google_button,
                         quote=True
                     )
                 except Exception:
                     try:
-                        # 2. ഫോട്ടോ ലോഡ് ആയില്ലെങ്കിൽ മാത്രം ടെക്സ്റ്റ് മെസ്സേജായി അയക്കുന്നു
                         await message.reply_text(
                             text=wrong_format_text,
-                            quote=True
+                            reply_markup=google_button,
+                            quote=True,
+                            disable_web_page_preview=True
                         )
                     except Exception:
                         pass
-                return  # കോഡ് താഴേക്ക് പോകാതെ ഇവിടെ വെച്ച് സ്റ്റോപ്പ് ആകും
+                return  # ഫങ്ക്ഷൻ ഇവിടെ വെച്ച് അവസാനിക്കുന്നു
 
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
             if not files:
