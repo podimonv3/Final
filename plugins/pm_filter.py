@@ -948,118 +948,71 @@ async def auto_filter(client, msg, spoll=False):
                 
 
 async def advantage_spell_chok(client, msg):
-    mv_id = msg.id
-    mv_rqst = msg.text
+    mv_id, mv_rqst = msg.id, msg.text
     reqstr1 = msg.from_user.id if msg.from_user else 0
     cleaned_query = re.sub(
-        r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|"
-        r"br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|"
-        r"kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|"
-        r"any(one)|with\ssubtitle(s)?)",
+        r"\b(pl(i|e)\*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|"
+        r"br((o|u)h?)\*|^h(e|a)?(l)\*(o)\*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)\*|"
+        r"kit(t(i|y)?)?o(w)?|thar(u)?(o)\*w?|kittum(o)\*|aya(k)\*(um(o)\*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
         "", msg.text, flags=re.IGNORECASE
-    )
-    cleaned_query = cleaned_query.strip()
+    ).strip()
 
-    # 📌 സിനിമ ഡാറ്റാബേസിൽ ഇല്ലാത്തതിനാൽ ഇത് മിസ്സിംഗ് ലിസ്റ്റിലേക്ക് ആദ്യം തന്നെ സേവ് ചെയ്യുന്നു
     try:
         await save_missing_movie(cleaned_query)
     except Exception as e:
         logger.error(f"Missing movie save error: {e}")
 
-    # 🔍 ഗൂഗിൾ സെർച്ചിനായുള്ള ലിങ്കും മറ്റ് ബട്ടണുകളും ഫോർമാറ്റ് ചെയ്യുന്നു
     reqst_gle = quote_plus(mv_rqst)
     google_button = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾) 🔍", url=f"https://www.google.com/search?q={reqst_gle}")],
-        [
-            InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"),
-            InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")
-        ]
+        [InlineKeyboardButton("🔎 𝗖𝗼𝗿𝗿𝗲𝗰𝘁 𝗦𝗽𝗲𝗹𝗹𝗶𝗻𝗴 (𝖦𝗈𝗈𝗀𝗅𝖾)", url=f"https://www.google.com/search?q={reqst_gle}")],
+        [InlineKeyboardButton("📜 Rᴜʟᴇs", url="http://telegra.ph/Request-%E0%B4%85%E0%B4%AF%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95-%E0%B4%AE%E0%B4%A8%E0%B4%A8-%E0%B4%B5%E0%B4%AF%E0%B4%95%E0%B5%8D%E0%B4%95%E0%B5%81%E0%B4%A3%E0%B4%9F%E0%B4%A8%E0%B4%A8%E0%B4%A4-08-19"), InlineKeyboardButton("📥 Rᴇqᴜᴇsᴛ", url="http://t.me/Promoviesearcher_bot")]
     ])
 
     try:
-        # സിനിമയുടെ പേരുകൾ കണ്ടെത്താൻ ഒപ്റ്റിമൈസ് ചെയ്ത ഫങ്ക്ഷൻ ഉപയോഗിക്കുന്നു
         movies = await get_poster(cleaned_query, bulk=True)
-    except Exception as e:
-        logger.exception(e)
-        k = await msg.reply_text(
-            text=script.SPELL_TEXT.format(msg.from_user.mention), 
-            reply_markup=google_button,
-            reply_to_message_id=msg.id,
-            parse_mode=enums.ParseMode.HTML,
-            disable_web_page_preview=True
-        )        
-        return
+    except Exception:
+        movies = None
 
     if not movies:
-        k = await msg.reply_text(
-            text=script.SPELL_TEXT.format(msg.from_user.mention), 
-            reply_markup=google_button,
-            reply_to_message_id=msg.id,
-            parse_mode=enums.ParseMode.HTML,
-            disable_web_page_preview=True
-        )        
-        return
-
-    # 1. ലിസ്റ്റിൽ നിന്ന് ടൈറ്റിലും വർഷവും വേർതിരിച്ചെടുക്കുന്നു
-    movielist = []
-    for movie in movies:
-        if isinstance(movie, dict):
-            title = movie.get('title')
-            year = movie.get('year')
-        else:
-            title = movie.get('title') if hasattr(movie, 'get') else getattr(movie, 'title', None)
-            year = movie.get('year') if hasattr(movie, 'get') else getattr(movie, 'year', None)
-        
-        if title:
-            if year and str(year) != "N/A":
-                year_str = re.findall(r'\b(19\d{2}|20\d{2})\b', str(year))
-                year_val = f" {year_str[0]}" if year_str else ""
-            else:
-                year_val = ""
-                
-            movielist.append(f"{title.strip()}{year_val}")
-
-    if not movielist:
-        return
-
-    # 📝 Heading ചേർക്കുന്നു
-    spell_list_text = script.NO_TXT + "\n\n"
-    spell_list_text += "<u><b>SUGGESTIONS 👇</b></u>\n\n"
-    
-    # സജഷനുകൾ HTML-ൽ ബോൾഡ് ആയി ലിസ്റ്റ് ചെയ്യുന്നു
-    for index, movie_name in enumerate(movielist[:4], start=1):
-        spell_list_text += f"<b>{index}. {movie_name}</b>\n"
-
-    # 🖼️ ഫോട്ടോ എടുക്കാൻ get_any_movie_poster നിലനിർത്തിയിരിക്കുന്നു
-    try: 
-        photo_url = await get_any_movie_poster(cleaned_query)
-    except Exception: 
-        photo_url = None
-
-    if not photo_url:
-        photo_url = "https://files.catbox.moe/egu0ip.jpg"
-
-    # 📥 ഫോട്ടോ സഹിതം മറുപടി അയക്കുന്നു
-    try:
-        await msg.reply_photo(
-            photo=photo_url,
-            caption=spell_list_text,
-            reply_markup=google_button,
-            reply_to_message_id=msg.id,
-            parse_mode=enums.ParseMode.HTML
-        )
-    except Exception:
-        # ഫോട്ടോ അയക്കുന്നതിൽ എന്തെങ്കിലും തടസ്സം വന്നാൽ ബാക്കപ്പ് ആയി ടെക്സ്റ്റ് അയക്കും
         try:
             await msg.reply_text(
-                text=spell_list_text,
+                script.SPELL_TEXT.format(msg.from_user.mention),
                 reply_markup=google_button,
                 reply_to_message_id=msg.id,
                 parse_mode=enums.ParseMode.HTML,
                 disable_web_page_preview=True
             )
         except Exception:
-            return
+            pass
+        return
+
+    movielist = []
+    for movie in movies:
+        if isinstance(movie, dict):
+            title, year = movie.get('title'), movie.get('year')
+        else:
+            title = movie.get('title') if hasattr(movie, 'get') else getattr(movie, 'title', None)
+            year = movie.get('year') if hasattr(movie, 'get') else getattr(movie, 'year', None)
+        if title:
+            year_str = re.findall(r'\b(19\d{2}|20\d{2})\b', str(year)) if year and str(year) != "N/A" else []
+            movielist.append(f"{title.strip()}{' ' + year_str[0] if year_str else ''}")
+
+    if not movielist:
+        return
+
+    spell_list_text = script.NO_TXT + "\n\n<u><b>SUGGESTIONS 👇</b></u>\n\n"
+    spell_list_text += "\n".join(f"<b>{i}. {name}</b>" for i, name in enumerate(movielist[:4], 1))
+
+    try:
+        await msg.reply_text(
+            spell_list_text,
+            reply_markup=google_button,
+            reply_to_message_id=msg.id,
+            parse_mode=enums.ParseMode.HTML,
+            disable_web_page_preview=True
+        )
+    except Exception:
+        pass
            
                                
         
