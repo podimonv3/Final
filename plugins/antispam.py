@@ -1,7 +1,7 @@
 import re
 import asyncio
 import logging
-from pyrogram import Client, filters, enums  # enums ഇമ്പോർട്ട് ചെയ്തു
+from pyrogram import Client, filters, enums
 from pyrogram.types import Message, ChatPermissions
 from info import LOG_CHANNEL
 
@@ -68,10 +68,7 @@ async def anti_spam_handler(client: Client, message: Message):
                     await chat.restrict_member(
                         user.id, 
                         ChatPermissions(
-                            can_send_messages=False,
-                            can_send_media_messages=False,
-                            can_send_other_messages=False,
-                            can_add_web_page_previews=False
+                            can_send_messages=False
                         )
                     )
                 except Exception as mute_error:
@@ -93,7 +90,7 @@ async def anti_spam_handler(client: Client, message: Message):
             return
 
         # 3. അഡ്മിൻ ലോഗ് ചാനലിലേക്ക് റിപ്പോർട്ട് അയക്കുന്നു 🚨
-        pm_link = f"https://t.me/{user.username}" if user.username else f"tg://user?id={user.id}"
+        pm_link = f"https://t.me{user.username}" if user.username else f"tg://user?id={user.id}"
         
         report_text = (
             "🚨 **Anti-Spam Filter Report** 🚨\n\n"
